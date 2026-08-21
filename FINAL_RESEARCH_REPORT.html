@@ -1,0 +1,1352 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="공식 통계 원문 검증으로 외식업 리뷰 분석 AI 서비스의 사업 타당성과 안양시 실증 가능성을 판정한 보고서.">
+<title>리뷰 분석 AI 타당성 검증</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────
+   토큰 — 라이트 팔레트(기본)
+   ───────────────────────────────────────────── */
+:root {
+  --paper:      #F4F6F9;
+  --surface:    #FFFFFF;
+  --surface-2:  #EDF0F5;
+  --ink:        #14203A;
+  --ink-soft:   #47536B;
+  --ink-faint:  #78829A;
+  --rule:       #D5DBE5;
+  --rule-soft:  #E4E8EF;
+  --indigo:     #2A3F73;
+  --indigo-ink: #1D2C52;
+
+  /* 근거 강도 — 의미색(구조 강조색과 분리) */
+  --strong:     #1B6650;
+  --strong-bg:  #E4F0EB;
+  --partial:    #96631F;
+  --partial-bg: #F6EEDF;
+  --counter:    #A93028;
+  --counter-bg: #F8E7E5;
+  --absent:     #6B7689;
+  --absent-bg:  #E9ECF1;
+
+  --shadow: 0 1px 2px rgba(20,32,58,.05), 0 8px 24px -12px rgba(20,32,58,.14);
+
+  --font-display: "Gowun Batang", "Nanum Myeongjo", Batang, serif;
+  --font-body: "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --measure: 68ch;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #0D1421;
+    --surface:    #141C2C;
+    --surface-2:  #1B2438;
+    --ink:        #E4E9F2;
+    --ink-soft:   #A8B2C6;
+    --ink-faint:  #7C8699;
+    --rule:       #2B3548;
+    --rule-soft:  #222B3C;
+    --indigo:     #93A9E0;
+    --indigo-ink: #B6C6EC;
+
+    --strong:     #5FC49F;
+    --strong-bg:  #15302A;
+    --partial:    #D9A64E;
+    --partial-bg: #33280F;
+    --counter:    #EE8177;
+    --counter-bg: #37191A;
+    --absent:     #98A2B6;
+    --absent-bg:  #212939;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:      #0D1421;
+  --surface:    #141C2C;
+  --surface-2:  #1B2438;
+  --ink:        #E4E9F2;
+  --ink-soft:   #A8B2C6;
+  --ink-faint:  #7C8699;
+  --rule:       #2B3548;
+  --rule-soft:  #222B3C;
+  --indigo:     #93A9E0;
+  --indigo-ink: #B6C6EC;
+
+  --strong:     #5FC49F;
+  --strong-bg:  #15302A;
+  --partial:    #D9A64E;
+  --partial-bg: #33280F;
+  --counter:    #EE8177;
+  --counter-bg: #37191A;
+  --absent:     #98A2B6;
+  --absent-bg:  #212939;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.6);
+}
+
+/* ─────────────────────────────────────────────
+   기본
+   ───────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-wrap: balance;
+  line-height: 1.3;
+  margin: 0;
+}
+
+p { margin: 0; }
+a { color: var(--indigo); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { color: var(--indigo-ink); }
+
+:focus-visible {
+  outline: 2px solid var(--indigo);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--surface); color: var(--ink);
+  padding: .6rem 1rem; z-index: 100; border: 1px solid var(--rule);
+}
+.skip:focus { left: 1rem; top: 1rem; }
+
+/* ─────────────────────────────────────────────
+   헤더 밴드 — 통계연보 표지 인용
+   ───────────────────────────────────────────── */
+.masthead {
+  background: var(--indigo-ink);
+  color: #E9EDF7;
+  border-bottom: 3px solid var(--counter);
+}
+:root[data-theme="dark"] .masthead { background: #101A30; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .masthead { background: #101A30; }
+}
+
+.masthead-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 3.5rem 1.75rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 라틴 대문자용 넓은 자간(.14~.16em)은 한글에서 늘어져 보인다.
+   한글이 섞이는 라벨은 .05em 안팎으로 절제한다 */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #93A9E0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.25rem;
+}
+
+.masthead h1 {
+  font-size: clamp(2rem, 4.4vw, 3.1rem);
+  color: #FFFFFF;
+  letter-spacing: -.01em;
+  max-width: 20ch;
+}
+
+.masthead .standfirst {
+  max-width: 62ch;
+  color: #C3CDE4;
+  font-size: 1.02rem;
+}
+
+/* 빈 칸이 유령 블록으로 보이지 않도록 컨테이너는 투명하게 두고
+   셀마다 outline 으로 괘선을 그린다(outline 은 레이아웃을 밀지 않는다) */
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: transparent;
+  margin-top: .5rem;
+}
+.meta-grid div {
+  background: var(--indigo-ink);
+  outline: 1px solid rgba(255,255,255,.16);
+  padding: .85rem 1rem;
+  display: flex; flex-direction: column; gap: .2rem;
+}
+:root[data-theme="dark"] .meta-grid div { background: #101A30; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .meta-grid div { background: #101A30; }
+}
+.meta-grid dt {
+  font-family: var(--font-mono);
+  font-size: .68rem; letter-spacing: .05em; text-transform: uppercase;
+  color: #8C9FD4;
+}
+.meta-grid dd { margin: 0; font-size: .95rem; color: #E9EDF7; font-weight: 500; }
+
+/* ─────────────────────────────────────────────
+   레이아웃
+   ───────────────────────────────────────────── */
+.shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 1.75rem 5rem;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 3.5rem;
+  align-items: start;
+}
+
+.rail {
+  position: sticky;
+  top: 2rem;
+  padding-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  font-size: .85rem;
+}
+
+.rail nav ol {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  border-left: 1px solid var(--rule);
+}
+.rail nav a {
+  display: block;
+  padding: .35rem 0 .35rem .9rem;
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  color: var(--ink-soft);
+  text-decoration: none;
+  line-height: 1.4;
+}
+.rail nav a:hover { color: var(--indigo); border-left-color: var(--indigo); }
+
+.rail h2 {
+  font-family: var(--font-mono);
+  font-size: .68rem; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: .6rem;
+}
+
+.legend { display: flex; flex-direction: column; gap: .5rem; }
+.legend-row { display: flex; align-items: center; gap: .55rem; color: var(--ink-soft); }
+.swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+main { padding-top: 3rem; display: flex; flex-direction: column; gap: 4rem; min-width: 0; }
+
+section { display: flex; flex-direction: column; gap: 1.25rem; scroll-margin-top: 1.5rem; }
+section > p, section > ul, section > ol { max-width: var(--measure); }
+
+.sec-head { display: flex; flex-direction: column; gap: .4rem; }
+.sec-num {
+  font-family: var(--font-mono);
+  font-size: .7rem; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--indigo);
+}
+.sec-head h2 { font-size: clamp(1.5rem, 2.6vw, 1.95rem); }
+.sec-head .dek { color: var(--ink-soft); max-width: var(--measure); font-size: .96rem; }
+
+h3 {
+  font-size: 1.15rem;
+  margin-top: .75rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+ul, ol { padding-left: 1.2rem; margin: 0; display: flex; flex-direction: column; gap: .55rem; }
+li::marker { color: var(--ink-faint); }
+
+strong { font-weight: 700; }
+em { font-style: normal; background: var(--partial-bg); padding: 0 .25em; border-radius: 2px; }
+
+/* ─────────────────────────────────────────────
+   판정 패널 — 이 페이지의 논지
+   ───────────────────────────────────────────── */
+.verdict {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 4px solid var(--counter);
+  box-shadow: var(--shadow);
+  padding: 2rem 2rem 1.9rem;
+  display: flex; flex-direction: column; gap: 1.4rem;
+}
+.verdict-top { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: baseline; }
+.verdict-mark {
+  font-family: var(--font-display);
+  font-size: 4rem; line-height: 1;
+  color: var(--counter);
+  font-weight: 700;
+}
+.verdict-title { display: flex; flex-direction: column; gap: .25rem; }
+.verdict-title .label {
+  font-family: var(--font-mono);
+  font-size: .7rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.verdict-title h2 { font-size: 1.5rem; }
+
+.breaks { display: grid; gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); }
+@media (min-width: 720px) { .breaks { grid-template-columns: repeat(3, 1fr); } }
+.break {
+  background: var(--surface);
+  padding: 1.1rem 1.15rem;
+  display: flex; flex-direction: column; gap: .45rem;
+}
+.break .n {
+  font-family: var(--font-mono); font-size: .7rem; font-weight: 600;
+  letter-spacing: .1em; color: var(--counter);
+}
+.break h4 { font-size: 1rem; }
+.break p { font-size: .89rem; color: var(--ink-soft); line-height: 1.65; }
+
+.caveat {
+  border-left: 3px solid var(--indigo);
+  background: var(--surface-2);
+  padding: .9rem 1.1rem;
+  font-size: .91rem;
+  color: var(--ink-soft);
+}
+.caveat b { color: var(--ink); }
+
+/* ─────────────────────────────────────────────
+   근거 강도 칩
+   ───────────────────────────────────────────── */
+.chip {
+  font-family: var(--font-mono);
+  font-size: .68rem; font-weight: 600;
+  letter-spacing: .06em;
+  padding: .18rem .5rem;
+  border-radius: 3px;
+  white-space: nowrap;
+  display: inline-block;
+}
+.c-strong  { background: var(--strong-bg);  color: var(--strong); }
+.c-partial { background: var(--partial-bg); color: var(--partial); }
+.c-counter { background: var(--counter-bg); color: var(--counter); }
+.c-absent  { background: var(--absent-bg);  color: var(--absent); }
+.c-grade {
+  background: transparent; color: var(--ink-faint);
+  border: 1px solid var(--rule);
+}
+
+/* ─────────────────────────────────────────────
+   핵심 결론 리스트
+   ───────────────────────────────────────────── */
+.findings { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.finding {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0,1fr);
+  gap: 0 1rem;
+  padding: 1.15rem 1.15rem 1.15rem .9rem;
+  border-left: 3px solid var(--rule);
+  border-bottom: 1px solid var(--rule-soft);
+  background: var(--surface);
+}
+.finding:first-child { border-top: 1px solid var(--rule-soft); }
+.finding.s-strong  { border-left-color: var(--strong); }
+.finding.s-partial { border-left-color: var(--partial); }
+.finding.s-counter { border-left-color: var(--counter); }
+.finding.s-absent  { border-left-color: var(--absent); }
+.finding .idx {
+  font-family: var(--font-mono); font-size: .85rem; font-weight: 600;
+  color: var(--ink-faint); padding-top: .18rem;
+}
+.finding .body { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.finding .body p { font-size: .95rem; }
+
+/* ─────────────────────────────────────────────
+   표
+   ───────────────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+}
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+caption {
+  text-align: left; padding: .8rem 1rem;
+  font-family: var(--font-mono); font-size: .7rem;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface-2);
+}
+th, td { padding: .62rem .9rem; text-align: left; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+thead th {
+  font-family: var(--font-mono); font-size: .7rem; font-weight: 600;
+  letter-spacing: .03em; text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: none; }
+td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+tr.hi td { background: var(--counter-bg); }
+tr.hi td:first-child { font-weight: 700; }
+.rowlabel { font-weight: 500; white-space: nowrap; }
+
+/* ─────────────────────────────────────────────
+   Value Chain — 끊어진 고리
+   ───────────────────────────────────────────── */
+.chain { display: flex; flex-direction: column; margin: .5rem 0; }
+.link {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0,1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.link .rail-col {
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100%;
+}
+.node {
+  width: 2.2rem; height: 2.2rem; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: .78rem; font-weight: 600;
+  border: 2px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-faint);
+  flex: none;
+}
+.link.ok    .node { border-color: var(--strong);  color: var(--strong); }
+.link.part  .node { border-color: var(--partial); color: var(--partial); }
+.link.brk   .node { border-color: var(--counter); color: var(--counter); background: var(--counter-bg); }
+
+.connector { width: 2px; flex: 1 1 auto; min-height: 1.6rem; background: var(--rule); }
+.link.brk .connector,
+.link.gapafter .connector {
+  background: repeating-linear-gradient(to bottom, var(--counter) 0 4px, transparent 4px 9px);
+}
+.link .content { padding: .2rem 0 1.5rem; display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.link h4 { font-size: 1rem; font-family: var(--font-body); font-weight: 700; }
+.link p { font-size: .88rem; color: var(--ink-soft); }
+.link.brk h4 { color: var(--counter); }
+
+/* ─────────────────────────────────────────────
+   Evidence Pack 카드
+   ───────────────────────────────────────────── */
+.ev-grid { display: grid; gap: 1.25rem; }
+@media (min-width: 900px) { .ev-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.ev {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 1.3rem 1.35rem;
+  display: flex; flex-direction: column; gap: .75rem;
+  box-shadow: var(--shadow);
+}
+.ev-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+.ev-scope {
+  font-family: var(--font-mono); font-size: .67rem;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint);
+}
+.ev-fig {
+  font-family: var(--font-display);
+  font-size: 2.1rem; line-height: 1.1; font-weight: 700;
+  color: var(--indigo);
+  letter-spacing: -.01em;
+}
+.ev.warn .ev-fig { color: var(--counter); }
+.ev-msg { font-size: .95rem; font-weight: 500; }
+.ev-src {
+  font-family: var(--font-mono); font-size: .74rem; line-height: 1.6;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--rule-soft);
+  padding-top: .7rem;
+  word-break: break-word;
+}
+.ev-not {
+  font-size: .84rem; color: var(--ink-soft);
+  background: var(--surface-2);
+  padding: .6rem .75rem;
+  border-left: 2px solid var(--absent);
+}
+.ev-not b { color: var(--ink); font-weight: 600; }
+
+/* ─────────────────────────────────────────────
+   기타
+   ───────────────────────────────────────────── */
+.callout {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--indigo);
+  padding: 1.2rem 1.35rem;
+  display: flex; flex-direction: column; gap: .6rem;
+}
+.callout h4 { font-size: 1rem; }
+.callout p, .callout li { font-size: .91rem; color: var(--ink-soft); }
+.callout.danger { border-left-color: var(--counter); }
+
+pre.code {
+  font-family: var(--font-mono); font-size: .78rem; line-height: 1.7;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  margin: 0;
+  color: var(--ink-soft);
+}
+pre.code b { color: var(--counter); font-weight: 600; }
+
+.fails { display: grid; gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); }
+@media (min-width: 760px) { .fails { grid-template-columns: repeat(3, 1fr); } }
+.fail { background: var(--surface); padding: 1.05rem 1.1rem; display: flex; flex-direction: column; gap: .4rem; }
+.fail h4 { font-size: .95rem; font-family: var(--font-body); font-weight: 700; }
+.fail p { font-size: .85rem; color: var(--ink-soft); line-height: 1.6; }
+
+footer {
+  border-top: 1px solid var(--rule);
+  margin-top: 1rem;
+  padding-top: 2rem;
+  display: flex; flex-direction: column; gap: 1.25rem;
+  color: var(--ink-soft); font-size: .88rem;
+}
+footer h3 { border: none; padding: 0; margin: 0; font-size: 1rem; }
+
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0,1fr); gap: 0; }
+  .rail { display: none; }
+  main { padding-top: 2.5rem; gap: 3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="eyebrow">
+      <span>공식 통계 기반 타당성 검증</span>
+      <span>2026-08-21</span>
+      <span>Sub-Agent 9 · 원문 검증 592회</span>
+    </div>
+    <h1>공개 리뷰를 AI로 분석하면, 사장님에게 가치가 있는가</h1>
+    <p class="standfirst">
+      네이버지도·카카오맵의 공개 음식점 리뷰를 AI로 분석해 고객 인식과 고객유형을 도출하고,
+      RAG로 마케팅 지식과 결합해 개선을 제안하는 서비스. 이 가설이 대한민국 공식 통계로
+      실제 지지되는지, 경기도 안양시가 초기 실증지로 타당한지를 원문 근거만으로 판정했다.
+    </p>
+    <dl class="meta-grid">
+      <div><dt>최종 판정</dt><dd>D — 근거 약함</dd></div>
+      <div><dt>가설 판정</dt><dd>강한 지지 3 · 반대 1</dd></div>
+      <div><dt>독립 검증</dt><dd>PASS 33 / 37</dd></div>
+      <div><dt>제외한 통계</dt><dd>원문 불일치 1건</dd></div>
+    </dl>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail">
+    <div>
+      <h2>근거 강도</h2>
+      <div class="legend">
+        <div class="legend-row"><span class="swatch" style="background:var(--strong)"></span>강한 근거</div>
+        <div class="legend-row"><span class="swatch" style="background:var(--partial)"></span>부분 근거</div>
+        <div class="legend-row"><span class="swatch" style="background:var(--counter)"></span>반대 근거</div>
+        <div class="legend-row"><span class="swatch" style="background:var(--absent)"></span>공식 근거 부족</div>
+      </div>
+    </div>
+    <nav aria-label="목차">
+      <h2>목차</h2>
+      <ol>
+        <li><a href="#verdict">판정</a></li>
+        <li><a href="#summary">핵심 결론 10</a></li>
+        <li><a href="#pain">외식업의 실제 문제</a></li>
+        <li><a href="#review">리뷰라는 원자료</a></li>
+        <li><a href="#market">경쟁과 데이터 장벽</a></li>
+        <li><a href="#anyang">안양시</a></li>
+        <li><a href="#hypo">가설 판정</a></li>
+        <li><a href="#chain">끊어진 연결고리</a></li>
+        <li><a href="#persona">페르소나와 RAG</a></li>
+        <li><a href="#pack">Evidence Pack</a></li>
+        <li><a href="#fail">실패 시나리오</a></li>
+        <li><a href="#gap">남은 질문</a></li>
+        <li><a href="#verify">검증 절차</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <main id="main">
+
+    <!-- 판정 -->
+    <section id="verdict">
+      <div class="verdict">
+        <div class="verdict-top">
+          <div class="verdict-mark">D</div>
+          <div class="verdict-title">
+            <span class="label">프로젝트 가치 판정</span>
+            <h2>현재 형태의 MVP 가설은 공식 자료로 지지되지 않는다</h2>
+          </div>
+        </div>
+        <p style="max-width:var(--measure)">
+          이 판정은 <strong>“외식업에 문제가 없다”는 뜻이 아니다.</strong> 외식업 경영난은 이 조사에서
+          가장 강하게 입증된 사실이다. 판정이 D인 이유는 그 문제에서 이 해결책으로 가는
+          연결고리가 세 군데에서 끊어지기 때문이다.
+        </p>
+        <div class="breaks">
+          <div class="break">
+            <span class="n">단절 01</span>
+            <h4>문제 정의가 어긋난다</h4>
+            <p>겨냥한 pain(마케팅·고객 인식)은 정작 대상 업종에서 애로 순위 8위, 3.4%다. 원재료비 73.9%·경쟁심화 62.4%와 자릿수가 다르다.</p>
+          </div>
+          <div class="break">
+            <span class="n">단절 02</span>
+            <h4>해결책이 이미 무상으로 있다</h4>
+            <p>리뷰 수집 → AI 분석 → 강점·약점 제시 → 답글 제안까지를 정부(aT)와 네이버가 무료로 제공 중이다.</p>
+          </div>
+          <div class="break">
+            <span class="n">단절 03</span>
+            <h4>데이터 취득이 봉쇄돼 있다</h4>
+            <p>네이버·카카오 robots.txt가 하필 이 프로젝트의 용도(AI 학습·RAG)를 콕 집어 금지한다.</p>
+          </div>
+        </div>
+        <div class="caveat">
+          <b>이 판정의 한계.</b> D는 “공식 통계로 이 가설을 지지할 수 없다”는 뜻이지 “사업이 실패한다”는 예측이 아니다.
+          외식업자의 실제 인식과 행동을 담은 1차 자료가 이 조사에는 없다.
+          안양시 외식업자 10~20명 인터뷰가 판정을 B나 C로 바꿀 수 있는 가장 빠른 경로다.
+        </div>
+      </div>
+    </section>
+
+    <!-- 핵심 결론 -->
+    <section id="summary">
+      <div class="sec-head">
+        <span class="sec-num">01 — Executive Summary</span>
+        <h2>핵심 결론 10</h2>
+        <p class="dek">각 결론에 근거 강도를 표시했다. 프로젝트에 불리한 결론을 앞쪽에 배치했다.</p>
+      </div>
+
+      <ul class="findings">
+        <li class="finding s-strong">
+          <span class="idx">01</span>
+          <div class="body">
+            <span class="chip c-strong">강한 근거</span>
+            <p>외식업 자영업자의 경영 부담은 실재하며 강하게 입증된다. 2024년 기준 외식업체 평균 영업이익률은 <strong>8.7%</strong>(직전 확인판 11.6%에서 하락)이고, 숙박·음식점업 창업기업의 <strong>5년 생존율은 20.5%</strong>로 전산업 평균 31.2%보다 10.7%p 낮다.</p>
+          </div>
+        </li>
+        <li class="finding s-counter">
+          <span class="idx">02</span>
+          <div class="body">
+            <span class="chip c-counter">반대 근거</span>
+            <p><strong>그러나 그 부담의 내용은 “마케팅·고객 확보”가 아니다.</strong> 숙박·음식점업 소상공인의 경영애로 1위는 원재료비(73.9%), 2위 경쟁심화(62.4%)이며, 마케팅에 가장 가까운 항목인 <strong>“판로개척 및 운영”은 3.4%로 11개 항목 중 8위</strong>다. 전산업 평균 16.0%, 제조업 29.8%와 비교하면 외식업에서 유독 낮다.</p>
+          </div>
+        </li>
+        <li class="finding s-counter">
+          <span class="idx">03</span>
+          <div class="body">
+            <span class="chip c-counter">반대 근거</span>
+            <p>리뷰 분석 기능은 이미 <strong>정부와 플랫폼이 무료로 제공</strong>하고 있다. aT의 「The외식 나침반」이 포털 리뷰를 분석해 매장 강점·보완점을 제시하고, 네이버 스마트플레이스 ‘온서비스 AI’가 부정 리뷰 감지·답글 초안을 제공하며(2025.12 발표, 베타 사업자 만족도 97%), 캐시노트도 2026년 5월 AI 리뷰 관리를 출시했다.</p>
+          </div>
+        </li>
+        <li class="finding s-counter">
+          <span class="idx">04</span>
+          <div class="body">
+            <span class="chip c-counter">반대 근거</span>
+            <p><strong>데이터 수집 경로가 정면으로 막혀 있다.</strong> 네이버 지도와 카카오맵 robots.txt 모두 최상단에 AI 학습·RAG 목적의 봇 접근을 금지한다고 명시하고 ClaudeBot·GPTBot 등을 개별 차단하며, 전 경로에 <code>Disallow: /</code>를 적용한다. 네이버 이용약관도 자동화 수단에 의한 게시물 수집을 금지한다. 카카오는 리뷰를 오픈API·제휴 어느 쪽으로도 제공하지 않는다고 공식 답변했다.</p>
+          </div>
+        </li>
+        <li class="finding s-partial">
+          <span class="idx">05</span>
+          <div class="body">
+            <span class="chip c-partial">부분 근거</span>
+            <p>소비자가 리뷰를 참고한다는 근거는 있으나 <strong>모집단이 배달앱 이용자로 한정</strong>된다. 한국소비자원 조사에서 배달앱 이용자의 73.4%가 음식점·메뉴 선택 시 리뷰를 참고한다고 답했다. 매장 방문 중심 소비자 전체를 포괄하는 국가승인통계는 찾지 못했다.</p>
+          </div>
+        </li>
+        <li class="finding s-strong">
+          <span class="idx">06</span>
+          <div class="body">
+            <span class="chip c-strong">강한 근거 — 프로젝트에 불리</span>
+            <p><strong>리뷰는 고객을 대표하지 못한다는 근거가 오히려 강하다.</strong> 같은 조사에서 리뷰 작성자의 65.2%가 리뷰이벤트 참여를 작성 이유로 꼽았고, 이벤트 참여자의 98.3%가 실제 만족도보다 별점을 높게 줬다고 답했다. 국제 학술 문헌의 J자형 분포·자기선택 편향과도 정합적이다.</p>
+          </div>
+        </li>
+        <li class="finding s-absent">
+          <span class="idx">07</span>
+          <div class="body">
+            <span class="chip c-absent">공식 근거 부족</span>
+            <p><strong>리뷰로 고객의 연령·성별·직업을 알 수 있다는 근거는 존재하지 않는다.</strong> 이를 검증한 국내 공식·학술 자료를 찾지 못했다. 페르소나 방법론 자체도 “몇 명의 실제 사용자를 대표하는지 검증 불가능하다”는 학술적 비판을 받아 왔다.</p>
+          </div>
+        </li>
+        <li class="finding s-strong">
+          <span class="idx">08</span>
+          <div class="body">
+            <span class="chip c-strong">강한 근거</span>
+            <p>안양시는 <strong>실증 가능한 규모를 갖췄다.</strong> 2024년 기준 음식점 및 주점업 사업체 <strong>7,173개</strong>(종사자 21,234명), 그중 음식점업 <strong>4,743개</strong>다. 동안구 3,998개 &gt; 만안구 3,175개이며, 행정동 기준 상위는 인덕원동 762개, 범계동 483개, 관양동 475개, 부림동 466개, 안양1동 455개다.</p>
+          </div>
+        </li>
+        <li class="finding s-partial">
+          <span class="idx">09</span>
+          <div class="body">
+            <span class="chip c-partial">부분 근거</span>
+            <p><strong>다만 “왜 안양이어야 하는가”에 대한 차별적 근거는 없다.</strong> 안양시 자체의 외식업 경영난·리뷰 관리 실태를 다룬 공식 조사는 확인하지 못했고, 다른 지자체와 비교해 안양이 우월하다는 자료도 없다. 안양시상권활성화센터의 마케팅 컨설팅 프로그램은 모집 채널로서 유용하나, 지원사업의 존재가 수요를 증명하지는 않는다.</p>
+          </div>
+        </li>
+        <li class="finding s-counter">
+          <span class="idx">10</span>
+          <div class="body">
+            <span class="chip c-counter">반대 근거</span>
+            <p>외식업의 디지털 도구 사용은 <strong>결제·매장관리에 쏠려 있고 마케팅에는 거의 쓰이지 않는다.</strong> 숙박·음식점업의 디지털 기술 활용은 매장관리 46.7%, 스마트 주문·결제 43.3%인 반면 <strong>디지털 광고는 1.6%</strong>(전산업 6.5%)다.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 외식업 문제 -->
+    <section id="pain">
+      <div class="sec-head">
+        <span class="sec-num">02 — Level A · 대한민국 전체</span>
+        <h2>외식업의 실제 문제는 원가와 경쟁이다</h2>
+        <p class="dek">두 개의 국가승인통계에서 경영 애로를 확인했다. 두 조사 모두 “마케팅”이나 “홍보”라는 항목 자체가 존재하지 않는다.</p>
+      </div>
+
+      <h3>수익성 — 얇고 더 얇아지는 마진</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>외식업체 경영실태 · 농림축산식품부·KREI · 표본 3,138개 · <span class="chip c-grade">A</span></caption>
+          <thead>
+            <tr><th>항목</th><th class="num">2024년 기준</th><th class="num">2022년 기준</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="rowlabel">평균 매출액</td><td class="num">2억 5,526만원</td><td class="num">2억 3,000만원</td></tr>
+            <tr><td class="rowlabel">영업비용 비중</td><td class="num">91.3%</td><td class="num">88.4%</td></tr>
+            <tr class="hi"><td class="rowlabel">영업이익률</td><td class="num">8.7%</td><td class="num">11.6%</td></tr>
+            <tr><td class="rowlabel">식재료비</td><td class="num">40.7%</td><td class="num">37.5%</td></tr>
+            <tr><td class="rowlabel">고용인 인건비</td><td class="num">14.3%</td><td class="num">13.1%</td></tr>
+            <tr><td class="rowlabel">임차료</td><td class="num">7.7%</td><td class="num">8.5%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>매출은 늘었지만 식재료비·인건비가 더 빠르게 늘어 영업이익률이 하락했다. 식재료비와 인건비(고용인 + 대표자)만으로 매출의 68.3%가 소진된다.</p>
+
+      <h3>경영 애로 — 이 프로젝트에 가장 중요한 표</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>소상공인실태조사 2024년 기준 · 중기부·소진공 · 복수응답 · <span class="chip c-grade">S</span></caption>
+          <thead>
+            <tr><th>항목</th><th class="num">전체</th><th class="num">숙박·음식점업</th><th class="num">제조업</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="rowlabel">원재료비</td><td class="num">49.6</td><td class="num">73.9</td><td class="num">64.7</td></tr>
+            <tr><td class="rowlabel">경쟁심화</td><td class="num">61.0</td><td class="num">62.4</td><td class="num">46.6</td></tr>
+            <tr><td class="rowlabel">임차료</td><td class="num">28.6</td><td class="num">32.8</td><td class="num">18.2</td></tr>
+            <tr><td class="rowlabel">상권쇠퇴</td><td class="num">33.5</td><td class="num">28.6</td><td class="num">21.8</td></tr>
+            <tr><td class="rowlabel">최저임금</td><td class="num">17.5</td><td class="num">26.3</td><td class="num">18.2</td></tr>
+            <tr><td class="rowlabel">부채상환</td><td class="num">10.3</td><td class="num">6.0</td><td class="num">18.9</td></tr>
+            <tr><td class="rowlabel">인력관리</td><td class="num">7.5</td><td class="num">4.2</td><td class="num">11.8</td></tr>
+            <tr class="hi"><td class="rowlabel">판로개척 및 운영</td><td class="num">16.0</td><td class="num">3.4</td><td class="num">29.8</td></tr>
+            <tr><td class="rowlabel">디지털 기기 도입</td><td class="num">3.5</td><td class="num">0.8</td><td class="num">2.8</td></tr>
+            <tr><td class="rowlabel">기술 개발의 어려움</td><td class="num">2.8</td><td class="num">1.1</td><td class="num">3.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <h4>해석의 경계 — 양방향으로 검토했다</h4>
+        <p><strong>과대해석 경계.</strong> “문항이 없다”가 “수요가 없다”를 증명하지는 않는다. 정부 조사 문항은 설계자의 사전 판단과 조사 관성의 산물이며, 온라인 마케팅은 비교적 최근 부상한 이슈다.</p>
+        <p><strong>과소해석 경계.</strong> 그러나 2024년 기준 조사에는 <em>“판로개척 및 운영”이라는 문항이 실제로 존재하고, 외식업자들이 그 문항에 3.4%로 답했다.</em> 이것은 “묻지 않아서 모르는 것”이 아니라 <strong>“물었는데 낮게 나온 것”</strong>이다. 디지털 광고 활용률 1.6%도 문항이 있는 상태에서 측정된 값이다.</p>
+        <p><strong>이 보고서의 입장.</strong> 마케팅이 “전혀 문제가 아니다”라고 단정할 수는 없지만, 원가·경쟁·임차료 대비 우선순위가 현저히 낮다는 것은 국가승인통계로 측정된 사실이다. 이 격차를 뒤집으려면 프로젝트가 자체 1차 자료를 확보해야 한다.</p>
+      </div>
+
+      <h3>생존</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>기업생멸행정통계 · 통계청 · 전수 행정자료 · 2018년 창업 코호트 · <span class="chip c-grade">S</span></caption>
+          <thead>
+            <tr><th>구분</th><th class="num">1년</th><th class="num">3년</th><th class="num">5년</th><th class="num">7년</th></tr>
+          </thead>
+          <tbody>
+            <tr class="hi"><td class="rowlabel">숙박·음식점업</td><td class="num">62.2</td><td class="num">34.2</td><td class="num">20.5</td><td class="num">13.2</td></tr>
+            <tr><td class="rowlabel">전산업 평균</td><td class="num">63.6</td><td class="num">44.6</td><td class="num">31.2</td><td class="num">22.8</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>5년 시점에 10.7%p 격차가 벌어진다. 단, 이 통계는 숙박업을 포함한 대분류 기준이며 음식점업만 분리한 수치가 아니다.</p>
+
+      <div class="callout danger">
+        <h4>제외한 통계</h4>
+        <p>널리 인용되는 “2023년 음식업 폐업 15만 8,328명 / 폐업률 16.2%”는 국세청 원문을 특정하지 못했고, 같은 주제 기사들이 16.2% / 19.4~19.7% / 15.2~15.82%로 <strong>서로 다른 값</strong>을 제시한다. 이 보고서에서 전면 제외했다.</p>
+      </div>
+    </section>
+
+    <!-- 리뷰 -->
+    <section id="review">
+      <div class="sec-head">
+        <span class="sec-num">03 — 원자료의 성질</span>
+        <h2>리뷰는 참고되지만, 고객을 대표하지 않는다</h2>
+        <p class="dek">한국소비자원 「배달 플랫폼 리뷰 실태조사」(2024, 배달앱 이용자 1,000명). 모집단이 배달앱 이용자라는 점이 이 수치를 쓸 때의 전제다.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <caption>리뷰 작성 행태 · 한국소비자원 · <span class="chip c-grade">A</span></caption>
+          <thead><tr><th>지표</th><th class="num">값</th><th>모집단</th></tr></thead>
+          <tbody>
+            <tr><td class="rowlabel">음식점·메뉴 선택 시 리뷰 참고</td><td class="num">73.4%</td><td>배달앱 이용자 1,000명</td></tr>
+            <tr><td class="rowlabel">리뷰 작성 경험</td><td class="num">77.3%</td><td>배달앱 이용자 1,000명</td></tr>
+            <tr class="hi"><td class="rowlabel">작성 이유가 ‘리뷰이벤트’</td><td class="num">65.2%</td><td>리뷰 작성자 773명</td></tr>
+            <tr class="hi"><td class="rowlabel">실제 만족도보다 높은 별점을 줌</td><td class="num">98.3%</td><td>이벤트 영향 인정자 401명</td></tr>
+            <tr><td class="rowlabel">별점 상위 매장의 리뷰이벤트 운영</td><td class="num">67.1%</td><td>상위 240개 음식점</td></tr>
+            <tr><td class="rowlabel">별점 시스템 개선 필요</td><td class="num">63.0%</td><td>배달앱 이용자 1,000명</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout danger">
+        <h4>AI가 학습할 원자료가 이미 기울어져 있다</h4>
+        <p>“반복되는 긍정·부정 패턴”을 추출하는 원자료가 구조적으로 상향 편향돼 있다면, 실제 불만이 있는데도 긍정 리뷰가 다수를 차지해 <strong>“강점”으로 잘못 도출</strong>되거나, 이벤트 유도 문구가 반복 패턴으로 잡혀 <strong>무의미한 “고객 인식”으로 오분류</strong>될 수 있다. 편향 보정 로직 없이 “고객 유형을 도출했다”고 제시하면 근거 없는 확정적 주장이 된다.</p>
+      </div>
+
+      <h3>리뷰에서 알 수 있는 것과 알 수 없는 것</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>리뷰 분석의 정보 가치</caption>
+          <thead><tr><th>속성</th><th>확인 가능성</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr><td class="rowlabel">맛 · 가격 · 서비스 · 분위기</td><td><span class="chip c-strong">가능</span></td><td>한국어 음식점 리뷰 감성분석 국내 학술 연구 <span class="chip c-grade">B</span></td></tr>
+            <tr><td class="rowlabel">청결 · 대기시간 · 접근성</td><td><span class="chip c-absent">미확인</span></td><td>해당 논문 본문의 전체 카테고리 목록 미열람</td></tr>
+            <tr><td class="rowlabel">방문 목적 · 주문 특성</td><td><span class="chip c-partial">부분</span></td><td>텍스트에 언급될 때만 관찰 가능. 정량 근거 없음</td></tr>
+            <tr class="hi"><td class="rowlabel">연령 · 성별 · 직업</td><td><span class="chip c-counter">확인 불가</span></td><td>검증한 국내 공식·학술 자료 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>리뷰는 “고객이 무엇을 어떻게 경험했는가”에 대한 정보이지 “고객이 누구인가”에 대한 정보가 아니다.</strong> 전자는 부분적으로 확인되고, 후자는 근거가 전혀 없다.</p>
+    </section>
+
+    <!-- 경쟁·데이터 -->
+    <section id="market">
+      <div class="sec-head">
+        <span class="sec-num">04 — Level C · 솔루션 환경</span>
+        <h2>경쟁은 이미 무료고, 데이터는 막혀 있다</h2>
+        <p class="dek">외식업의 디지털 활용은 마케팅이 아니라 운영에 쏠려 있고, 리뷰 분석의 핵심 기능은 정부와 플랫폼이 이미 제공한다.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <caption>디지털·스마트기술 활용 · 소상공인실태조사 2024년 기준 · 복수응답 · <span class="chip c-grade">S</span></caption>
+          <thead><tr><th>유형</th><th class="num">전체</th><th class="num">숙박·음식점업</th></tr></thead>
+          <tbody>
+            <tr><td class="rowlabel">매장관리</td><td class="num">34.4</td><td class="num">46.7</td></tr>
+            <tr><td class="rowlabel">스마트 주문·결제</td><td class="num">15.2</td><td class="num">43.3</td></tr>
+            <tr><td class="rowlabel">온라인 판로</td><td class="num">49.0</td><td class="num">25.9</td></tr>
+            <tr><td class="rowlabel">경영관리 소프트웨어</td><td class="num">19.6</td><td class="num">5.1</td></tr>
+            <tr class="hi"><td class="rowlabel">디지털 광고</td><td class="num">6.5</td><td class="num">1.6</td></tr>
+            <tr><td class="rowlabel">생산(공정) 자동화</td><td class="num">3.9</td><td class="num">0.3</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>외식업자는 키오스크·POS·주문결제 같은 <strong>운영 자동화</strong>는 평균보다 훨씬 많이 쓰지만, 디지털 광고는 전산업 평균의 4분의 1 수준이다. 디지털 도구 자체를 못 쓰는 것이 아니라 <strong>마케팅 목적으로는 안 쓴다</strong>는 뜻이다.</p>
+
+      <h3>경쟁·대체 서비스</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>확인된 대체재 · 리뷰 분석 기능 보유 여부</caption>
+          <thead>
+            <tr><th>서비스</th><th>리뷰 분석</th><th>AI</th><th>비용</th><th>중복도</th></tr>
+          </thead>
+          <tbody>
+            <tr class="hi">
+              <td class="rowlabel">aT 「The외식 나침반」</td>
+              <td>포털 리뷰로 매장 강점·보완점 제시</td><td>미명시</td><td>무료(정부)</td>
+              <td>핵심 아이디어와 직접 중복</td>
+            </tr>
+            <tr class="hi">
+              <td class="rowlabel">네이버 ‘온서비스 AI’</td>
+              <td>부정 리뷰 감지 알림 + 답글 초안</td><td>예</td><td>미확인(추정 무료)</td>
+              <td>가장 직접적인 대체재</td>
+            </tr>
+            <tr>
+              <td class="rowlabel">캐시노트 AI 리뷰 관리</td>
+              <td>감정 5단계 분류, 어조 4종 답변 제안</td><td>예</td><td>미확인</td>
+              <td>멀티플랫폼 통합 측면에서 근접</td>
+            </tr>
+            <tr>
+              <td class="rowlabel">소상공인365</td>
+              <td>없음 (검색어 통계이지 리뷰 아님)</td><td>아니오</td><td>무료 추정</td><td>상권·매출만 중복</td>
+            </tr>
+            <tr>
+              <td class="rowlabel">카카오맵 사장님센터</td>
+              <td>열람·답글만</td><td>아니오</td><td>무료</td><td>낮음</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>남아 있는 공백.</strong> 확인된 범위에서 “리뷰 기반 고객유형·페르소나 도출”과 “마케팅 전략 제안으로의 변환”까지 하는 서비스는 발견되지 않았다. 다만 그 공백의 두 항목이 모두 이 보고서에서 근거가 약하다고 판정된 기능이라는 점이 문제다.</p>
+
+      <h3>데이터 수집 — 가장 구체적인 실패 지점</h3>
+      <pre class="code"><b># BOT ACCESS FOR THE PURPOSES OF AI TRAINING AND</b>
+<b># RETRIEVAL-AUGMENTED GENERATION (RAG) IS STRICTLY PROHIBITED.</b>
+User-agent: GPTBot        Disallow: /
+User-agent: ClaudeBot     Disallow: /
+User-agent: PerplexityBot Disallow: /
+...
+User-agent: *
+Disallow: /
+Allow: /$</pre>
+      <p><code>map.naver.com/robots.txt</code>와 <code>map.kakao.com/robots.txt</code> 모두 HTTP 200으로 응답하며 위 문구가 동일하게 있다. 첫 줄은 기계 판독 지시어가 아니라 <strong>주석</strong>이지만 운영사가 스스로 밝힌 정책 문구이며, 그 아래 실제 지시어는 AI 봇을 개별 차단하고 일반 크롤러에도 루트를 제외한 전 경로를 차단한다. 리뷰가 위치한 하위 경로는 모두 차단 대상이다.</p>
+
+      <div class="callout danger">
+        <h4>판례는 양방향이다</h4>
+        <p><strong>형사 — 무죄.</strong> 대법원 2022.5.12. 선고 2021도1533(여기어때·야놀자): 로그인 등 기술적 접근제한이 없는 공개 정보 수집에 대해 정보통신망 침입·업무방해·저작권법 위반 모두 무죄 확정.</p>
+        <p><strong>민사 — 책임 인정.</strong> 잡코리아 대 사람인: 경쟁 서비스 목적의 상업적 크롤링에 저작권법 제93조 DB제작자 권리 침해 및 부정경쟁행위 인정, 396건 폐기·1억 9,800만원 배상.</p>
+        <p>형사 책임은 상대적으로 낮을 수 있으나, <strong>상업 서비스의 원재료로 삼는 경우의 민사 리스크는 실제로 인정된 전례가 있다.</strong></p>
+      </div>
+    </section>
+
+    <!-- 안양시 -->
+    <section id="anyang">
+      <div class="sec-head">
+        <span class="sec-num">05 — Level B · 경기도 안양시</span>
+        <h2>규모는 충분하다. 다만 “왜 안양인가”는 답이 없다</h2>
+        <p class="dek">이 장의 모든 수치는 안양시 자체 데이터다. 전국 통계를 안양시에 적용한 것이 아니다. 1차 조사에서 KOSIS 접근에 실패해 비어 있던 수치를, 안양시청 사업체조사 첨부 엑셀 원본으로 우회 확보하고 합계 정합성까지 검증했다.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <caption>전국사업체조사 안양시 집계분 · 2024.12.31 기준 · 국가승인통계 제210003호 · <span class="chip c-grade">S</span></caption>
+          <thead>
+            <tr><th>산업분류</th><th class="num">안양시</th><th class="num">만안구</th><th class="num">동안구</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="rowlabel">전체 산업</td><td class="num">66,906</td><td class="num">25,020</td><td class="num">41,886</td></tr>
+            <tr class="hi"><td class="rowlabel">56. 음식점 및 주점업</td><td class="num">7,173</td><td class="num">3,175</td><td class="num">3,998</td></tr>
+            <tr><td class="rowlabel">561. 음식점업</td><td class="num">4,743</td><td class="num">2,052</td><td class="num">2,691</td></tr>
+            <tr><td class="rowlabel">562. 주점·비알코올 음료점업</td><td class="num">2,430</td><td class="num">1,123</td><td class="num">1,307</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>안양시 전체 사업체의 <strong>10.7%</strong>가 음식점 및 주점업이다. 종사자는 21,234명. 음식점업 세세분류로는 한식 음식점업 2,567개가 가장 많고, 커피전문점이 1,128개로 단일 세세분류 중 두 번째다.</p>
+
+      <h3>행정동별 분포 — 초기 모집 대상</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>음식점 및 주점업 상위 행정동 · 동 합계 = 구 합계 검증 완료</caption>
+          <thead>
+            <tr><th class="num">순위</th><th>행정동</th><th>구</th><th class="num">사업체</th><th class="num">종사자</th><th class="num">사업체당</th></tr>
+          </thead>
+          <tbody>
+            <tr class="hi"><td class="num">1</td><td class="rowlabel">인덕원동</td><td>동안구</td><td class="num">762</td><td class="num">2,480</td><td class="num">3.3</td></tr>
+            <tr class="hi"><td class="num">2</td><td class="rowlabel">범계동</td><td>동안구</td><td class="num">483</td><td class="num">2,358</td><td class="num">4.9</td></tr>
+            <tr><td class="num">3</td><td class="rowlabel">관양동</td><td>동안구</td><td class="num">475</td><td class="num">1,082</td><td class="num">2.3</td></tr>
+            <tr><td class="num">4</td><td class="rowlabel">부림동</td><td>동안구</td><td class="num">466</td><td class="num">1,539</td><td class="num">3.3</td></tr>
+            <tr class="hi"><td class="num">5</td><td class="rowlabel">안양1동</td><td>만안구</td><td class="num">455</td><td class="num">1,593</td><td class="num">3.5</td></tr>
+            <tr><td class="num">6</td><td class="rowlabel">안양4동</td><td>만안구</td><td class="num">377</td><td class="num">880</td><td class="num">2.3</td></tr>
+            <tr><td class="num">7</td><td class="rowlabel">안양6동</td><td>만안구</td><td class="num">361</td><td class="num">823</td><td class="num">2.3</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <h4>초기 테스트 대상 추천 — 공식 근거가 있는 범위에서만</h4>
+        <ul>
+          <li><strong>1순위 인덕원동(동안구)</strong> — 단일 행정동 최다 762개. 음식점업만 529개. 2025년 9월 골목형 상점가 7호점으로 지정됨.</li>
+          <li><strong>2순위 범계동(동안구)</strong> — 483개. 사업체당 종사자 4.9명으로 상위권 중 최고이며 규모 있는 매장 비중이 높다.</li>
+          <li><strong>3순위 안양1동(만안구)</strong> — 455개. 만안구 최다이며 안양역 인근 원도심. 신도시와 원도심의 대조군으로 유용하다.</li>
+        </ul>
+        <p><strong>주의.</strong> 위 순위는 사업체 밀집도 기준이며 “리뷰가 많이 발생하는 상권”이라는 뜻이 아니다. 매장별 리뷰 수 분포는 공식 자료로 확인되지 않았다. 상권별 매출·유동인구 정량 데이터도 확보하지 못했으므로 “안양 최고의 상권”을 특정하지 않았다.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <caption>안양시 실증 타당성 6개 질문 판정</caption>
+          <thead><tr><th>질문</th><th>판정</th></tr></thead>
+          <tbody>
+            <tr><td>MVP 실증에 충분한 외식업 자영업자가 존재하는가</td><td><span class="chip c-strong">강하게 지지</span></td></tr>
+            <tr><td>어느 구·동·상권에 집중되어 있는가</td><td><span class="chip c-strong">강하게 지지</span></td></tr>
+            <tr><td>마케팅·상권분석 지원 수요의 공식 신호가 있는가</td><td><span class="chip c-partial">부분 지지</span></td></tr>
+            <tr><td>전국 외식업 문제를 안양시에 적용할 직접 근거가 있는가</td><td><span class="chip c-absent">공식 근거 부족</span></td></tr>
+            <tr><td>안양에서 테스트 대상자를 모집하는 것이 합리적인가</td><td><span class="chip c-partial">부분 지지</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>안양시상권활성화센터가 마케팅 전략 컨설팅과 홍보 사업화 지원을 상시 운영하고 있어 모집 채널로는 유용하다. 다만 <strong>지원사업이 존재한다는 것은 지역 정책 수요를 보여주는 보조 신호일 뿐</strong>, “안양 외식업자에게 리뷰 분석 서비스 수요가 있다”를 증명하지 않는다.</p>
+    </section>
+
+    <!-- 가설 판정 -->
+    <section id="hypo">
+      <div class="sec-head">
+        <span class="sec-num">06 — 가설 판정</span>
+        <h2>H1 ~ H10</h2>
+        <p class="dek">각 가설을 6단계로 판정했다. 프로젝트에 유리한 가설과 불리한 가설을 같은 기준으로 다뤘다.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>가설</th><th>판정</th><th>핵심 근거</th></tr></thead>
+          <tbody>
+            <tr><td class="rowlabel">H1 경영 부담 실재</td><td><span class="chip c-strong">STRONGLY SUPPORTED</span></td><td>영업이익률 8.7%, 5년 생존율 20.5%, 원재료비 애로 73.9%</td></tr>
+            <tr class="hi"><td class="rowlabel">H2 마케팅·고객확보도 의미 있는 문제</td><td><span class="chip c-counter">NOT SUPPORTED</span></td><td>판로개척 3.4%(8위), 디지털 광고 1.6%. 문항이 없어서가 아니라 <strong>있는데 낮게 측정됨</strong></td></tr>
+            <tr><td class="rowlabel">H3 소비자의 리뷰 활용</td><td><span class="chip c-partial">PARTIALLY SUPPORTED</span></td><td>배달앱 이용자 73.4%. 매장 방문 소비자 대상 통계 부재</td></tr>
+            <tr><td class="rowlabel">H4 리뷰에 활용 가능한 정보 존재</td><td><span class="chip c-partial">PARTIALLY SUPPORTED</span></td><td>음식·가격·서비스·분위기 4개 항목 실증(B급 1건)</td></tr>
+            <tr><td class="rowlabel">H5 자동 구조화의 잠재 가치</td><td><span class="chip c-absent">INSUFFICIENT EVIDENCE</span></td><td>사장님의 리뷰 분석 시간·부담을 측정한 조사 없음</td></tr>
+            <tr><td class="rowlabel">H6 리뷰만으로 전체 고객 대표 불가</td><td><span class="chip c-strong">STRONGLY SUPPORTED</span></td><td>이벤트 목적 65.2%, 상향 편향 98.3%, J자형 분포</td></tr>
+            <tr><td class="rowlabel">H7 페르소나는 제한적으로만 정당화</td><td><span class="chip c-strong">SUPPORTED</span></td><td>인구통계 확인 근거 부재 + 페르소나 방법론 비판</td></tr>
+            <tr><td class="rowlabel">H8 마케팅 지식 결합의 우위</td><td><span class="chip c-absent">INSUFFICIENT EVIDENCE</span></td><td>외식업 도메인 RAG 효과 실증 자료 없음</td></tr>
+            <tr><td class="rowlabel">H9 기존 서비스가 완전 해결하지 않음</td><td><span class="chip c-partial">PARTIALLY SUPPORTED</span></td><td>문자 그대로는 참. 핵심 기능은 이미 커버됨</td></tr>
+            <tr><td class="rowlabel">H10 안양시의 실증 타당성</td><td><span class="chip c-strong">SUPPORTED</span></td><td>7,173개, 동별 분포, 모집 채널 확보. “최적”이 아니라 “가능”</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Value Chain -->
+    <section id="chain">
+      <div class="sec-head">
+        <span class="sec-num">07 — 논리 연결 검증</span>
+        <h2>끊어진 연결고리</h2>
+        <p class="dek">문제에서 해결책까지 7개의 화살표마다 근거를 확인했다. 직접 근거가 있는 것은 1개, 부분 근거 2개, 근거 없음 3개, 반대 근거 1개다.</p>
+      </div>
+
+      <div class="chain">
+        <div class="link ok">
+          <div class="rail-col"><div class="node">0</div><div class="connector"></div></div>
+          <div class="content">
+            <h4>외식업 경영 부담이 존재한다</h4>
+            <p><span class="chip c-strong">직접 근거</span> 영업이익률 8.7%, 5년 생존율 20.5%, 원재료비 애로 73.9%</p>
+          </div>
+        </div>
+
+        <div class="link brk">
+          <div class="rail-col"><div class="node">1</div><div class="connector"></div></div>
+          <div class="content">
+            <h4>↓ 경영 부담이 고객 확보·마케팅 문제로 이어진다</h4>
+            <p><span class="chip c-counter">반대 근거 — 첫 번째 단절</span> 외식업의 애로는 원가·경쟁·임차료로 측정되며 판로개척은 3.4%다.</p>
+          </div>
+        </div>
+
+        <div class="link part">
+          <div class="rail-col"><div class="node">2</div><div class="connector"></div></div>
+          <div class="content">
+            <h4>↓ 온라인 리뷰가 소비자 의사결정에 중요하다</h4>
+            <p><span class="chip c-partial">부분 근거</span> 배달앱 이용자 한정(73.4%). 포털 리뷰·매장 방문 맥락은 미확인</p>
+          </div>
+        </div>
+
+        <div class="link part gapafter">
+          <div class="rail-col"><div class="node">3</div><div class="connector"></div></div>
+          <div class="content">
+            <h4>↓ 리뷰에 경영 활용 가능한 피드백이 존재한다</h4>
+            <p><span class="chip c-partial">부분 근거</span> B급 학술 1건, 4개 카테고리만 확인</p>
+          </div>
+        </div>
+
+        <div class="link brk">
+          <div class="rail-col"><div class="node">4</div><div class="connector"></div></div>
+          <div class="content">
+            <h4>↓ 사장님이 이를 지속 분석하는 데 비용·부담이 있다</h4>
+            <p><span class="chip c-absent">Evidence Gap — 두 번째 단절</span> 이를 측정한 조사가 국내에 없다.</p>
+          </div>
+        </div>
+
+        <div class="link brk">
+          <div class="rail-col"><div class="node">5</div><div class="connector"></div></div>
+          <div class="content">
+            <h4>↓ 따라서 AI 자동 분석에 잠재 가치가 있다</h4>
+            <p><span class="chip c-absent">Evidence Gap</span> 4번이 비어 있으므로 연쇄적으로 비어 있다.</p>
+          </div>
+        </div>
+
+        <div class="link brk">
+          <div class="rail-col"><div class="node">6</div></div>
+          <div class="content">
+            <h4>↓ 분석을 마케팅·운영 제안으로 바꾸면 가치가 더해진다</h4>
+            <p><span class="chip c-absent">Evidence Gap — 세 번째 단절</span> RAG 기반 조언이 실제 의사결정·매출을 바꾼다는 근거 없음</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4>인접 근거는 있지만 사슬 전체를 지지하지는 않는다</h4>
+        <p>별점 1점 상승이 미국 독립 레스토랑 매출을 5~9% 증가시킨다는 연구가 있다. 그러나 이것은 “별점이 오르면 매출이 오른다”는 명제이지, <strong>“AI 리뷰 분석 → 사장님 행동 변화 → 별점 상승”</strong>이라는 이 프로젝트의 인과 사슬을 지지하지 않는다. 미국·Yelp·2000년대 데이터라 국내 전이도 불가하다. 다만 같은 연구의 “리뷰 50개 이상 매장이 10개 미만보다 효과 50% 큼”은 최소 리뷰 수 설계에 참고할 만하다.</p>
+      </div>
+    </section>
+
+    <!-- 페르소나·RAG -->
+    <section id="persona">
+      <div class="sec-head">
+        <span class="sec-num">08 — 기능 설계 판정</span>
+        <h2>페르소나와 RAG는 어떻게 바뀌어야 하는가</h2>
+      </div>
+
+      <h3>페르소나 — C안 권장</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>선택지</th><th>판정</th><th>이유</th></tr></thead>
+          <tbody>
+            <tr><td class="rowlabel">A. 실제 고객 Persona</td><td><span class="chip c-counter">기각</span></td><td>리뷰 작성자는 전체 고객의 자기선택 부분집합이며 인구통계를 알 수 없다. “실제 고객”이라 부르면 허위다.</td></tr>
+            <tr><td class="rowlabel">B. Review-derived Persona</td><td><span class="chip c-partial">보류</span></td><td>명칭은 정직하나 여전히 인물 실재성을 암시한다.</td></tr>
+            <tr class="hi"><td class="rowlabel">C. Behavior/Needs Persona</td><td><span class="chip c-strong">권장</span></td><td>사람이 아니라 <strong>관찰된 니즈·행동 패턴의 묶음</strong>으로 표현한다. 리뷰에서 실제로 관찰 가능한 것만 담는다.</td></tr>
+            <tr><td class="rowlabel">D. 사용하지 않음</td><td><span class="chip c-absent">과도함</span></td><td>리뷰에 평가 요소가 실재한다는 근거는 있으므로, 인물화만 걷어내면 유효한 전달 형식이다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>AI 생성 인물 이미지.</strong> 리뷰로 확인 불가능한 연령·성별·직업을 시각화하는 것은 근거 없는 추정을 사실처럼 제시하는 것이다. 기본값을 끔으로 두고, 사용할 경우 “실제 고객이 아니라 리뷰 패턴을 시각화한 예시”라는 고지를 화면에 함께 표시해야 한다. 데모 효과를 위해 정확성을 포기하는 거래가 된다.</p>
+
+      <h3>RAG — 답변 구조 분리가 필요하다</h3>
+      <p>RAG가 있다고 해서 추천의 효과가 증명되는 것은 아니다. RAG의 역할은 <strong>검증 가능한 전문 지식을 참조시키고 출처를 추적 가능하게 하는 것</strong>으로 한정해야 한다. 원자료가 편향돼 있고, 확인 가능한 것과 불가능한 것의 경계가 뚜렷하며, AI 조언의 효과가 입증되지 않은 조건에서는 사실·해석·권고를 섞어 제시하면 사용자가 신뢰도를 판단할 방법이 없다.</p>
+      <pre class="code">[리뷰에서 확인된 사실]   ← 인용 가능한 원문. 리뷰 수·기간 함께 표시
+[AI 해석]                ← 추론임을 명시
+[참고한 마케팅 원칙]      ← RAG 출처 표기
+[추천 행동]
+<b>[불확실성 또는 주의점]</b>    ← 리뷰 수 부족, 이벤트성 리뷰 비중 등 경고</pre>
+      <p>마지막 블록은 선택이 아니라 필수다. 리뷰 30개 미만처럼 신호가 약한 구간에서는 분석 자체를 제공하지 않거나 신뢰도 경고를 강제해야 한다.</p>
+    </section>
+
+    <!-- Evidence Pack -->
+    <section id="pack">
+      <div class="sec-head">
+        <span class="sec-num">09 — 발표용</span>
+        <h2>Evidence Pack</h2>
+        <p class="dek">전국 통계와 안양시 통계를 섞지 않았다. 각 항목에 <strong>이 통계가 증명하지 않는 것</strong>을 함께 적었다 — 발표에서 질문받을 지점이다.</p>
+      </div>
+
+      <div class="ev-grid">
+        <article class="ev">
+          <div class="ev-head"><span class="ev-scope">전국 · 수익성</span><span class="chip c-grade">A</span></div>
+          <div class="ev-fig">8.7%</div>
+          <p class="ev-msg">외식업체는 매출 1억 원을 올려도 870만 원만 남는다.</p>
+          <p class="ev-src">농림축산식품부·한국농촌경제연구원 「2025년 외식업체 경영실태 조사 보고서」 · 재무기준 2024년 · 발표 2026.2.28 · 표본 3,138개 · p.321 표3-16-1</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 마케팅이 그 원인이라는 것. 마케팅 개선이 이익률을 올린다는 것.</p>
+        </article>
+
+        <article class="ev">
+          <div class="ev-head"><span class="ev-scope">전국 · 생존</span><span class="chip c-grade">S</span></div>
+          <div class="ev-fig">20.5%</div>
+          <p class="ev-msg">숙박·음식점업 창업기업 5곳 중 4곳이 5년 안에 사라진다. 전산업 평균은 31.2%.</p>
+          <p class="ev-src">통계청 「2023년 기업생멸행정통계」 · 2018년 창업 코호트 · 전수 행정자료 · p.53</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 폐업 원인. 숙박업이 포함된 대분류 기준이며 음식점업만의 수치가 아니다.</p>
+        </article>
+
+        <article class="ev warn">
+          <div class="ev-head"><span class="ev-scope">전국 · 경영애로 · 불리한 근거</span><span class="chip c-grade">S</span></div>
+          <div class="ev-fig">3.4%</div>
+          <p class="ev-msg">외식업자가 꼽는 애로는 원재료비 73.9%·경쟁심화 62.4%이며, 판로·마케팅은 11개 항목 중 8위다.</p>
+          <p class="ev-src">중소벤처기업부·소상공인시장진흥공단 「2024년 기준 소상공인실태조사」 별첨 통계표 · 발표 2026.3.13 · 표본 약 4만 개</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 마케팅이 실제로 중요하지 않다는 것. 인식된 우선순위와 실제 필요는 다를 수 있다.</p>
+        </article>
+
+        <article class="ev">
+          <div class="ev-head"><span class="ev-scope">전국 · 소비자 · 배달앱 한정</span><span class="chip c-grade">A</span></div>
+          <div class="ev-fig">73.4%</div>
+          <p class="ev-msg">배달앱 이용자 10명 중 7명이 음식점·메뉴를 고를 때 리뷰를 많이 참고한다.</p>
+          <p class="ev-src">한국소비자원 「배달 플랫폼 리뷰 실태조사」 · 2024 · 최근 1년 내 배달앱 이용자 1,000명</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 매장 방문 소비자도 같다는 것. 네이버지도·카카오맵 리뷰에 대해서도 같다는 것.</p>
+        </article>
+
+        <article class="ev warn">
+          <div class="ev-head"><span class="ev-scope">전국 · 리뷰 신뢰성 · 불리한 근거</span><span class="chip c-grade">A</span></div>
+          <div class="ev-fig">98.3%</div>
+          <p class="ev-msg">별점은 만족도가 아니라 보상에 반응한 결과일 수 있다. 리뷰 작성자의 65.2%가 이벤트 목적이었다.</p>
+          <p class="ev-src">한국소비자원 「배달 플랫폼 리뷰 실태조사」 · 2024 · 이벤트 영향 인정자 401명 기준</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 포털 지도 리뷰에도 동일 비율이 적용된다는 것. 배달앱 조사다.</p>
+        </article>
+
+        <article class="ev warn">
+          <div class="ev-head"><span class="ev-scope">전국 · 디지털</span><span class="chip c-grade">S</span></div>
+          <div class="ev-fig">1.6%</div>
+          <p class="ev-msg">외식업자는 결제·매장관리 디지털화는 앞서지만, 디지털 광고는 거의 쓰지 않는다. 전산업은 6.5%.</p>
+          <p class="ev-src">중소벤처기업부·소상공인시장진흥공단 「2024년 기준 소상공인실태조사」 별첨 · 복수응답</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 앞으로도 쓰지 않을 것이라는 것. 도구가 없어서인지 필요가 없어서인지도 구분 불가.</p>
+        </article>
+
+        <article class="ev">
+          <div class="ev-head"><span class="ev-scope">안양시 · 시장 규모</span><span class="chip c-grade">S</span></div>
+          <div class="ev-fig">7,173개</div>
+          <p class="ev-msg">안양시 전체 사업체의 10.7%가 음식점·주점업이다. 종사자 21,234명.</p>
+          <p class="ev-src">통계청 전국사업체조사 안양시 집계분(국가승인통계 제210003호) · 2024.12.31 기준 · 전수 · 안양시청 2026.1.6 게시 · 엑셀 원본 직접 파싱, 독립 검증자 재파싱 일치</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 안양시 외식업자가 이 서비스를 원한다는 것. 안양이 다른 도시보다 적합하다는 것.</p>
+        </article>
+
+        <article class="ev">
+          <div class="ev-head"><span class="ev-scope">안양시 · 지역 분포</span><span class="chip c-grade">S</span></div>
+          <div class="ev-fig">인덕원동 762</div>
+          <p class="ev-msg">안양의 외식업은 동안구, 그중 인덕원동·범계동에 가장 밀집해 있다.</p>
+          <p class="ev-src">같은 조사 첨부 「2. 산업소분류 및 동별 사업체수, 종사자수」 · 39개 행정동 전수 · 동 합계 = 구 합계 검증 완료</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 매출 규모·유동인구·리뷰 발생량. 사업체 밀집도일 뿐이다.</p>
+        </article>
+
+        <article class="ev">
+          <div class="ev-head"><span class="ev-scope">전국 · 경쟁 지형</span><span class="chip c-grade">C</span></div>
+          <div class="ev-fig">97%</div>
+          <p class="ev-msg">리뷰 감지·답글 자동화는 이미 네이버가 무료로 제공하고 있다.</p>
+          <p class="ev-src">네이버 보도자료 「리뷰 관리부터 FAQ 응대까지…네이버, ‘온서비스 AI’ 통한 SME 비즈니스 성장 지원 사례 공유」 · 2025.12.22 · 베타 사업자 만족도</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> 표본·조사방법이 공개되지 않았다. 기업 자체 발표이므로 독립 검증된 수치가 아니다.</p>
+        </article>
+
+        <article class="ev warn">
+          <div class="ev-head"><span class="ev-scope">전국 · 데이터 제약</span><span class="chip c-grade">C</span></div>
+          <div class="ev-fig">Disallow: /</div>
+          <p class="ev-msg">네이버지도·카카오맵 모두 AI 학습·RAG 목적 봇 접근을 명시 금지하고 전 경로를 차단한다.</p>
+          <p class="ev-src">map.naver.com/robots.txt, map.kakao.com/robots.txt · 조회 2026-08-21 · curl 직접 재검증 HTTP 200</p>
+          <p class="ev-not"><b>증명하지 않는 것:</b> robots.txt는 법적 구속력이 없다. 위반이 곧 불법이라는 뜻은 아니며, 법적 판단은 별도 사안이다.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 실패 시나리오 -->
+    <section id="fail">
+      <div class="sec-head">
+        <span class="sec-num">10 — 반대 근거</span>
+        <h2>이 프로젝트가 실패할 수 있는 이유</h2>
+      </div>
+      <div class="fails">
+        <div class="fail">
+          <h4>마케팅 Pain의 상대적 우선순위</h4>
+          <p>영업이익률 8.7%인 업종에서 원가 1%p 개선은 이익을 11% 늘리지만, 마케팅 개선은 효과 측정 체계조차 없다. 사장님의 관심과 지갑이 향하는 곳이 다르다.</p>
+        </div>
+        <div class="fail">
+          <h4>무료 경쟁 서비스</h4>
+          <p>네이버는 리뷰 원본을 보유한 당사자다. 데이터 접근·정확도·통합성 모두에서 구조적 우위에 있어, “더 정교한 AI”만으로 방어선을 만들기 어렵다.</p>
+        </div>
+        <div class="fail">
+          <h4>데이터 수집 리스크</h4>
+          <p>robots.txt의 AI·RAG 명시 금지, 이용약관의 자동화 수집 금지, 카카오의 API·제휴 거부, DB권 침해 인정 판례가 겹친다. 1단계가 막히면 나머지가 성립하지 않는다.</p>
+        </div>
+        <div class="fail">
+          <h4>리뷰 편향</h4>
+          <p>보정 없이 분석하면 “잘하고 있다”는 잘못된 신호를 준다. 이 서비스가 없을 때보다 <strong>더 나쁜 의사결정</strong>을 유발할 수 있다.</p>
+        </div>
+        <div class="fail">
+          <h4>리뷰가 적은 매장</h4>
+          <p>도움이 가장 필요한 신규·소형 매장이 오히려 사각지대에 놓인다. 국내 리뷰 수 분포 자료가 없어 사각지대 규모조차 추정할 수 없다.</p>
+        </div>
+        <div class="fail">
+          <h4>페르소나의 과잉추론</h4>
+          <p>검증 불가능한 방법론 위에 검증되지 않은 생성 편향을 얹게 된다. 데모에서는 인상적이지만 실제 결정 근거로 쓰면 위험하다.</p>
+        </div>
+        <div class="fail">
+          <h4>ChatGPT 대비 차별화</h4>
+          <p>차별화가 “자동화된 반복 수행”에 그친다면 방어선이 얇다. 외식업 도메인에서 RAG의 정보 우위를 실증한 자료가 없다.</p>
+        </div>
+        <div class="fail">
+          <h4>낮은 지불의사</h4>
+          <p>영업이익률 8.7%, 판로개척 애로 3.4%, 디지털 광고 1.6%인 업종의 SaaS 구독 의향에 대한 근거가 <strong>전혀 없다.</strong></p>
+        </div>
+        <div class="fail">
+          <h4>안양 표본의 확장성</h4>
+          <p>안양시 결과가 전국을 대표한다는 근거가 없다. 반대로 안양시 자체 실태조사도 없어 안양 고유 특성을 통제할 수도 없다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Evidence Gap -->
+    <section id="gap">
+      <div class="sec-head">
+        <span class="sec-num">11 — Evidence Gap</span>
+        <h2>공식 통계로 검증하지 못한 질문</h2>
+        <p class="dek">이 질문들은 검색으로 해결되지 않는다. 1차 자료 수집이 필요하다.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>검증 못 한 질문</th><th>권장 검증 방법</th></tr></thead>
+          <tbody>
+            <tr class="hi"><td class="rowlabel">G2 · 사장님이 리뷰 확인·분석에 쓰는 시간과 부담은 얼마인가</td><td>사용자 인터뷰 10~20건 + 리뷰 확인 빈도 로그 분석</td></tr>
+            <tr class="hi"><td class="rowlabel">G9 · 안양시 외식업자의 실제 애로는 전국 통계와 같은가</td><td>안양시 외식업자 자체 설문. 상권활성화센터 컨설팅 참여자를 모집 채널로 활용</td></tr>
+            <tr><td class="rowlabel">G3 · 리뷰 분석 서비스에 실제로 돈을 낼 것인가</td><td>랜딩페이지 실험(가격 제시 후 전환율) + Wizard-of-Oz 유료 전환 테스트</td></tr>
+            <tr><td class="rowlabel">G4 · 페르소나와 이미지를 유용하게 느끼는가</td><td>A/B 사용성 테스트 — 페르소나 있음·없음 두 버전</td></tr>
+            <tr><td class="rowlabel">G5 · 분석 결과가 실제 의사결정을 바꾸는가</td><td>실제 매장 파일럿 3~5곳, 8~12주. 제안 채택 여부와 사후 리뷰·별점 추적</td></tr>
+            <tr><td class="rowlabel">G6 · 몇 개의 리뷰부터 신뢰할 수 있는가</td><td>자체 표본 수집 후 분포 분석 + 구간별 분석 안정성 시뮬레이션</td></tr>
+            <tr><td class="rowlabel">G7 · 리뷰 자동 수집이 배포 환경에서 지속 가능한가</td><td>네이버·카카오 공식 문의 + 법률 자문. 대안: 사장님 본인 계정 연동 기반 수집으로 전환</td></tr>
+            <tr><td class="rowlabel">G1 · 매장 방문 소비자의 리뷰 참고율</td><td>소비자 설문 또는 KREI 식품소비행태조사 원자료 신청</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <h4>판정을 상향할 수 있는 조건</h4>
+        <p><strong>→ B (Pain은 맞지만 Solution 수정 필요):</strong> G2·G9 인터뷰에서 외식업자가 리뷰 확인·대응에 실제로 부담을 느끼고, 그 부담이 네이버 온서비스 AI로 해소되지 않는 부분 — 여러 플랫폼 통합, 시계열 변화 추적, 경쟁점 대비 비교 — 에 있다는 것이 확인될 때.</p>
+        <p><strong>→ C (특정 세그먼트에만 적합):</strong> 위 부담이 특정 세그먼트에만 존재한다는 것이 확인될 때. 예를 들어 리뷰 100개 이상 보유한 중형 매장, 다점포 운영자, 신규 오픈 매장.</p>
+        <p><strong>데이터 리스크 해소:</strong> G7에서 공식 API·제휴 경로가 열리거나, 사장님 본인 계정 연동 방식으로 수집 구조를 전환할 때.</p>
+        <p><strong>가장 먼저 할 것.</strong> G2와 G9는 Value Chain의 첫 번째·두 번째 단절 지점에 정확히 대응하며, 안양시 외식업자 10~20명 인터뷰라는 하나의 활동으로 동시에 검증할 수 있다.</p>
+      </div>
+    </section>
+
+    <!-- 검증 -->
+    <section id="verify">
+      <div class="sec-head">
+        <span class="sec-num">12 — 방법</span>
+        <h2>어떻게 검증했는가</h2>
+      </div>
+
+      <p>병렬 조사 Agent 4개가 서로의 결론을 보지 않고 독립 조사한 뒤, 메인 Agent가 통합하고, Red Team이 프로젝트가 틀렸다는 관점에서 공격하고, Evidence Gap 재조사로 결손을 메운 뒤, <strong>초기 조사에 참여하지 않은 독립 Source Verifier 2인</strong>이 모든 핵심 숫자를 원문에서 재검증했다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>독립 검증 결과</caption>
+          <thead><tr><th>담당</th><th class="num">검증</th><th class="num">PASS</th><th class="num">FIX</th><th class="num">REMOVE</th></tr></thead>
+          <tbody>
+            <tr><td class="rowlabel">전국 통계</td><td class="num">10</td><td class="num">9</td><td class="num">3</td><td class="num">0</td></tr>
+            <tr><td class="rowlabel">소비자·경쟁·안양시</td><td class="num">27</td><td class="num">24</td><td class="num">2</td><td class="num">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>REMOVE 판정은 한 건도 없었다.</strong> 안양시 수치는 검증자가 안양시청 첨부 엑셀 원본을 독립적으로 다시 내려받아 파싱한 결과 인용된 모든 숫자가 셀 단위로 일치했다. FIX 5건은 Loop 1에서 모두 수정했다.</p>
+
+      <div class="callout">
+        <h4>수정한 것 — 숨기지 않고 기록한다</h4>
+        <ul>
+          <li><strong>자료 오류.</strong> 네이버 ‘온서비스 AI’ 보도자료 발표연도를 2026으로 잘못 기재. 원문 HTML에서 <code>2025-12-22</code>를 직접 재확인해 정정.</li>
+          <li><strong>해석 오류.</strong> “숙박·음식점업이 업종 중 3위”를 원문에서 확인할 수 없었다. 원문은 6개 업종만 개별 공표하고 나머지 5개를 “기타산업”으로 묶었으므로 순위 확정이 불가하다. 해당 서술을 삭제했다.</li>
+          <li><strong>인용 형식.</strong> 표·페이지 번호 2건 정정, 경쟁 서비스 표의 근거 URL 누락 2건 보완.</li>
+        </ul>
+      </div>
+
+      <div class="callout danger">
+        <h4>미해결로 남긴 것</h4>
+        <p>국세청 음식점업 폐업률 원자료, 음식점업만 분리한 생존율, 안양시 인허가 데이터의 기준일자, 안양시 상권 연구용역 3건 본문, KREI 식품소비행태조사의 문항 존재 여부 등 7건이 3회 루프 한도 내에서 해결되지 않았다. 이 조사의 최종 상태는 <strong>“조사 완료 / 일부 Evidence Gap 미해결”</strong>이다. 위 7건은 결론을 뒤집는 항목이 아니며, 핵심 판정은 모두 원문 확인 수치에 기반한다.</p>
+      </div>
+
+      <footer>
+        <h3>출처 신뢰도 등급</h3>
+        <p>
+          <span class="chip c-grade">S</span> 국가승인통계·중앙정부 공식통계 &nbsp;·&nbsp;
+          <span class="chip c-grade">A</span> 지방정부 공식통계·공공기관 조사 &nbsp;·&nbsp;
+          <span class="chip c-grade">B</span> 국책연구기관·peer-reviewed 연구 &nbsp;·&nbsp;
+          <span class="chip c-grade">C</span> 기업 공식자료·민간 데이터 &nbsp;·&nbsp;
+          <span class="chip c-grade">D</span> 기사·재인용
+        </p>
+        <p>핵심 주장에는 S 또는 A만 사용했다. C는 공식자료가 존재하기 어려운 시장·서비스 동향에만 썼고, D는 원자료 탐색 경유지로만 쓰고 최종 근거로 삼지 않았다. 공식 자료를 찾지 못한 곳은 추정으로 채우지 않고 <strong>“공식 근거 확인 불가”</strong>로 남겼다.</p>
+        <p style="color:var(--ink-faint); font-size:.82rem">
+          조사일 2026-08-21 · Sub-Agent 9개 · 서브에이전트 도구 사용 592회 · 메인 Agent 독립 재검증 별도.
+          전체 근거 레지스트리, 제외 자료 목록, Red Team 보고서, 독립 검증 보고서는 저장소 <code>research/</code> 에 있다.
+        </p>
+      </footer>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
