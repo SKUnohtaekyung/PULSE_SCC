@@ -115,16 +115,61 @@ pnpm / yarn / bun → 미설치
 
 ## 6. Git 규칙
 
-- 기본 브랜치는 `main`. **`main` 직접 push 금지.**
+### 6.1 브랜치와 커밋
+
+- 기본 브랜치는 `main`. **`main` 직접 push 금지.** GitHub 브랜치 보호로 강제된다.
 - 브랜치명: `<type>/TASK-<번호>-<짧은설명>` (예: `feat/TASK-003-login-form`)
-  - type: `feat` / `fix` / `ui` / `docs` / `chore` / `refactor`
 - 커밋 메시지: Conventional Commits. 본문 한국어 허용. (예: `feat(auth): 로그인 폼 추가`)
-- PR은 이슈 1개, TASK 1개에 대응시킨다.
-- 공유 브랜치에 force push 금지.
-- 다른 사람의 진행 중 변경을 삭제하지 않는다.
-- 작업과 무관한 파일을 함께 수정하지 않는다.
-- `.env` 및 시크릿은 절대 커밋하지 않는다. 환경변수는 `.env.example` 로만 공유한다 (현재 미생성 — 스택 확정 후).
 - merge 전략(squash / merge commit)은 **확정 필요**.
+
+### 6.2 PR 규칙
+
+- PR은 이슈 1개, TASK 1개에 대응시킨다.
+- PR 제목은 커밋 메시지와 같은 규칙을 쓴다.
+- **본문은 `.github/pull_request_template.md` 구조를 그대로 따른다.**
+  섹션을 지우지 않는다. 해당 없으면 `해당 없음` 이라고 적는다.
+
+#### 라벨은 반드시 붙인다
+
+**라벨 없는 PR은 리뷰하지 않는다.** GitHub은 이슈 폼과 달리 **PR 템플릿으로 라벨을 자동 부여하지 않는다.** 생성할 때 직접 지정해야 한다.
+
+| 붙일 라벨 | 개수 | 기준 |
+|---|---|---|
+| `type:*` | 1개 이상 | 아래 표 |
+| `role:*` | 정확히 1개 | 소유 역할 (5장) |
+
+| `type:*` 라벨 | 용도 | 브랜치 type |
+|---|---|---|
+| `type:feature` | 새 기능 또는 기능 변경 | `feat` |
+| `type:bug` | 버그 수정 | `fix` |
+| `type:ui` | 화면, 디자인 토큰, 공용 컴포넌트 | `ui` |
+| `type:spec` | PRD·요구사항·디자인 원칙 변경 | `docs` |
+| `type:docs` | 그 외 문서 변경 | `docs` |
+| `type:chore` | 빌드·설정·의존성·리팩터링 | `chore` / `refactor` |
+
+#### Agent가 PR을 만들 때
+
+에디터가 열리는 형태는 비대화형 세션에서 실패한다. `--body-file` 을 쓴다.
+
+```bash
+gh pr create --base main   --title "feat(auth): 로그인 폼 추가"   --label "type:feature" --label "role:feature"   --body-file - <<'PRBODY'
+<pull_request_template.md 구조대로 채운 본문>
+PRBODY
+```
+
+생성 후 라벨이 실제로 붙었는지 **조회해서 확인한다.** 붙지 않았으면 보완한다.
+
+```bash
+gh pr view <번호> --json labels --jq '[.labels[].name]'
+gh pr edit <번호> --add-label "type:feature"
+```
+
+### 6.3 금지
+
+- 공유 브랜치에 force push
+- 다른 사람의 진행 중 변경 삭제
+- 작업과 무관한 파일을 함께 수정
+- `.env` 및 시크릿 커밋 — 환경변수는 `.env.example` 로만 공유한다 (현재 미생성, 스택 확정 후)
 
 ## 7. 개발 규칙
 
