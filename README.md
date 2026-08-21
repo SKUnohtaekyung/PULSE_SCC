@@ -82,18 +82,26 @@ git clone https://github.com/SKUnohtaekyung/PULSE_SCC.git
 | 규칙 | 설정 |
 |---|---|
 | PR 없이 main에 직접 push | 차단 |
-| 머지 전 승인 | 1명 이상 |
+| **머지 전 승인** | **0명 — 승인 없이 머지 가능 (임시)** |
 | 새 커밋 push 시 기존 승인 | 자동 해제 |
 | force push | 차단 |
 | main 브랜치 삭제 | 차단 |
-| 리뷰 코멘트 | 전부 해결해야 머지 가능 |
-| 관리자 우회 | **허용 (임시)** |
+| 리뷰 코멘트 전부 해결 | 강제하지 않음 (임시) |
+| 관리자 우회 | 허용 (임시) |
 
-**관리자 우회를 열어둔 이유:** 현재 collaborator가 1명뿐이라 승인해 줄 사람이 없다.
-그대로 두면 저장소 소유자가 자기 PR을 머지하지 못해 아무 작업도 진행할 수 없다.
-**팀원 3명을 초대한 뒤에는 아래로 관리자에게도 적용할 것을 권한다.**
+**승인 요구를 0명으로 둔 이유:** 현재 collaborator가 1명뿐이고, GitHub은 **자기가 낸 PR을 자기가 승인하지 못한다.**
+승인 1명을 요구하면 저장소 소유자조차 아무것도 머지할 수 없다.
+
+**PR 자체는 여전히 필수다.** 모든 변경은 `브랜치 → PR → 머지` 를 거친다. 면제된 것은 승인 절차뿐이다.
+
+**팀원 3명을 초대한 뒤 아래로 되돌린다.**
 
 ```bash
+# 승인 1명 + 리뷰 코멘트 해결 필수로 복원
+gh api -X PATCH repos/SKUnohtaekyung/PULSE_SCC/branches/main/protection/required_pull_request_reviews   -F required_approving_review_count=1
+gh api -X PUT repos/SKUnohtaekyung/PULSE_SCC/branches/main/protection/required_conversation_resolution
+
+# 관리자에게도 규칙 적용
 gh api -X POST repos/SKUnohtaekyung/PULSE_SCC/branches/main/protection/enforce_admins
 ```
 
