@@ -21,6 +21,12 @@ desktop.ini
 CLAUDE.local.md
 .codex/
 
+# ── 개인정보가 든 원본 문서 ──
+# 신청서·확인서 계열 한글 파일에는 학번·연락처·서명 이미지가 들어 있다.
+# 본문이 필요하면 docs/program/ 아래 마크다운으로 옮기고 원본은 커밋하지 않는다.
+*.hwp
+*.hwpx
+
 # ── 로그 / 임시 ──
 *.log
 npm-debug.log*
