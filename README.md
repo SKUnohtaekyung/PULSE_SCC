@@ -56,30 +56,39 @@ docs/
 
 ---
 
-## 저장소 초기 세팅 (아직 실행하지 않음)
+## 저장소
 
-아래는 **팀에서 직접 실행해야 하는 미실행 작업**이다.
-
-### 1. GitHub 원격 연결
-
-로컬은 `git init` 만 되어 있고 커밋과 원격이 없다.
-
-### 2. 이슈 라벨 생성
-
-이슈 템플릿이 `type:*` 라벨을 사용한다. 저장소에 라벨이 없으면 적용되지 않는다.
+| | |
+|---|---|
+| 원격 | https://github.com/SKUnohtaekyung/PULSE_SCC (Private) |
+| 기본 브랜치 | `main` |
 
 ```bash
-gh label create "type:feature" --color 1D76DB && gh label create "type:ui" --color 5319E7 && gh label create "type:bug" --color D73A4A && gh label create "type:spec" --color 0E8A16 && gh label create "role:product" --color FBCA04 && gh label create "role:design-system" --color FBCA04 && gh label create "role:feature" --color FBCA04 && gh label create "role:platform" --color FBCA04
+git clone https://github.com/SKUnohtaekyung/PULSE_SCC.git
 ```
 
-### 3. main 브랜치 보호
+### 완료된 세팅
+
+- GitHub Private 저장소 생성 및 첫 커밋 push
+- 이슈 라벨 8종 생성 (`type:feature` `type:ui` `type:bug` `type:spec` / `role:product` `role:design-system` `role:feature` `role:platform`)
+- 이슈 폼 4종, PR 템플릿, `.gitattributes`(줄바꿈 LF 통일)
+
+## 아직 실행하지 않은 세팅
+
+아래는 **팀에서 직접 해야 하는 작업**이다.
+
+### 1. 팀원 초대
+
+Private 저장소이므로 나머지 3명을 collaborator로 초대해야 한다.
+
+### 2. main 브랜치 보호
 
 `AGENTS.md` 6장의 "main 직접 push 금지"는 문서 규칙일 뿐이다. GitHub 저장소 설정에서 브랜치 보호 규칙을 걸어야 실제로 강제된다.
 
-### 4. CODEOWNERS
+### 3. CODEOWNERS
 
 4명의 역할 배정이 끝나면 `.github/CODEOWNERS` 를 추가해 소유 영역별 리뷰어를 자동 지정한다. **담당자 미정이라 지금은 만들지 않았다.**
 
-### 5. 빈 이슈 허용 여부
+### 4. 빈 이슈 허용 여부
 
 현재 `.github/ISSUE_TEMPLATE/config.yml` 에서 `blank_issues_enabled: false` 로 템플릿 사용을 강제한다. 불편하면 `true` 로 바꾼다.
