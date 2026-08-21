@@ -60,8 +60,9 @@ docs/
 
 | | |
 |---|---|
-| 원격 | https://github.com/SKUnohtaekyung/PULSE_SCC (Private) |
-| 기본 브랜치 | `main` |
+| 원격 | https://github.com/SKUnohtaekyung/PULSE_SCC |
+| 공개 범위 | **Public** — 누구나 열람 가능. push·리뷰 승인은 collaborator만 |
+| 기본 브랜치 | `main` (보호 적용됨) |
 
 ```bash
 git clone https://github.com/SKUnohtaekyung/PULSE_SCC.git
@@ -69,9 +70,34 @@ git clone https://github.com/SKUnohtaekyung/PULSE_SCC.git
 
 ### 완료된 세팅
 
-- GitHub Private 저장소 생성 및 첫 커밋 push
-- 이슈 라벨 8종 생성 (`type:feature` `type:ui` `type:bug` `type:spec` / `role:product` `role:design-system` `role:feature` `role:platform`)
+- Public 저장소 생성 및 push
+- 이슈 라벨 8종 (`type:feature` `type:ui` `type:bug` `type:spec` / `role:product` `role:design-system` `role:feature` `role:platform`)
 - 이슈 폼 4종, PR 템플릿, `.gitattributes`(줄바꿈 LF 통일)
+- `main` 브랜치 보호 (아래)
+
+### main 브랜치 보호 규칙
+
+`AGENTS.md` 6장의 Git 규칙을 GitHub 설정으로 강제한 것이다.
+
+| 규칙 | 설정 |
+|---|---|
+| PR 없이 main에 직접 push | 차단 |
+| 머지 전 승인 | 1명 이상 |
+| 새 커밋 push 시 기존 승인 | 자동 해제 |
+| force push | 차단 |
+| main 브랜치 삭제 | 차단 |
+| 리뷰 코멘트 | 전부 해결해야 머지 가능 |
+| 관리자 우회 | **허용 (임시)** |
+
+**관리자 우회를 열어둔 이유:** 현재 collaborator가 1명뿐이라 승인해 줄 사람이 없다.
+그대로 두면 저장소 소유자가 자기 PR을 머지하지 못해 아무 작업도 진행할 수 없다.
+**팀원 3명을 초대한 뒤에는 아래로 관리자에게도 적용할 것을 권한다.**
+
+```bash
+gh api -X POST repos/SKUnohtaekyung/PULSE_SCC/branches/main/protection/enforce_admins
+```
+
+merge 전략(squash / merge commit)은 팀 결정 사항이므로 강제하지 않았다. `AGENTS.md` 6장 참고.
 
 ## 아직 실행하지 않은 세팅
 
@@ -79,16 +105,12 @@ git clone https://github.com/SKUnohtaekyung/PULSE_SCC.git
 
 ### 1. 팀원 초대
 
-Private 저장소이므로 나머지 3명을 collaborator로 초대해야 한다.
+Public이라 열람은 누구나 가능하지만 **push와 리뷰 승인은 collaborator만 가능하다.** 나머지 3명을 초대해야 브랜치 보호가 의도대로 동작한다.
 
-### 2. main 브랜치 보호
-
-`AGENTS.md` 6장의 "main 직접 push 금지"는 문서 규칙일 뿐이다. GitHub 저장소 설정에서 브랜치 보호 규칙을 걸어야 실제로 강제된다.
-
-### 3. CODEOWNERS
+### 2. CODEOWNERS
 
 4명의 역할 배정이 끝나면 `.github/CODEOWNERS` 를 추가해 소유 영역별 리뷰어를 자동 지정한다. **담당자 미정이라 지금은 만들지 않았다.**
 
-### 4. 빈 이슈 허용 여부
+### 3. 빈 이슈 허용 여부
 
 현재 `.github/ISSUE_TEMPLATE/config.yml` 에서 `blank_issues_enabled: false` 로 템플릿 사용을 강제한다. 불편하면 `true` 로 바꾼다.
