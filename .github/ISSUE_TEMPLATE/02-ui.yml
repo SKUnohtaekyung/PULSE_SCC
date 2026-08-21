@@ -1,0 +1,80 @@
+name: UI 작업
+description: 화면 구현, 디자인 토큰·공용 컴포넌트 변경 (role:design-system / role:feature)
+title: "[UI] "
+labels: ["type:ui"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        UI는 Agent가 코드로 직접 구현합니다.
+        착수 전 조사 순서는 `AGENTS.md` 8장, 검증은 `.claude/skills/visual-qa/SKILL.md` 를 따릅니다.
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: 담당 역할
+      description: 공용 컴포넌트·토큰을 바꾸면 role:design-system 입니다.
+      options:
+        - "role:feature — 특정 화면만"
+        - "role:design-system — 공용 컴포넌트 또는 토큰"
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: 대상 화면 / 컴포넌트
+    validations:
+      required: true
+
+  - type: input
+    id: requirement
+    attributes:
+      label: 관련 요구사항 ID
+      placeholder: "FR-001"
+
+  - type: textarea
+    id: existing
+    attributes:
+      label: 기존 컴포넌트 검색 결과
+      description: "**중복 컴포넌트 방지용 필수 항목.** 최소 2가지 이름으로 검색한 결과를 적습니다. (예: Modal / Dialog)"
+      placeholder: |
+        검색어: Modal, Dialog
+        결과: 없음 → 신규 필요
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: states
+    attributes:
+      label: 구현할 상태
+      description: 해당하는 것을 모두 체크. 체크한 항목은 Visual QA에서 확인합니다.
+      options:
+        - label: loading
+        - label: empty
+        - label: error
+        - label: disabled
+        - label: hover / focus
+
+  - type: dropdown
+    id: responsive
+    attributes:
+      label: 반응형 대상
+      options:
+        - "desktop + mobile"
+        - "desktop only"
+        - "mobile only"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: newtoken
+    attributes:
+      label: 새 디자인 토큰이 필요한가
+      description: "필요하면 role:design-system 리뷰가 필수입니다."
+      options:
+        - "아니오 — 기존 토큰으로 가능"
+        - "예 — 토큰 추가 필요"
+        - "모름 — 조사 필요"
+    validations:
+      required: true

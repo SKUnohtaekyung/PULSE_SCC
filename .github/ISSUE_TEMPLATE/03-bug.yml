@@ -1,0 +1,71 @@
+name: 버그
+description: 동작하지 않거나 잘못 동작하는 것
+title: "[BUG] "
+labels: ["type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        추측이 아니라 **실제로 재현한 내용**을 적어주세요.
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 재현 절차
+      placeholder: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 동작 vs 실제 동작
+      placeholder: |
+        기대: 
+        실제: 
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: 환경
+      description: 브라우저/기기, 브랜치 또는 커밋 해시
+      placeholder: "Chrome 140 / main @ a1b2c3d"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영향 영역
+      description: 어느 역할의 소유 영역인지 모르면 "모름"을 고르세요. 추측해서 배정하지 않습니다.
+      options:
+        - "UI / 화면"
+        - "공용 컴포넌트 · 디자인 토큰"
+        - "데이터 · 연동"
+        - "빌드 · 설정 · CI"
+        - "모름"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 심각도
+      options:
+        - "블로킹 — 작업/사용 불가"
+        - "높음 — 핵심 흐름 손상"
+        - "보통 — 우회 가능"
+        - "낮음 — 사소함"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 추가 정보
+      description: 콘솔 에러, 스크린샷, 관련 PR 등
