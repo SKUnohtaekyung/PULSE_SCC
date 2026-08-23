@@ -123,5 +123,5 @@
 
 ## Last Verified Commit
 
-`__PENDING__` — Reviewer 1·2차 지적 반영까지 포함한 커밋. 위 Verification은 이 시점 저장소 상태 + 2026-08-23 다운로드한 원본 엑셀 기준이다.
+`05f8c94` — Reviewer 1·2차 지적 반영까지 포함한 커밋. 위 Verification은 이 시점 저장소 상태 + 2026-08-23 다운로드한 원본 엑셀 기준이다.
 기반 커밋은 `8b848c3` (main).
