@@ -33,7 +33,7 @@
 
 | 경로 | 이유 |
 |---|---|
-| `docs/product/PRD.md` | 전면 교체. 1~9장 확정, 10~13장은 확정분 + 남은 TBD 명시 |
+| `docs/product/PRD.md` | 전면 교체 후 Reviewer 지적 반영. 제품 정의·범위 확정, 잔여 TBD 7건은 전부 §13에 결정 시점 명시 |
 | `docs/decisions/ADR-002-review-collection.md` | 신규 — 이슈 #3 대응 |
 | `docs/handoffs/active/TASK-004-PRD-확정.md` | 신규 — 이 문서 |
 
@@ -64,7 +64,6 @@
 |---|---|---|
 | lint / typecheck / test / build | — | **없음** (스택 미확정, `package.json` 부재) |
 | Visual QA | — | **해당 없음** (UI 변경 없음) |
-| 상대 링크 | 경로 해석 스크립트 | 깨진 링크 **0건** |
 | 무관한 변경 | `git diff` | 없음 |
 | PRD 잔여 TBD | `grep -n "TBD" docs/product/PRD.md` | **§3 1건 · §8 2건 · §11 4건** = 7건. 전부 §13에 결정 시점을 적었다 |
 | PRD ↔ FR 매핑 | §7 FR 표와 §9 포함 표 대조 | FR-001~007 **1:1 대응**. §9에 "§7이 정본"임을 명시 |
