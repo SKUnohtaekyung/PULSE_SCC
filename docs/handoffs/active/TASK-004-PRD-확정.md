@@ -97,4 +97,4 @@
 
 ## Last Verified Commit
 
-`d659184` — Reviewer 지적 15건 반영까지 포함한 커밋. 기반 커밋은 `8b848c3`, 현재 main은 `91e5f01`(PR #11 머지).
+`26b8fe3` — Reviewer 지적 15건 + 비차단 8건 반영까지 포함한 커밋. 기반 커밋은 `8b848c3`, 현재 main은 `91e5f01`(PR #11 머지).
