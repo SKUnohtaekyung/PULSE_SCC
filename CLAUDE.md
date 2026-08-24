@@ -75,6 +75,15 @@
 
 ## 아직 만들지 않은 것
 
-`.claude/commands/`, `.claude/hooks/`, `.claude/output-styles/`, `.claude/workflows/` 는 **필요성이 확인되기 전까지 만들지 않는다.** 반복 자동화가 실제로 필요해진 시점에 추가한다.
+`.claude/commands/`, `.claude/output-styles/`, `.claude/workflows/` 는 **필요성이 확인되기 전까지 만들지 않는다.** 반복 자동화가 실제로 필요해진 시점에 추가한다.
+
+`.claude/hooks/` 는 만들었다. 현재 훅은 하나다.
+
+| 훅 | 이벤트 | 하는 일 |
+|---|---|---|
+| `sync-git-guide.sh` | `PostToolUse` (`Write`\|`Edit`) | `AGENTS.md`·`CLAUDE.md`·`README.md`·`.github/` 를 고치면 루트 `git-관련-사용법.html` 도 확인하라고 알린다 |
+
+훅은 **알리기만 한다.** 문서를 자동으로 고치지 않는다. 규칙 변경이 어느 문장에 영향을 주는지는 판단이 필요하고, 자동 수정은 틀린 내용을 조용히 퍼뜨릴 위험이 더 크다.
+저장소에 `jq` 가 없으므로 훅 스크립트는 bash 내장 기능만 쓴다.
 
 스택이 확정되면 `.claude/launch.json` 에 dev 서버를 등록한다. Visual QA에서 실제 화면을 띄우는 데 필요하다.

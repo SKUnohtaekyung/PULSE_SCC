@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCC — Git · GitHub 사용법</title>
+<style>
+:root{
+  --surface-0:#faf9f7; --surface-1:#f3f1ed; --surface-2:#ffffff;
+  --text-primary:#1f1e1c; --text-secondary:#57544e; --text-muted:#83807a;
+  --border:#e2dfd8; --border-strong:#c7c3ba;
+  --bg-accent:#eeedfe; --text-accent:#3c3489; --border-accent:#7f77dd;
+  --bg-danger:#fcebeb; --text-danger:#791f1f;
+  --bg-ok:#e1f5ee; --text-ok:#085041;
+  --radius:8px;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --surface-0:#191817; --surface-1:#232120; --surface-2:#2b2927;
+    --text-primary:#eeece7; --text-secondary:#b4b0a8; --text-muted:#8b8781;
+    --border:#3a3735; --border-strong:#54504b;
+    --bg-accent:#3c3489; --text-accent:#cecbf6; --border-accent:#7f77dd;
+    --bg-danger:#501313; --text-danger:#f7c1c1;
+    --bg-ok:#04342c; --text-ok:#9fe1cb;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;padding:3rem 1.5rem 6rem}
+h1{font-size:30px;font-weight:500;line-height:1.3;margin:0 0 .5rem}
+h2{font-size:22px;font-weight:500;margin:3.5rem 0 1rem;padding-top:1.5rem;border-top:0.5px solid var(--border)}
+h3{font-size:17px;font-weight:500;margin:2rem 0 .5rem}
+p{margin:0 0 1rem}
+ul,ol{margin:0 0 1rem;padding-left:1.3rem}
+li{margin:.3rem 0}
+a{color:var(--text-accent)}
+code{font-family:var(--mono);font-size:.88em;background:var(--surface-1);padding:.12em .38em;border-radius:4px}
+pre{background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);
+  padding:.9rem 1.1rem;overflow-x:auto;margin:0 0 1rem}
+pre code{background:none;padding:0;font-size:13.5px;line-height:1.7}
+table{border-collapse:collapse;width:100%;margin:0 0 1.25rem;font-size:14.5px}
+th,td{text-align:left;padding:.55rem .7rem;border-bottom:0.5px solid var(--border);vertical-align:top}
+th{font-weight:500;color:var(--text-secondary);font-size:13px}
+.lead{font-size:17px;color:var(--text-secondary);margin-bottom:2rem}
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem;margin:0 0 1.25rem}
+.fig{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:1.2rem;margin:1.5rem 0}
+.note{background:var(--surface-1);border-left:3px solid var(--border-accent);border-radius:0;padding:.85rem 1.1rem;margin:1.25rem 0;font-size:15px}
+.warn{background:var(--bg-danger);color:var(--text-danger);border-radius:var(--radius);padding:.85rem 1.1rem;margin:1.25rem 0;font-size:15px}
+.pill{display:inline-block;font-family:var(--mono);font-size:12.5px;padding:2px 9px;border-radius:var(--radius);white-space:nowrap}
+.p-blue{background:#e6f1fb;color:#0c447c} .p-purple{background:#eeedfe;color:#3c3489}
+.p-red{background:#fcebeb;color:#791f1f} .p-green{background:#eaf3de;color:#27500a}
+.p-amber{background:#faeeda;color:#633806} .p-gray{background:#f1efe8;color:#2c2c2a}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:1rem 0}
+button{font:inherit;font-size:14px;background:transparent;color:var(--text-primary);
+  border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:.4rem .9rem;cursor:pointer}
+button:hover{background:var(--surface-1)}
+button[aria-pressed="true"]{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent)}
+.grid{display:grid;grid-template-columns:130px minmax(0,1fr);row-gap:12px;column-gap:14px;font-size:14.5px}
+.grid .k{font-size:13px;color:var(--text-muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+svg{display:block;width:100%;height:auto}
+text.t{font-size:14px;fill:var(--text-primary)}
+text.ts{font-size:12px;fill:var(--text-secondary)}
+text.th{font-size:14px;font-weight:500;fill:var(--text-primary)}
+.arr{stroke:var(--border-strong);stroke-width:1.5;fill:none}
+.c-gray rect{fill:#f1efe8;stroke:#888780} .c-gray text.th{fill:#2c2c2a} .c-gray text.ts{fill:#5f5e5a}
+.c-purple rect{fill:#eeedfe;stroke:#7f77dd} .c-purple text.th{fill:#3c3489} .c-purple text.ts{fill:#534ab7}
+.c-teal rect{fill:#e1f5ee;stroke:#1d9e75} .c-teal text.th{fill:#085041} .c-teal text.ts{fill:#0f6e56}
+.c-red rect{fill:#fcebeb;stroke:#e24b4a} .c-red text.th{fill:#791f1f} .c-red text.ts{fill:#a32d2d}
+@media (prefers-color-scheme: dark){
+  .c-gray rect{fill:#444441;stroke:#b4b2a9} .c-gray text.th{fill:#f1efe8} .c-gray text.ts{fill:#d3d1c7}
+  .c-purple rect{fill:#3c3489;stroke:#afa9ec} .c-purple text.th{fill:#cecbf6} .c-purple text.ts{fill:#afa9ec}
+  .c-teal rect{fill:#085041;stroke:#5dcaa5} .c-teal text.th{fill:#9fe1cb} .c-teal text.ts{fill:#5dcaa5}
+  .c-red rect{fill:#791f1f;stroke:#f09595} .c-red text.th{fill:#f7c1c1} .c-red text.ts{fill:#f09595}
+  .p-blue{background:#0c447c;color:#b5d4f4} .p-purple{background:#3c3489;color:#cecbf6}
+  .p-red{background:#791f1f;color:#f7c1c1} .p-green{background:#27500a;color:#c0dd97}
+  .p-amber{background:#633806;color:#fac775} .p-gray{background:#444441;color:#d3d1c7}
+}
+@media (max-width:620px){ .grid{grid-template-columns:1fr;row-gap:4px} .wrap{padding:2rem 1.1rem 4rem}
+  table{display:block;overflow-x:auto} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Git · GitHub 사용법</h1>
+<p class="lead">SCC 저장소(PULSE_SCC)에서 실제로 쓰는 규칙과, 그 규칙이 왜 그렇게 생겼는지를 함께 적은 문서입니다.</p>
+
+<div class="note">
+이 문서는 <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>README.md</code>, <code>.github/</code> 를 근거로 만들어졌습니다.
+그 파일들이 바뀌면 이 문서도 같이 고쳐야 합니다. 자동 알림 설정은 마지막 장에 있습니다.
+<strong>내용이 어긋나면 그 파일들이 정본이고 이 문서가 틀린 것입니다</strong> (<code>AGENTS.md</code> 4장).
+</div>
+
+<h2>1. Git과 GitHub는 다른 것이다</h2>
+<p>둘을 섞어 쓰면 계속 헷갈립니다. 먼저 갈라둡니다.</p>
+<table>
+<tr><th>　</th><th>Git</th><th>GitHub</th></tr>
+<tr><td>정체</td><td>내 컴퓨터에서 도는 버전 관리 프로그램</td><td>Git 저장소를 올려두고 함께 쓰는 웹 서비스</td></tr>
+<tr><td>인터넷</td><td>없어도 됨</td><td>있어야 함</td></tr>
+<tr><td>다루는 것</td><td>커밋, 브랜치, 머지</td><td>이슈, PR, 리뷰, 라벨, 브랜치 보호</td></tr>
+<tr><td>한마디로</td><td>도구</td><td>절차</td></tr>
+</table>
+<p><strong>커밋·브랜치·머지는 Git 개념이고, 이슈·PR·리뷰·라벨은 GitHub 개념입니다.</strong> 이 저장소의 규칙 대부분은 뒤쪽, 즉 절차에 관한 것입니다.</p>
+
+<h3>네 가지 기본 단어</h3>
+<table>
+<tr><th>단어</th><th>뜻</th><th>비유</th></tr>
+<tr><td><strong>커밋</strong> commit</td><td>변경 내용을 하나의 기록으로 저장</td><td>글의 저장 지점. 언제든 그 시점으로 되돌아갈 수 있다</td></tr>
+<tr><td><strong>브랜치</strong> branch</td><td>본체를 복사해 만든 별도 작업 공간</td><td>원본은 두고 사본에서 고쳐보는 것</td></tr>
+<tr><td><strong>이슈</strong> issue</td><td>무엇을 왜 할지 적는 할 일 티켓</td><td>작업 전에 쓰는 글. 아직 아무것도 안 바꿨다</td></tr>
+<tr><td><strong>PR</strong> pull request</td><td>바꾼 내용을 본체에 합쳐달라는 제안서</td><td>작업 후에 쓰는 글. 검토를 요청한다</td></tr>
+</table>
+<p>Pull Request라는 이름은 &ldquo;내 브랜치의 변경을 당겨(pull) 가 달라는 요청(request)&rdquo;이라는 뜻입니다. 핵심은 <strong>본체를 직접 고치지 않고, 사본에서 고친 뒤 검토를 받고 합친다</strong>는 것입니다.</p>
+<h2>2. 전체 흐름</h2>
+<p>이슈에서 시작해 main에 반영되기까지 여섯 단계입니다. 앞의 세 단계는 Git, 뒤의 세 단계는 GitHub에서 일어납니다.</p>
+<div class="fig">
+<svg viewBox="0 0 680 320" role="img"><title>이슈에서 main 머지까지의 작업 흐름</title><desc>이슈, 브랜치, 커밋 순으로 준비한 뒤 PR을 만들고 리뷰를 거쳐 main에 머지되는 여섯 단계 흐름도</desc><defs><marker id="arrowA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g class="c-gray"><rect x="50" y="60" width="170" height="56" rx="4" stroke-width="0.5"/><text class="th" x="135" y="78" text-anchor="middle" dominant-baseline="central">이슈</text><text class="ts" x="135" y="100" text-anchor="middle" dominant-baseline="central">할 일을 티켓으로</text></g>
+<g class="c-gray"><rect x="255" y="60" width="170" height="56" rx="4" stroke-width="0.5"/><text class="th" x="340" y="78" text-anchor="middle" dominant-baseline="central">브랜치</text><text class="ts" x="340" y="100" text-anchor="middle" dominant-baseline="central">작업 공간 분리</text></g>
+<g class="c-gray"><rect x="460" y="60" width="170" height="56" rx="4" stroke-width="0.5"/><text class="th" x="545" y="78" text-anchor="middle" dominant-baseline="central">커밋</text><text class="ts" x="545" y="100" text-anchor="middle" dominant-baseline="central">변경 기록 저장</text></g>
+<g class="c-purple"><rect x="50" y="190" width="170" height="56" rx="4" stroke-width="0.5"/><text class="th" x="135" y="208" text-anchor="middle" dominant-baseline="central">PR</text><text class="ts" x="135" y="230" text-anchor="middle" dominant-baseline="central">변경 제안서</text></g>
+<g class="c-purple"><rect x="255" y="190" width="170" height="56" rx="4" stroke-width="0.5"/><text class="th" x="340" y="208" text-anchor="middle" dominant-baseline="central">리뷰</text><text class="ts" x="340" y="230" text-anchor="middle" dominant-baseline="central">다른 눈으로 확인</text></g>
+<g class="c-teal"><rect x="460" y="190" width="170" height="56" rx="4" stroke-width="0.5"/><text class="th" x="545" y="208" text-anchor="middle" dominant-baseline="central">main 머지</text><text class="ts" x="545" y="230" text-anchor="middle" dominant-baseline="central">정본에 반영</text></g>
+<line class="arr" x1="226" y1="88" x2="247" y2="88" marker-end="url(#arrowA)"/>
+<line class="arr" x1="431" y1="88" x2="452" y2="88" marker-end="url(#arrowA)"/>
+<path class="arr" d="M545 122 L545 153 L135 153 L135 184" marker-end="url(#arrowA)"/>
+<line class="arr" x1="226" y1="218" x2="247" y2="218" marker-end="url(#arrowA)"/>
+<line class="arr" x1="431" y1="218" x2="452" y2="218" marker-end="url(#arrowA)"/>
+<g class="c-gray"><rect x="50" y="278" width="12" height="12" rx="2" stroke-width="0.5"/></g><text class="ts" x="70" y="284" dominant-baseline="central">준비 단계</text>
+<g class="c-purple"><rect x="160" y="278" width="12" height="12" rx="2" stroke-width="0.5"/></g><text class="ts" x="180" y="284" dominant-baseline="central">검토 단계</text>
+<g class="c-teal"><rect x="270" y="278" width="12" height="12" rx="2" stroke-width="0.5"/></g><text class="ts" x="290" y="284" dominant-baseline="central">완료</text>
+</svg>
+</div>
+<ol>
+<li><strong>이슈</strong> — 할 일을 등록합니다. 아직 파일은 건드리지 않습니다.</li>
+<li><strong>브랜치</strong> — main의 복사본을 뜹니다. 여기서 뭘 망가뜨려도 본체는 안전합니다.</li>
+<li><strong>커밋</strong> — 사본 안에서 바꾼 내용을 저장합니다.</li>
+<li><strong>PR</strong> — 합쳐도 되는지 물어봅니다. 변경된 줄이 색으로 표시되고 줄 단위 댓글이 가능합니다.</li>
+<li><strong>리뷰</strong> — 팀원이 읽고 승인하거나 수정을 요청합니다.</li>
+<li><strong>머지</strong> — 승인되면 main에 합쳐지고, 연결된 이슈는 자동으로 닫힙니다.</li>
+</ol>
+<p><strong>이슈는 &ldquo;왜/무엇을&rdquo;, PR은 &ldquo;어떻게 했는지&rdquo;입니다.</strong> 이 저장소는 둘을 1:1로 묶습니다 — 이슈 1개 = TASK 1개 = 브랜치 1개 = PR 1개 (<code>AGENTS.md</code> 5장·6.2절).</p>
+<h2>3. 3-way 머지</h2>
+<p>두 갈래로 갈라진 작업을 합칠 때 Git이 <strong>세 지점을 비교한다</strong>는 뜻입니다. 이름의 &ldquo;3&rdquo;이 그 세 지점입니다.</p>
+<p>두 지점만 본다면 &mdash; 내 파일과 상대 파일만 비교한다면 &mdash; 같은 줄이 다르게 생겼을 때 &ldquo;내가 고친 건지 상대가 고친 건지&rdquo; 알 수가 없습니다. 그래서 <strong>갈라지기 전의 원본</strong>을 하나 더 봅니다.</p>
+<div class="fig">
+<svg viewBox="0 0 680 356" role="img"><title>3-way 머지가 비교하는 세 지점</title><desc>갈라지기 전 공통 조상을 기준으로 main 쪽 변경분과 브랜치 쪽 변경분을 각각 비교해 하나의 결과로 합치는 구조</desc><defs><marker id="arrowB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g class="c-gray"><rect x="270" y="40" width="140" height="56" rx="4" stroke-width="0.5"/><text class="th" x="340" y="57" text-anchor="middle" dominant-baseline="central">공통 조상</text><text class="ts" x="340" y="79" text-anchor="middle" dominant-baseline="central">갈라지기 전</text></g>
+<g class="c-teal"><rect x="90" y="150" width="170" height="56" rx="4" stroke-width="0.5"/><text class="th" x="175" y="167" text-anchor="middle" dominant-baseline="central">main 쪽</text><text class="ts" x="175" y="189" text-anchor="middle" dominant-baseline="central">갈라진 뒤 변경분</text></g>
+<g class="c-purple"><rect x="420" y="150" width="170" height="56" rx="4" stroke-width="0.5"/><text class="th" x="505" y="167" text-anchor="middle" dominant-baseline="central">내 브랜치 쪽</text><text class="ts" x="505" y="189" text-anchor="middle" dominant-baseline="central">갈라진 뒤 변경분</text></g>
+<g class="c-teal"><rect x="270" y="260" width="140" height="56" rx="4" stroke-width="0.5"/><text class="th" x="340" y="277" text-anchor="middle" dominant-baseline="central">합친 결과</text><text class="ts" x="340" y="299" text-anchor="middle" dominant-baseline="central">양쪽 다 반영</text></g>
+<line class="arr" x1="305" y1="98" x2="200" y2="144" marker-end="url(#arrowB)"/>
+<line class="arr" x1="375" y1="98" x2="480" y2="144" marker-end="url(#arrowB)"/>
+<line class="arr" x1="210" y1="208" x2="305" y2="256" marker-end="url(#arrowB)"/>
+<line class="arr" x1="470" y1="208" x2="375" y2="256" marker-end="url(#arrowB)"/>
+</svg>
+</div>
+<p><code>README.md</code> 10번째 줄이 원래 <code>팀 5명</code> 이었다고 하면 이렇게 판정됩니다.</p>
+<table>
+<tr><th>상황</th><th>main 쪽</th><th>브랜치 쪽</th><th>Git의 판단</th></tr>
+<tr><td>한쪽만 고침</td><td><code>팀 5명</code> 그대로</td><td><code>팀 4명</code></td><td>브랜치가 고쳤군 → <code>팀 4명</code></td></tr>
+<tr><td>반대쪽만 고침</td><td><code>팀 4명</code></td><td><code>팀 5명</code> 그대로</td><td>main이 고쳤군 → <code>팀 4명</code></td></tr>
+<tr><td>양쪽 다 고침</td><td><code>팀 4명</code></td><td><code>팀 6명</code></td><td><strong>충돌 conflict</strong></td></tr>
+</table>
+<p>원본과 비교하지 않으면 1번과 2번을 구분할 수 없습니다. 3-way 머지 덕분에 대부분 자동으로 합쳐지고, 정말 양쪽이 같은 줄을 건드린 세 번째 경우에만 멈춰 섭니다.</p>
+<div class="note"><strong>3-way 머지는 머지의 한 종류라기보다 Git이 합칠 때 쓰는 기본 계산 방식입니다.</strong> 다음 장의 종류들은 그 계산 결과를 <em>어떤 모양으로 역사에 남길 것인가</em>의 차이입니다.</div>
+<h2>4. 머지의 종류</h2>
+<p>버튼을 눌러 각각이 남기는 역사의 모양을 비교해보세요. 동그라미 하나가 커밋 하나입니다.</p>
+<h2 class="sr">머지 방식 네 가지가 커밋 역사에 남기는 모양 비교</h2>
+<div class="tabs" id="mtabs">
+  <button data-k="ff" aria-pressed="false">fast-forward</button>
+  <button data-k="mc" aria-pressed="false">merge commit</button>
+  <button data-k="sq" aria-pressed="false">squash</button>
+  <button data-k="rb" aria-pressed="false">rebase</button>
+</div>
+<div class="fig" style="padding:12px 16px;overflow-x:auto">
+  <div id="graph" style="position:relative;height:150px;min-width:470px"></div>
+</div>
+<div class="grid" style="margin-bottom:1.5rem">
+  <div class="k">언제 쓰나</div><div id="m-when">—</div>
+  <div class="k">main에 남는 커밋</div><div id="m-hist">—</div>
+  <div class="k">커밋 해시</div><div id="m-hash">—</div>
+  <div class="k">이 저장소</div><div id="m-repo" style="color:var(--text-secondary)">—</div>
+</div>
+<table>
+<tr><th>방식</th><th>역사 모양</th><th>장점</th><th>단점</th></tr>
+<tr><td>fast-forward</td><td>직선</td><td>군더더기 커밋이 없다</td><td>main이 조금이라도 바뀌면 못 쓴다</td></tr>
+<tr><td>merge commit</td><td>갈라졌다 만남</td><td>실제로 일어난 일이 그대로 남는다</td><td>PR이 쌓이면 그래프가 복잡해진다</td></tr>
+<tr><td>squash</td><td>직선</td><td>PR 하나가 커밋 하나. main 역사가 읽기 쉽다</td><td>브랜치 안의 중간 과정이 main에서 사라진다</td></tr>
+<tr><td>rebase</td><td>직선</td><td>중간 커밋을 살리면서 직선을 유지한다</td><td>커밋 해시가 전부 바뀐다</td></tr>
+</table>
+<div class="warn"><strong>이 저장소는 세 가지가 모두 켜져 있고, 어느 것을 쓸지 정해두지 않았습니다.</strong> <code>AGENTS.md</code> 6.1절에 &ldquo;merge 전략은 확정 필요&rdquo;로 남아 있습니다. 실제로는 지금까지 전부 squash로 머지됐습니다 &mdash; <code>git log</code> 가 완전한 직선이고 커밋 제목 끝에 <code>(#14)</code> 처럼 PR 번호가 붙어 있는 것이 그 증거입니다.</div>
+<script>
+(function () {
+  var TOP = 36, BOT = 104, X = [90, 175, 260, 345, 430];
+  var D = {
+    ff: {
+      nodes: [{x:X[0],y:BOT,t:"A",c:"g"},{x:X[1],y:BOT,t:"B",c:"g"},{x:X[2],y:BOT,t:"C",c:"p"},{x:X[3],y:BOT,t:"D",c:"p"}],
+      edges: [[0,1],[1,2],[2,3]],
+      when: "브랜치를 딴 뒤 main이 한 번도 안 바뀐 경우입니다. 합칠 것이 없으니 Git은 main 표시만 앞으로 밀어줍니다. 3-way 계산조차 하지 않습니다.",
+      hist: "브랜치 커밋 2개가 그대로", hash: "그대로 유지",
+      repo: "로컬 git merge에서 자동으로 일어납니다. GitHub PR 버튼에는 이 이름이 없습니다."
+    },
+    mc: {
+      nodes: [{x:X[0],y:BOT,t:"A",c:"g"},{x:X[1],y:BOT,t:"B",c:"g"},{x:X[2],y:TOP,t:"C",c:"p"},{x:X[3],y:TOP,t:"D",c:"p"},{x:X[4],y:BOT,t:"M",c:"t"}],
+      edges: [[0,1],[1,2],[2,3],[3,4],[1,4]],
+      when: "양쪽이 모두 바뀐 상태에서 3-way 계산으로 합치고, 부모가 둘인 합침 커밋 M을 새로 만듭니다. 갈라졌다 만난 사실이 역사에 그대로 남습니다.",
+      hist: "브랜치 커밋 2개 + 합침 커밋 1개", hash: "브랜치 커밋은 그대로 유지",
+      repo: "GitHub의 Create a merge commit 버튼. 켜져 있지만 쓴 적은 없습니다."
+    },
+    sq: {
+      nodes: [{x:X[0],y:BOT,t:"A",c:"g"},{x:X[1],y:BOT,t:"B",c:"g"},{x:X[2],y:TOP,t:"C",c:"p",f:1},{x:X[3],y:TOP,t:"D",c:"p",f:1},{x:X[4],y:BOT,t:"S",c:"t"}],
+      edges: [[0,1],[1,2,1],[2,3,1],[3,4,1],[1,4]],
+      when: "브랜치의 커밋 여러 개를 하나로 눌러 main 위에 새 커밋 S로 얹습니다. 중간 과정의 자잘한 커밋이 main 역사를 어지럽히지 않습니다.",
+      hist: "커밋 1개만", hash: "새로 생성 (원래 커밋과 다른 해시)",
+      repo: "실제로 써온 방식입니다. main 역사가 완전한 직선이고 커밋 제목 끝에 (#14) 처럼 PR 번호가 붙습니다."
+    },
+    rb: {
+      nodes: [{x:X[0],y:BOT,t:"A",c:"g"},{x:X[1],y:BOT,t:"B",c:"g"},{x:X[2],y:TOP,t:"C",c:"p",f:1},{x:X[3],y:TOP,t:"D",c:"p",f:1},{x:X[2],y:BOT,t:"C'",c:"p"},{x:X[3],y:BOT,t:"D'",c:"p"}],
+      edges: [[0,1],[1,4],[4,5],[2,4,1],[3,5,1]],
+      when: "브랜치 커밋을 하나씩 main 끝으로 옮겨 붙입니다. 내용은 그대로지만 위치가 바뀌므로 새 커밋 C'와 D'가 됩니다.",
+      hist: "브랜치 커밋 2개가 직선으로", hash: "전부 새로 생성",
+      repo: "GitHub의 Rebase and merge 버튼. 켜져 있습니다."
+    }
+  };
+  var TONE = {
+    g: "background:#f1efe8;border-color:#888780;color:#2c2c2a;",
+    p: "background:#eeedfe;border-color:#7f77dd;color:#3c3489;",
+    t: "background:#e1f5ee;border-color:#1d9e75;color:#085041;"
+  };
+  var DARK = {
+    g: "background:#444441;border-color:#b4b2a9;color:#f1efe8;",
+    p: "background:#3c3489;border-color:#afa9ec;color:#cecbf6;",
+    t: "background:#085041;border-color:#5dcaa5;color:#9fe1cb;"
+  };
+  var cur = "sq";
+  function tone(k) {
+    var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return (dark ? DARK : TONE)[k];
+  }
+  var g = document.getElementById("graph");
+  var btns = document.querySelectorAll("#mtabs button");
+  function render(k) {
+    cur = k;
+    var d = D[k], h = "";
+    h += '<div style="position:absolute;left:6px;top:' + (TOP-9) + 'px;font-size:12px;color:var(--text-muted)">브랜치</div>';
+    h += '<div style="position:absolute;left:6px;top:' + (BOT-9) + 'px;font-size:12px;color:var(--text-muted)">main</div>';
+    d.edges.forEach(function (e) {
+      var a = d.nodes[e[0]], b = d.nodes[e[1]], dx = b.x-a.x, dy = b.y-a.y;
+      var len = Math.round(Math.sqrt(dx*dx + dy*dy));
+      var ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      h += '<div style="position:absolute;left:' + a.x + 'px;top:' + a.y + 'px;width:' + len +
+        'px;height:0;border-top:2px ' + (e[2] ? "dashed" : "solid") + ' var(--border-strong);opacity:' +
+        (e[2] ? ".5" : "1") + ';transform-origin:0 0;transform:rotate(' + ang.toFixed(2) + 'deg)"></div>';
+    });
+    d.nodes.forEach(function (n) {
+      h += '<div style="position:absolute;left:' + (n.x-13) + 'px;top:' + (n.y-13) +
+        'px;width:26px;height:26px;border-radius:50%;border:0.5px solid;' + tone(n.c) +
+        'display:flex;align-items:center;justify-content:center;font-size:12px;opacity:' +
+        (n.f ? ".45" : "1") + '">' + n.t + '</div>';
+    });
+    g.innerHTML = h;
+    document.getElementById("m-when").textContent = d.when;
+    document.getElementById("m-hist").textContent = d.hist;
+    document.getElementById("m-hash").textContent = d.hash;
+    document.getElementById("m-repo").textContent = d.repo;
+    btns.forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-k") === k ? "true" : "false"); });
+  }
+  btns.forEach(function (b) { b.addEventListener("click", function () { render(b.getAttribute("data-k")); }); });
+  render("sq");
+
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", function () { render(cur); });
+  }
+})();
+</script>
+<h2>5. main 브랜치 보호</h2>
+<p>여기부터는 GitHub 쪽 이야기입니다. 이 저장소는 <code>main</code> 에 직접 손대는 길을 서버에서 막아놨습니다. 규칙을 어기려 해도 물리적으로 거부됩니다.</p>
+<div class="fig">
+<svg viewBox="0 0 680 256" role="img"><title>main 브랜치 보호가 막는 경로와 허용하는 경로</title><desc>내 브랜치에서 main으로 가는 두 경로 중 직접 push는 차단되고 PR과 리뷰를 거치는 경로만 허용된다</desc><defs><marker id="arrowC" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g class="c-gray"><rect x="40" y="100" width="140" height="56" rx="4" stroke-width="0.5"/><text class="th" x="110" y="117" text-anchor="middle" dominant-baseline="central">내 브랜치</text><text class="ts" x="110" y="139" text-anchor="middle" dominant-baseline="central">복사본에서 작업</text></g>
+<g class="c-red"><rect x="270" y="40" width="140" height="56" rx="4" stroke-width="0.5"/><text class="th" x="340" y="57" text-anchor="middle" dominant-baseline="central">직접 push</text><text class="ts" x="340" y="79" text-anchor="middle" dominant-baseline="central">차단됨</text></g>
+<g class="c-purple"><rect x="270" y="160" width="140" height="56" rx="4" stroke-width="0.5"/><text class="th" x="340" y="177" text-anchor="middle" dominant-baseline="central">PR 경유</text><text class="ts" x="340" y="199" text-anchor="middle" dominant-baseline="central">허용된 경로</text></g>
+<g class="c-teal"><rect x="500" y="100" width="140" height="56" rx="4" stroke-width="0.5"/><text class="th" x="570" y="117" text-anchor="middle" dominant-baseline="central">main</text><text class="ts" x="570" y="139" text-anchor="middle" dominant-baseline="central">정본 브랜치</text></g>
+<path class="arr" d="M186 128 L228 128 L228 68 L264 68" marker-end="url(#arrowC)"/>
+<path class="arr" d="M186 128 L228 128 L228 188 L264 188" marker-end="url(#arrowC)"/>
+<path class="arr" d="M416 188 L458 188 L458 128 L494 128" marker-end="url(#arrowC)"/>
+</svg>
+</div>
+<p>GitHub API로 조회한 현재 값입니다.</p>
+<table>
+<tr><th>규칙</th><th>설정</th><th>뜻</th></tr>
+<tr><td>PR 없이 직접 push</td><td>차단</td><td>위 그림의 빨간 경로</td></tr>
+<tr><td>머지 전 승인 인원</td><td><strong>0명</strong></td><td>PR은 거쳐야 하지만 승인 없이도 머지 가능</td></tr>
+<tr><td>새 커밋 push 시 기존 승인</td><td>자동 해제</td><td>승인 후 코드를 바꿔치기 못 함</td></tr>
+<tr><td>force push</td><td>차단</td><td>남의 커밋을 역사에서 지우는 행위 방지</td></tr>
+<tr><td>main 삭제</td><td>차단</td><td>　</td></tr>
+<tr><td>리뷰 코멘트 전부 해결</td><td>강제 안 함</td><td>미해결 댓글이 있어도 머지됨</td></tr>
+<tr><td>관리자 우회</td><td>허용</td><td>저장소 주인은 규칙을 건너뛸 수 있음</td></tr>
+</table>
+<div class="note"><strong>승인 0명은 의도된 임시 설정입니다.</strong> 지금 collaborator가 한 명뿐이라 승인을 필수로 걸면 승인해줄 사람이 없어 본인 PR이 영원히 막힙니다. 팀원을 초대한 뒤 1명 이상으로 올리는 것이 원래 계획입니다 (<code>README.md</code> &ldquo;아직 실행하지 않은 세팅&rdquo; 1번).</div>
+
+<h2>6. 라벨 규칙</h2>
+<p>GitHub은 기본 상태로는 아무것도 강제하지 않습니다. 이 저장소는 라벨을 두 축으로 나눠 씁니다. 하나만 붙이면 안 되고 두 축을 각각 붙입니다.</p>
+<table>
+<tr><th>축</th><th>뜻</th><th>개수</th></tr>
+<tr><td><span class="pill p-blue">type:*</span></td><td>무엇을 바꿨나</td><td>1개 이상</td></tr>
+<tr><td><span class="pill p-amber">role:*</span></td><td>누구의 소유 영역인가</td><td>정확히 1개</td></tr>
+</table>
+<table>
+<tr><th>type 라벨</th><th>용도</th><th>브랜치 접두사</th></tr>
+<tr><td><span class="pill p-blue">type:feature</span></td><td>새 기능 또는 기능 변경</td><td><code>feat/</code></td></tr>
+<tr><td><span class="pill p-purple">type:ui</span></td><td>화면, 디자인 토큰, 공용 컴포넌트</td><td><code>ui/</code></td></tr>
+<tr><td><span class="pill p-red">type:bug</span></td><td>버그 수정</td><td><code>fix/</code></td></tr>
+<tr><td><span class="pill p-green">type:spec</span></td><td>PRD·요구사항·디자인 원칙 변경</td><td><code>docs/</code></td></tr>
+<tr><td><span class="pill p-blue">type:docs</span></td><td>그 외 문서 — 조사·회의록·발표 자료 포함</td><td><code>docs/</code></td></tr>
+<tr><td><span class="pill p-gray">type:chore</span></td><td>빌드·설정·의존성·리팩터링</td><td><code>chore/</code></td></tr>
+</table>
+<table>
+<tr><th>role 라벨</th><th>소유 영역</th></tr>
+<tr><td><span class="pill p-amber">role:product</span></td><td><code>docs/product/**</code>, <code>docs/presentation/**</code>, <code>research/**</code></td></tr>
+<tr><td><span class="pill p-amber">role:design-system</span></td><td><code>docs/design/**</code>, 디자인 토큰, 공용 UI 컴포넌트</td></tr>
+<tr><td><span class="pill p-amber">role:feature</span></td><td>담당 <code>docs/handoffs/active/TASK-*</code>, 화면·기능 단위 코드</td></tr>
+<tr><td><span class="pill p-amber">role:platform</span></td><td><code>docs/architecture/**</code>, <code>docs/decisions/**</code>, <code>docs/program/**</code>, 빌드 설정, CI, <code>.github/**</code>, <code>.claude/**</code></td></tr>
+</table>
+<p><code>role:*</code> 이 있는 이유는 4명이 같은 파일을 동시에 고치는 사고를 막기 위해서입니다. 내 소유 영역 밖 파일을 고쳐야 하면 직접 고치지 말고 이슈로 넘기거나, 불가피하면 PR 본문에 명시하고 해당 역할을 리뷰어로 지정합니다.</p>
+<div class="warn"><strong>이슈는 템플릿이 라벨을 자동으로 붙여주지만, PR은 안 붙여줍니다.</strong> GitHub의 PR 템플릿에는 라벨 기능이 없습니다. 만들 때 <code>--label</code> 로 직접 지정하고, 만든 뒤 조회해서 실제로 붙었는지 확인해야 합니다. 라벨 없는 PR은 리뷰하지 않는다는 것이 <code>AGENTS.md</code> 6.2절의 규칙입니다.</div>
+<h2>7. 이슈 템플릿</h2>
+<p>빈 이슈는 막혀 있습니다(<code>blank_issues_enabled: false</code>). 이슈를 만들려면 아래 다섯 개 중 하나를 골라야 하고, 각 템플릿은 빈칸을 강제로 채우게 만듭니다. 버튼을 눌러 비교해보세요.</p>
+<h2 class="sr">작업 종류별 이슈 템플릿과 라벨, 브랜치 이름 규칙 비교</h2>
+<div class="tabs" id="ttabs">
+  <button data-k="feature" aria-pressed="false">기능</button>
+  <button data-k="ui" aria-pressed="false">UI</button>
+  <button data-k="bug" aria-pressed="false">버그</button>
+  <button data-k="spec" aria-pressed="false">기획 · 요구사항</button>
+  <button data-k="docs" aria-pressed="false">문서</button>
+</div>
+<div class="card">
+  <div class="grid">
+    <div class="k">템플릿 파일</div><div><code id="t-file">—</code></div>
+    <div class="k">제목 접두사</div><div><code id="t-title">—</code></div>
+    <div class="k">자동으로 붙는 라벨</div><div id="t-auto">—</div>
+    <div class="k">직접 골라야 하는 것</div><div id="t-manual" style="color:var(--text-secondary)">—</div>
+    <div class="k">브랜치 이름</div><div><code id="t-branch">—</code></div>
+    <div class="k">템플릿이 강제하는 것</div><div id="t-force" style="color:var(--text-secondary)">—</div>
+  </div>
+</div>
+<script>
+(function () {
+  var D = {
+    feature: {file:".github/ISSUE_TEMPLATE/01-feature.yml", title:"[FEAT] ", auto:[["type:feature","p-blue"]],
+      manual:"role 4종 중 1개 (드롭다운)", branch:"feat/TASK-003-login-form",
+      force:"PRD의 요구사항 ID(FR-001 등), 완료 조건, 예상 수정 범위를 안 적으면 제출되지 않습니다."},
+    ui: {file:".github/ISSUE_TEMPLATE/02-ui.yml", title:"[UI] ", auto:[["type:ui","p-purple"]],
+      manual:"role:feature 또는 role:design-system", branch:"ui/TASK-007-search-bar",
+      force:"기존 컴포넌트를 최소 2개 이름으로 검색한 결과를 적어야 합니다. 중복 컴포넌트를 막는 장치입니다."},
+    bug: {file:".github/ISSUE_TEMPLATE/03-bug.yml", title:"[BUG] ", auto:[["type:bug","p-red"]],
+      manual:"영향 영역과 심각도 (role 라벨은 따로 지정)", branch:"fix/TASK-011-null-crash",
+      force:"재현 절차, 기대 동작과 실제 동작, 환경(브라우저·커밋 해시)이 필수입니다. 추측으로 못 적게 합니다."},
+    spec: {file:".github/ISSUE_TEMPLATE/04-spec.yml", title:"[SPEC] ", auto:[["type:spec","p-green"],["role:product","p-amber"]],
+      manual:"없음 — 두 라벨이 모두 자동입니다", branch:"docs/TASK-012-prd-update",
+      force:"현재 내용 → 바꿀 내용, 변경 이유, 영향받는 이슈·PR, ADR 필요 여부를 적어야 합니다."},
+    docs: {file:".github/ISSUE_TEMPLATE/05-docs.yml", title:"[DOCS] ", auto:[["type:docs","p-blue"]],
+      manual:"문서 축 5종 중 1개 + role 6종 중 1개", branch:"docs/TASK-005-research-update",
+      force:"문서 축(정본·조사 근거·발표 자료·기록·인수인계), 근거 출처, 시급도가 필수입니다. 축마다 수정 방식이 다르기 때문입니다."}
+  };
+  var btns = document.querySelectorAll("#ttabs button");
+  function paint(k) {
+    var d = D[k];
+    document.getElementById("t-file").textContent = d.file;
+    document.getElementById("t-title").textContent = d.title;
+    document.getElementById("t-manual").textContent = d.manual;
+    document.getElementById("t-branch").textContent = d.branch;
+    document.getElementById("t-force").textContent = d.force;
+    document.getElementById("t-auto").innerHTML = d.auto.map(function (l) {
+      return '<span class="pill ' + l[1] + '" style="margin-right:6px">' + l[0] + '</span>';
+    }).join("");
+    btns.forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-k") === k ? "true" : "false"); });
+  }
+  btns.forEach(function (b) { b.addEventListener("click", function () { paint(b.getAttribute("data-k")); }); });
+  paint("docs");
+})();
+</script>
+<p>문서 템플릿(<code>05-docs.yml</code>)은 다섯 번째로 나중에 추가된 것입니다(PR #16).</p><p>추가하는 이유는 이렇습니다. <code>type:docs</code> 라벨은 있는데 대응하는 입력 양식이 없었고, 실제로 이슈 #5와 #7은 <code>[DOCS]</code> 제목을 달고 있지만 본문에 이슈 폼이 만드는 <code>###</code> 필드 구조가 전혀 없습니다. 자유 서술로 작성됐다는 뜻입니다. 이 저장소는 문서 비중이 큰데 문서 작업만 양식 없이 만들어지고 있었습니다.</p>
+<h2>8. 두 방식의 차이</h2>
+<p>같은 결과를 만드는 두 가지 길이 있습니다. <code>git branch → add → commit → merge → push</code> 는 순수하게 Git 기능만 씁니다. GitHub 없이 내 노트북 안에서도 됩니다. 이슈+PR 방식은 같은 커밋을 만들되 앞뒤에 기록과 검토를 붙입니다.</p>
+<table>
+<tr><th>　</th><th>git merge 직접</th><th>이슈 + PR</th></tr>
+<tr><td>필요한 것</td><td>Git만</td><td>GitHub</td></tr>
+<tr><td>&ldquo;왜 했나&rdquo; 기록</td><td>없음</td><td>이슈에 남음</td></tr>
+<tr><td>검토</td><td>없음</td><td>줄 단위 코멘트 가능</td></tr>
+<tr><td>되돌리기</td><td>커밋 해시를 찾아야 함</td><td>PR 화면의 Revert 버튼</td></tr>
+<tr><td>4명 협업</td><td>서로의 작업을 덮어쓸 위험</td><td>라벨·소유 영역으로 분리</td></tr>
+<tr><td><strong>이 저장소에서</strong></td><td><strong>막혀 있음</strong></td><td>유일하게 허용된 경로</td></tr>
+</table>
+<p>마지막 줄이 핵심입니다. <code>git merge</code> 후 <code>git push origin main</code> 을 하면 GitHub이 거부합니다. 선택지가 아니라 <strong>PR이 유일한 길</strong>입니다.</p>
+
+<h2>9. 실전 — 처음부터 끝까지</h2>
+<p>실제로 한 사이클을 도는 명령입니다. 순서대로 그대로 쓰면 됩니다.</p>
+<h3>1) 이슈 만들기</h3>
+<p>GitHub 웹에서 New issue를 눌러 템플릿을 고르는 것이 기본입니다. 터미널에서 만들려면 폼을 건너뛰므로 본문을 직접 채웁니다.</p>
+<pre><code>gh issue create --title "[DOCS] 명학역 상권 수치 갱신" \
+  --label "type:docs" --label "role:product" \
+  --body-file - &lt;&lt;'BODY'
+## 배경
+
+...본문...
+BODY</code></pre>
+<h3>2) 브랜치 만들기</h3>
+<pre><code>git switch -c docs/TASK-005-myeonghak-update</code></pre>
+<p>브랜치 이름은 <code>&lt;type&gt;/TASK-&lt;번호&gt;-&lt;짧은설명&gt;</code> 입니다. 앞의 <code>type</code> 은 라벨 표의 브랜치 접두사와 같습니다.</p>
+<h3>3) 작업하고 커밋</h3>
+<pre><code>git add research/anyang_dong_level.md
+git commit -m "docs: 명학역 일대 사업체 수를 2024년 원자료로 갱신"</code></pre>
+<p>커밋 메시지는 Conventional Commits 규칙입니다. <code>&lt;type&gt;(&lt;범위&gt;): &lt;내용&gt;</code> 형태이고 본문은 한국어로 씁니다.</p>
+<h3>4) 올리고 PR 만들기</h3>
+<pre><code>git push -u origin docs/TASK-005-myeonghak-update</code></pre>
+<pre><code>gh pr create --base main \
+  --title "docs: 명학역 일대 사업체 수 갱신" \
+  --label "type:docs" --label "role:product" \
+  --body-file - &lt;&lt;'PRBODY'
+&lt;pull_request_template.md 구조대로 채운 본문&gt;
+PRBODY</code></pre>
+<p>본문은 <code>.github/pull_request_template.md</code> 구조를 그대로 따릅니다. 섹션을 지우지 않고, 해당 없으면 <code>해당 없음</code> 이라고 적습니다.</p>
+<h3>5) 라벨이 붙었는지 확인</h3>
+<pre><code>gh pr view &lt;번호&gt; --json labels --jq '[.labels[].name]'</code></pre>
+<p>안 붙었으면 <code>gh pr edit &lt;번호&gt; --add-label "type:docs"</code> 로 보완합니다.</p>
+<div class="note"><strong>에디터가 열리는 형태의 명령은 쓰지 않습니다.</strong> <code>gh pr create</code> 를 옵션 없이 실행하면 편집기가 열리는데, 자동화 세션에서는 그대로 멈춰버립니다. 그래서 <code>--body-file -</code> 로 표준입력에서 본문을 받습니다.</div>
+<h2>10. 이 저장소에서 실제로 일어난 일</h2>
+<p>2026-08-24 기준으로 <strong>머지된 PR 9건 전부 <code>type:*</code> 과 <code>role:*</code> 이 정확히 붙어 있습니다.</strong> 규칙이 실제로 지켜지고 있다는 뜻입니다. 진행 중인 작업은 숫자가 계속 바뀌므로 집계에서 뺐습니다.</p>
+<table>
+<tr><th>PR</th><th>제목</th><th>라벨</th></tr>
+<tr><td>#14</td><td>문서·발표·기록 중심 저장소로 폴더 구조 정리</td><td><span class="pill p-gray">type:chore</span> <span class="pill p-amber">role:platform</span></td></tr>
+<tr><td>#12</td><td>PRD 1차 확정 및 리뷰 수집 경로 ADR 추가</td><td><span class="pill p-green">type:spec</span> <span class="pill p-amber">role:product</span></td></tr>
+<tr><td>#11</td><td>안양시 행정동별 원자료로 명학역 일대 상권 위치 확정</td><td><span class="pill p-blue">type:docs</span> <span class="pill p-amber">role:product</span></td></tr>
+<tr><td>#2</td><td>PR 라벨 필수 규칙 추가 및 PR 템플릿 가독성 개선</td><td><span class="pill p-blue">type:docs</span> <span class="pill p-gray">type:chore</span> <span class="pill p-amber">role:platform</span></td></tr>
+</table>
+<p>#2에 <code>type:*</code> 이 두 개 붙어 있는 것은 규칙 위반이 아닙니다. <code>type:*</code> 은 &ldquo;1개 이상&rdquo;이라 문서와 설정을 함께 바꾼 PR은 둘 다 붙일 수 있습니다. <code>role:*</code> 만 항상 정확히 1개여야 합니다.</p>
+
+<h3>아직 비어 있는 것</h3>
+<table>
+<tr><th>항목</th><th>현재 상태</th></tr>
+<tr><td>머지 전략</td><td>squash·merge commit·rebase 세 가지가 모두 켜져 있어 사람마다 다르게 머지할 수 있다. <code>AGENTS.md</code> 6.1절에 &ldquo;확정 필요&rdquo;로 남아 있다</td></tr>
+<tr><td><code>.github/CODEOWNERS</code></td><td>없다. 있으면 파일 경로만 보고 리뷰어가 자동 지정된다. 4명의 역할 배정이 안 끝나서 만들지 않았다</td></tr>
+<tr><td>머지된 브랜치 정리</td><td><code>deleteBranchOnMerge</code> 가 꺼져 있어 머지가 끝나도 브랜치가 자동으로 지워지지 않는다. 남아 있는지는 <code>git ls-remote --heads origin</code> 으로 확인한다 &mdash; 이것이 서버의 실제 상태다. 로컬 <code>git branch -a</code> 는 <code>git fetch --prune</code> 을 하지 않으면 이미 지워진 브랜치도 계속 보여주는 캐시다</td></tr>
+<tr><td>CI</td><td><code>.github/workflows/</code> 가 없다. 기술 스택이 미확정이라 돌릴 명령 자체가 없다</td></tr>
+</table>
+
+<h2>11. 자주 걸리는 지점</h2>
+<table>
+<tr><th>증상</th><th>원인</th><th>해결</th></tr>
+<tr><td><code>push</code> 가 거부된다</td><td><code>main</code> 에 직접 push했다</td><td>브랜치를 만들고 PR로 올린다</td></tr>
+<tr><td>PR을 만들었는데 리뷰가 안 붙는다</td><td>라벨을 안 붙였다</td><td><code>gh pr edit &lt;번호&gt; --add-label</code></td></tr>
+<tr><td>이슈를 못 만들겠다</td><td>빈 이슈가 막혀 있다</td><td>템플릿 5종 중 하나를 고른다</td></tr>
+<tr><td>충돌이 났다</td><td>양쪽이 같은 줄을 고쳤다</td><td>3장 참고. 어느 쪽을 남길지 직접 고르고 다시 커밋한다</td></tr>
+<tr><td>남의 문서를 고쳐야 한다</td><td>소유 영역 밖이다</td><td>직접 고치지 말고 이슈로 넘긴다. 불가피하면 PR 본문에 명시한다</td></tr>
+<tr><td>커밋을 잘못했다</td><td>　</td><td>아직 push 전이면 <code>git reset --soft HEAD~1</code>. push 후면 새 커밋으로 고친다</td></tr>
+</table>
+<div class="warn"><strong>공유 브랜치에 force push하지 않습니다.</strong> 남의 커밋을 역사에서 지워버립니다. <code>main</code> 은 서버에서 막혀 있지만 다른 브랜치는 막혀 있지 않습니다.</div>
+<h2>12. 이 문서를 최신 상태로 유지하는 법</h2>
+<p>이 문서는 다른 파일에서 옮겨 적은 내용으로 이루어져 있습니다. 원본이 바뀌면 여기가 조용히 틀린 문서가 됩니다. 그래서 알림 장치를 걸어뒀습니다.</p>
+<h3>근거 파일</h3>
+<table>
+<tr><th>이 문서의 내용</th><th>근거</th></tr>
+<tr><td>브랜치·커밋·PR 규칙, 소유 영역, 라벨 정책</td><td><code>AGENTS.md</code> 5장·6장</td></tr>
+<tr><td>문서 검증 기준</td><td><code>AGENTS.md</code> 9장</td></tr>
+<tr><td>이슈 템플릿 목록과 강제 항목</td><td><code>.github/ISSUE_TEMPLATE/*.yml</code></td></tr>
+<tr><td>PR 본문 구조</td><td><code>.github/pull_request_template.md</code></td></tr>
+<tr><td>브랜치 보호 설정값</td><td>GitHub API (<code>gh api repos/:owner/:repo/branches/main/protection</code>)</td></tr>
+<tr><td>실제 PR·이슈 이력</td><td><code>gh pr list</code>, <code>gh issue list</code></td></tr>
+</table>
+<h3>자동 알림</h3>
+<p><code>.claude/settings.json</code> 에 <code>PostToolUse</code> 훅을 걸어뒀습니다. Claude Code 세션에서 <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>README.md</code>, <code>.github/</code> 아래 파일을 고치면 훅이 발화해 이 문서도 확인하라고 알려줍니다.</p>
+<pre><code>.claude/hooks/sync-git-guide.sh   ← 판정 스크립트
+.claude/settings.json             ← PostToolUse(Write|Edit) 등록</code></pre>
+<p>훅은 <strong>알림만 합니다.</strong> 문서를 자동으로 고치지는 않습니다. 규칙 변경이 이 문서의 어느 문장에 영향을 주는지는 사람(또는 세션)이 판단해야 하고, 자동 수정은 틀린 내용을 조용히 퍼뜨릴 위험이 더 큽니다.</p>
+<p>이 저장소에는 <code>jq</code> 가 없어서 스크립트는 bash 내장 기능만 씁니다. 경로의 역슬래시를 슬래시로 바꿔 Windows와 POSIX 경로를 함께 처리합니다.</p>
+<div class="note"><strong>훅이 안 뜨는 것 같다면</strong> — 훅은 Claude Code 세션 안에서만 동작합니다. GitHub 웹에서 직접 파일을 고치거나 다른 편집기로 고치면 발화하지 않습니다. 그때는 위의 &ldquo;근거 파일&rdquo; 표를 보고 직접 대조해야 합니다.</div>
+
+<p style="margin-top:3rem;padding-top:1.5rem;border-top:0.5px solid var(--border);font-size:14px;color:var(--text-muted)">
+근거 기준 시점: 2026-08-24 · 저장소 <code>SKUnohtaekyung/PULSE_SCC</code> · 브랜치 보호 값은 GitHub API 조회 결과입니다.
+</p>
+</div>
+</body>
+</html>
