@@ -55,7 +55,7 @@ Git·GitHub 개념과 이 저장소의 실제 설정을 한 화면에서 대조�
 | 훅 실제 발화 | `CLAUDE.md` 를 Edit → `PostToolUse:Edit hook additional context` 주입 확인 | PASS |
 | 훅 출력 JSON | `json.load` 파싱 | PASS |
 | settings.json | `json.load` + `permissions.deny` 건수 대조 | PASS — 3건 보존, 훅 스키마 유효 |
-| 위젯 동작 | 브라우저에서 탭 클릭 후 DOM 값 확인 | PASS — 머지 4종·템플릿 5종 모두 전환됨 |
+| 위젯 동작 | 브라우저에서 탭 클릭 후 DOM 값 확인 (레이아웃 측정이 아니라 DOM 값 조회) | PASS — 머지 4종·템플릿 5종 모두 전환됨 |
 | 반응형 CSS | 375px에서 `getComputedStyle` 조회 | PASS — `.fig{overflow-x:auto}`, `#graph{min-width:470px}`, `pre{overflow-x:auto}`, `table{display:block}` 적용 |
 | Visual QA | — | **부분 미실행** — 프리뷰 페인이 프레임을 합성하지 않아 스크린샷과 `clientWidth` 측정 불가. 실제 가로 스크롤 유무는 **미확인** |
 
@@ -65,6 +65,8 @@ Git·GitHub 개념과 이 저장소의 실제 설정을 한 화면에서 대조�
 2. **배치 위치와 SoT 등재 미결.** 루트에 뒀으나 직전 PR #14가 루트를 정리한 직후다. `README.md` 문서 지도와 `AGENTS.md` 4장 SoT 표에 등재되지 않았다.
 3. **규칙 복제 문제.** 브랜치 보호 표는 `README.md` 100–108행과, 라벨·소유 영역 표는 `AGENTS.md` 5·6장과 내용이 겹친다. `AGENTS.md` 7장·11장이 금지하는 복제다. 훅으로 완화했을 뿐 해소하지 못했다.
 4. 팔레트가 CSS `.c-*` 클래스와 JS `DARK`/`TONE` 객체에 두 번 정의돼 있다. 한쪽만 고치면 조용히 어긋난다.
+5. `@media (max-width:620px)` 에서 `table{display:block}` 을 쓴다. 좁은 화면에서 표가 자체 스크롤되지만, 브라우저·보조기술 조합에 따라 표의 행·열 관계가 사라질 수 있다고 알려져 있다. 스크린리더 실측을 하지 못했다. 더 안전한 형태는 각 표를 `overflow-x:auto` 를 가진 `<div>` 로 감싸는 것이다.
+6. 이 문서의 브랜치·이력 서술은 **시점 의존적**이다. 실제로 잔존 브랜치 항목이 두 번 연속 깨졌다 — 처음엔 `git branch -a` 캐시를 서버 상태로 착각해서, 두 번째는 리뷰 도중 PR #16이 머지되면서. 지금은 개별 브랜치 유무 서술을 빼고 진단 방법만 남겼다. **같은 종류의 서술을 추가할 때 주의할 것.**
 
 ## Do Not Assume
 

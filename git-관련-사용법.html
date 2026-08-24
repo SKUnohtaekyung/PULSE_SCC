@@ -91,6 +91,7 @@ text.th{font-size:14px;font-weight:500;fill:var(--text-primary)}
 <div class="note">
 이 문서는 <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>README.md</code>, <code>.github/</code> 를 근거로 만들어졌습니다.
 그 파일들이 바뀌면 이 문서도 같이 고쳐야 합니다. 자동 알림 설정은 마지막 장에 있습니다.
+<strong>내용이 어긋나면 그 파일들이 정본이고 이 문서가 틀린 것입니다</strong> (<code>AGENTS.md</code> 4장).
 </div>
 
 <h2>1. Git과 GitHub는 다른 것이다</h2>
@@ -445,7 +446,7 @@ PRBODY</code></pre>
 <tr><th>항목</th><th>현재 상태</th></tr>
 <tr><td>머지 전략</td><td>squash·merge commit·rebase 세 가지가 모두 켜져 있어 사람마다 다르게 머지할 수 있다. <code>AGENTS.md</code> 6.1절에 &ldquo;확정 필요&rdquo;로 남아 있다</td></tr>
 <tr><td><code>.github/CODEOWNERS</code></td><td>없다. 있으면 파일 경로만 보고 리뷰어가 자동 지정된다. 4명의 역할 배정이 안 끝나서 만들지 않았다</td></tr>
-<tr><td>머지된 브랜치 정리</td><td><code>deleteBranchOnMerge</code> 가 꺼져 있어 머지 후에도 브랜치가 자동으로 지워지지 않는다. 다만 지금 origin에 남은 것은 <code>main</code> 과 작업 중인 브랜치뿐이다 (<code>git ls-remote --heads origin</code> 기준). 로컬 <code>git branch -a</code> 에 보이는 옛 브랜치는 <code>git fetch --prune</code> 을 안 한 캐시다</td></tr>
+<tr><td>머지된 브랜치 정리</td><td><code>deleteBranchOnMerge</code> 가 꺼져 있어 머지가 끝나도 브랜치가 자동으로 지워지지 않는다. 남아 있는지는 <code>git ls-remote --heads origin</code> 으로 확인한다 &mdash; 이것이 서버의 실제 상태다. 로컬 <code>git branch -a</code> 는 <code>git fetch --prune</code> 을 하지 않으면 이미 지워진 브랜치도 계속 보여주는 캐시다</td></tr>
 <tr><td>CI</td><td><code>.github/workflows/</code> 가 없다. 기술 스택이 미확정이라 돌릴 명령 자체가 없다</td></tr>
 </table>
 
