@@ -8,7 +8,7 @@
 | 최종 수정 | 2026-08-23 |
 | 소유 역할 | `role:product` |
 | 대조 대상 A | [docs/program/APPLICATION_F12.md](../program/APPLICATION_F12.md) — 2026-06-28 공식 약속 |
-| 대조 대상 B | [FINAL_RESEARCH_REPORT.md](../../FINAL_RESEARCH_REPORT.md) — 2026-08-21 공식 통계 검증, 판정 **D** |
+| 대조 대상 B | [FINAL_RESEARCH_REPORT.md](../../research/FINAL_RESEARCH_REPORT.md) — 2026-08-21 공식 통계 검증, 판정 **D** |
 
 > **이 문서는 [PRD.md](PRD.md) 를 대체하지 않는다.** PRD는 "무엇을 만들 것인가"의 정본이고,
 > 이 문서는 그 앞단인 "문제 정의가 근거로 지지되는가"만 다룬다.

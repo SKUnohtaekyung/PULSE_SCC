@@ -2,8 +2,11 @@
 
 4명이 Claude Code와 Codex를 함께 사용해 개발하는 프로젝트.
 
-> **현재 상태: 제품 정의와 기술 스택 모두 미확정.**
-> 애플리케이션 코드는 아직 없다. 지금 있는 것은 협업 규칙과 문서 정본 구조뿐이다.
+> **현재 상태: 제품 정의는 확정, 기술 스택은 미확정.**
+> 애플리케이션 코드는 아직 이 저장소에 없다.
+
+**코드만 두는 저장소가 아니다.** 제품 문서, 조사 근거, 발표 자료, 회의·인터뷰 기록을 함께 관리한다.
+문서도 코드와 같은 규칙(브랜치 → PR → 리뷰)을 따른다. 자세한 것은 [AGENTS.md 1장](AGENTS.md).
 
 ---
 
@@ -12,7 +15,7 @@
 | 순서 | 문서 | 내용 |
 |---|---|---|
 | 1 | [AGENTS.md](AGENTS.md) | **프로젝트 공통 계약.** 소유 영역, Git 규칙, 검증 규칙, 금지사항, 완료 기준 |
-| 2 | [docs/product/PRD.md](docs/product/PRD.md) | 제품 요구사항 정본 (현재 초안) |
+| 2 | [docs/product/PRD.md](docs/product/PRD.md) | 제품 요구사항 정본 |
 | 3 | [docs/design/DESIGN_SYSTEM.md](docs/design/DESIGN_SYSTEM.md) | UI/UX 원칙 정본 |
 | 4 | [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | 시스템 구조 정본 |
 
@@ -21,16 +24,30 @@ Claude Code 사용자는 [CLAUDE.md](CLAUDE.md) 를 추가로 읽는다. Codex �
 ## 문서 지도
 
 ```
-docs/
-├─ product/       제품 요구사항        (role:product)
-├─ design/        UI/UX 원칙           (role:design-system)
-├─ architecture/  시스템 구조          (role:platform)
-├─ decisions/     ADR — 주요 기술 결정 (role:platform)
-└─ handoffs/      작업 인수인계
-   ├─ TEMPLATE.md
-   ├─ active/     진행 중 TASK
-   └─ archive/    merge 완료 TASK
+docs/                     문서 정본 — 지금 무엇이 참인가
+├─ product/               제품 요구사항        (role:product)
+├─ design/                UI/UX 원칙           (role:design-system)
+├─ architecture/          시스템 구조          (role:platform)
+├─ decisions/             ADR — 주요 결정      (role:platform)
+├─ program/               SCC 프로그램·신청서  (role:platform)
+├─ presentation/          발표 자료            (role:product)
+│  ├─ svg/                Figma import용 시안
+│  ├─ preview/            미리보기 PNG
+│  └─ deck/               원본 덱 — 커밋하지 않는다
+├─ meetings/              회의록               (기록자 소유)
+└─ handoffs/              작업 인수인계
+   ├─ active/             진행 중 TASK
+   └─ archive/            merge 완료 TASK
+
+research/                 조사 근거 — 언제 무엇을 확인했는가
+├─ FINAL_RESEARCH_REPORT  타당성 검증 보고서
+├─ evidence_registry.csv  근거 대장 (등급·출처·한계)
+├─ interviews/            현장 인터뷰 1차 자료  (기록자 소유)
+└─ *.md                   영역별 조사 보고서
 ```
+
+**`docs/` 와 `research/` 는 성격이 다르다.** `docs/` 는 갱신하면 이전 값이 사라지는 정본이고,
+`research/` 는 조사 시점의 기록이라 **소급 수정하지 않고 정정 주석을 단다.**
 
 정보별 정본 위치는 [AGENTS.md 4장](AGENTS.md)에 표로 정리되어 있다. **같은 내용을 여러 문서에 복사하지 않는다.**
 
@@ -45,6 +62,7 @@ docs/
 | 항목 | 이유 |
 |---|---|
 | `apps/`, `packages/` | 스택 미확정. 빈 디렉터리를 미리 만들지 않는다 |
+| `docs/architecture/API.md`, `DATA_MODEL.md` | 백엔드·DB 존재 여부 미확정 |
 | `package.json`, `.env.example` | 스택·환경변수 미확정 |
 | `.github/workflows/` (CI) | 실행 명령이 존재하지 않아 검증할 것이 없다 |
 | `docs/architecture/API.md`, `DATA_MODEL.md` | 백엔드·DB 존재 여부 미확정 |

@@ -46,7 +46,7 @@
 | 프로토타입 화면·데모 영상 | 없음 |
 | 배포 주소 | 없음 |
 | 2026-07-03 이후 진행현황 문서 | 없음 |
-| 공식 통계 검증 리포트 | ✅ [FINAL_RESEARCH_REPORT.md](../../../FINAL_RESEARCH_REPORT.md) + `research/` 9종 |
+| 공식 통계 검증 리포트 | ✅ [FINAL_RESEARCH_REPORT.md](../../../research/FINAL_RESEARCH_REPORT.md) + `research/` 9종 |
 | 협업 규칙·문서 체계 | ✅ `AGENTS.md`, `CLAUDE.md`, `docs/` |
 
 **이 저장소가 팀 작업의 전부는 아닐 수 있다.** 코드가 다른 저장소나 공유드라이브에 있을 가능성이 있고, 아직 확인하지 않았다. **없다고 단정하기 전에 확인한다.**

@@ -27,6 +27,15 @@ CLAUDE.local.md
 *.hwp
 *.hwpx
 
+# ── 발표 원본 파일 ──
+# 발표 덱에는 팀원 실명이 들어 있고 용량이 크다(수십 MB). 저장소는 Public이다.
+# 원본은 팀 드라이브에서 관리하고, 여기에는 docs/presentation/svg/ 의
+# 편집 가능한 시안과 preview/ 만 둔다.
+docs/presentation/deck/*
+!docs/presentation/deck/README.md
+*.pptx
+*.key
+
 # ── 로그 / 임시 ──
 *.log
 npm-debug.log*
