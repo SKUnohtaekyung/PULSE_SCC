@@ -76,4 +76,6 @@ Git·GitHub 개념과 이 저장소의 실제 설정을 한 화면에서 대조�
 `Unresolved` 2번을 판단한다 — 이 문서를 루트에 둘 것인지 `docs/` 하위로 옮길 것인지, 그리고 `README.md` 문서 지도와 `AGENTS.md` 4장 SoT 표에 등재할 것인지. `role:platform` 결정 사항이다.
 
 ## Last Verified Commit
-`8d30a17` — main 기준. 이 브랜치는 아직 커밋 전 상태에서 위 검증을 수행했다. 커밋 후 해시로 갱신할 것.
+`282b9c7` — 이 브랜치의 구현 커밋. 위 Verification은 이 시점까지 유효하다.
+
+기준 main은 `6a990ba` (PR #16 머지 직후)다.
