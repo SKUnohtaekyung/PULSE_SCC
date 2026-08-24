@@ -1,0 +1,129 @@
+name: 문서 작업
+description: 문서 정본·조사 근거·발표 자료·기록의 작성과 수정 (role:product / role:platform / role:design-system)
+title: "[DOCS] "
+labels: ["type:docs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        이 저장소는 코드보다 문서를 더 많이 다룹니다. **문서 축마다 수정 방식이 다릅니다** — `AGENTS.md` 1장.
+
+        - PRD·요구사항·디자인 원칙을 바꾸는 일이면 이 템플릿이 아니라 **`[SPEC]` 이슈**를 씁니다.
+        - `role:*` 라벨은 자동으로 붙지 않습니다. 이슈를 만든 뒤 아래에서 고른 역할에 맞춰 직접 붙이세요.
+
+  - type: dropdown
+    id: axis
+    attributes:
+      label: 문서 축
+      description: 축에 따라 수정 방식이 다릅니다. 덮어쓸 수 있는 것은 정본뿐입니다.
+      options:
+        - "정본 — docs/** 및 공용 규칙 문서(AGENTS.md·CLAUDE.md·README.md) · 갱신하면 이전 값은 사라진다"
+        - "조사 근거 — research/** · 본문 수치를 고치지 않고 정정 주석을 단다"
+        - "발표 자료 — docs/presentation/** · 대외 산출물, 원본 덱은 커밋하지 않는다"
+        - "기록 — docs/meetings/**, research/interviews/** · 그 시점의 사실, 나중에 고쳐 쓰지 않는다"
+        - "인수인계 — docs/handoffs/** · 정본이 아니다, 실제 코드와 Git 상태가 우선한다"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: 담당 역할
+      description: 회의록과 인터뷰 기록은 참석자·기록자가 소유합니다. 남의 기록을 대신 고치지 않습니다.
+      options:
+        - "role:product — docs/product, docs/presentation, research"
+        - "role:platform — docs/architecture, docs/decisions, docs/program, .github 템플릿 문서"
+        - "role:design-system — docs/design"
+        - "role:feature — 담당 작업의 docs/handoffs/active/TASK-*"
+        - "기록자 본인 — docs/meetings, research/interviews"
+        - "소유자 없는 공용 파일 — AGENTS.md, CLAUDE.md, README.md (PR 리뷰 필수)"
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: 대상 문서 경로
+      description: 새로 만드는 문서면 만들 경로를 적습니다.
+      placeholder: "research/anyang_dong_level.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: 배경
+      description: 왜 지금 이 문서를 손대야 하는가. 무엇이 어긋났거나 비어 있는가.
+    validations:
+      required: true
+
+  - type: textarea
+    id: todo
+    attributes:
+      label: 할 일
+      description: 관찰 가능한 단위로. 이 체크리스트가 완료 판정 기준이 됩니다.
+      placeholder: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: dropdown
+    id: numbers
+    attributes:
+      label: 수치를 다루는가
+      description: 원자료가 있으면 요약 문서에서 옮겨 적지 않고 원자료를 직접 파싱합니다.
+      options:
+        - "아니오 — 수치 없음"
+        - "예 — 원자료를 직접 파싱한다"
+        - "예 — 기존 근거 문서를 인용만 한다"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: 사용할 근거
+      description: "원자료 URL 또는 파일 경로. research/evidence_registry.csv 에 등재된 근거면 ID와 등급을 함께 적습니다. 수치를 다루지 않으면 `해당 없음`."
+      placeholder: |
+        E-____ / <문서명> — <원본 URL> · 등급 <S~D>
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 완료 시 확인할 것
+      description: "`AGENTS.md` 9장 문서 검증 기준. 해당하는 것만 체크하고, 그대로 PR 본문으로 옮깁니다."
+      options:
+        - label: 상대 링크가 실제 파일을 가리킨다
+        - label: 수치를 근거 문서·원자료와 대조했다
+        - label: 계산해서 얻은 값을 계산값이라고 적었다
+        - label: 정본 문서의 절 사이에 모순이 없다
+        - label: 정본에 남긴 TBD에 결정 시점을 적었다
+        - label: 인용이 원문 범위를 넘지 않고 근거 등급을 과장하지 않았다
+        - label: 발표 자료라면 슬라이드 수치가 정본과 일치하고 출처·단위·기준시점을 밝혔다
+        - label: 파일을 옮겼다면 다른 문서의 링크를 전수 검사했다
+        - label: 확인하지 못한 것을 미확인이라고 적었다
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: 시급도
+      description: 발표·제출 기한이 있는 문서인지 구분합니다.
+      options:
+        - "발표·제출 전 필수"
+        - "이번 주 안에"
+        - "급하지 않음"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: 착수 전 확인
+      options:
+        - label: research/rejected_sources.md 에서 배제한 출처를 근거로 쓰지 않는다
+          required: true
+        - label: 이 작업이 다른 진행 중 이슈와 같은 파일을 건드리지 않는다
+          required: true
