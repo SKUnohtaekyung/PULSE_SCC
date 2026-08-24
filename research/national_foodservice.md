@@ -3,7 +3,7 @@
 > ## ⚠️ 정정 고지 (메인 Agent, 2026-08-21)
 >
 > 이 문서는 **1차 병렬 조사 결과 원본**이며, 이후 Evidence Gap 재조사에서 **더 최신판 통계가 확인되어 일부 수치가 대체되었다.**
-> 최종 결론은 [FINAL_RESEARCH_REPORT.md](../FINAL_RESEARCH_REPORT.md)를 따르고, 이 문서는 조사 경로 기록으로만 참조한다.
+> 최종 결론은 [FINAL_RESEARCH_REPORT.md](FINAL_RESEARCH_REPORT.md)를 따르고, 이 문서는 조사 경로 기록으로만 참조한다.
 >
 > | 이 문서의 수치 | 대체된 최신 수치 | 출처 |
 > |---|---|---|
