@@ -304,6 +304,8 @@ text.th{font-size:14px;font-weight:500;fill:var(--text-primary)}
 </table>
 <div class="note"><strong>승인 0명은 의도된 임시 설정입니다.</strong> 지금 collaborator가 한 명뿐이라 승인을 필수로 걸면 승인해줄 사람이 없어 본인 PR이 영원히 막힙니다. 팀원을 초대한 뒤 1명 이상으로 올리는 것이 원래 계획입니다 (<code>README.md</code> &ldquo;아직 실행하지 않은 세팅&rdquo; 1번).</div>
 
+<p>브랜치 보호와 별개로, 저장소 설정에서 <strong>머지된 브랜치 자동 삭제(<code>deleteBranchOnMerge</code>)가 켜져 있습니다.</strong> PR이 머지되면 그 브랜치는 origin에서 자동으로 사라집니다. 로컬 사본은 남으므로 <code>git fetch --prune</code> 으로 정리합니다.</p>
+
 <h2>6. 라벨 규칙</h2>
 <p>GitHub은 기본 상태로는 아무것도 강제하지 않습니다. 이 저장소는 라벨을 두 축으로 나눠 씁니다. 하나만 붙이면 안 되고 두 축을 각각 붙입니다.</p>
 <table>
@@ -446,7 +448,6 @@ PRBODY</code></pre>
 <tr><th>항목</th><th>현재 상태</th></tr>
 <tr><td>머지 전략</td><td>squash·merge commit·rebase 세 가지가 모두 켜져 있어 사람마다 다르게 머지할 수 있다. <code>AGENTS.md</code> 6.1절에 &ldquo;확정 필요&rdquo;로 남아 있다</td></tr>
 <tr><td><code>.github/CODEOWNERS</code></td><td>없다. 있으면 파일 경로만 보고 리뷰어가 자동 지정된다. 4명의 역할 배정이 안 끝나서 만들지 않았다</td></tr>
-<tr><td>머지된 브랜치 정리</td><td><code>deleteBranchOnMerge</code> 가 꺼져 있어 머지가 끝나도 브랜치가 자동으로 지워지지 않는다. 남아 있는지는 <code>git ls-remote --heads origin</code> 으로 확인한다 &mdash; 이것이 서버의 실제 상태다. 로컬 <code>git branch -a</code> 는 <code>git fetch --prune</code> 을 하지 않으면 이미 지워진 브랜치도 계속 보여주는 캐시다</td></tr>
 <tr><td>CI</td><td><code>.github/workflows/</code> 가 없다. 기술 스택이 미확정이라 돌릴 명령 자체가 없다</td></tr>
 </table>
 
@@ -459,6 +460,8 @@ PRBODY</code></pre>
 <tr><td>충돌이 났다</td><td>양쪽이 같은 줄을 고쳤다</td><td>3장 참고. 어느 쪽을 남길지 직접 고르고 다시 커밋한다</td></tr>
 <tr><td>남의 문서를 고쳐야 한다</td><td>소유 영역 밖이다</td><td>직접 고치지 말고 이슈로 넘긴다. 불가피하면 PR 본문에 명시한다</td></tr>
 <tr><td>커밋을 잘못했다</td><td>　</td><td>아직 push 전이면 <code>git reset --soft HEAD~1</code>. push 후면 새 커밋으로 고친다</td></tr>
+<tr><td>지운 브랜치가 계속 보인다</td><td><code>git branch -a</code> 는 캐시다</td><td><code>git fetch --prune</code> 을 먼저 돌린다. 서버의 실제 상태는 <code>git ls-remote --heads origin</code> 이다</td></tr>
+<tr><td><code>git branch -d</code> 가 거부한다</td><td>지금까지 squash로 머지해 와서 브랜치 팁이 <code>main</code> 의 조상이 아니다</td><td>PR이 머지됐는지 먼저 확인하고 <code>git branch -D</code> 로 지운다</td></tr>
 </table>
 <div class="warn"><strong>공유 브랜치에 force push하지 않습니다.</strong> 남의 커밋을 역사에서 지워버립니다. <code>main</code> 은 서버에서 막혀 있지만 다른 브랜치는 막혀 있지 않습니다.</div>
 <h2>12. 이 문서를 최신 상태로 유지하는 법</h2>
@@ -471,6 +474,7 @@ PRBODY</code></pre>
 <tr><td>이슈 템플릿 목록과 강제 항목</td><td><code>.github/ISSUE_TEMPLATE/*.yml</code></td></tr>
 <tr><td>PR 본문 구조</td><td><code>.github/pull_request_template.md</code></td></tr>
 <tr><td>브랜치 보호 설정값</td><td>GitHub API (<code>gh api repos/:owner/:repo/branches/main/protection</code>)</td></tr>
+<tr><td>머지 전략, 브랜치 자동 삭제</td><td>GitHub API (<code>gh api repos/:owner/:repo</code>) &mdash; 브랜치 보호와 다른 엔드포인트다</td></tr>
 <tr><td>실제 PR·이슈 이력</td><td><code>gh pr list</code>, <code>gh issue list</code></td></tr>
 </table>
 <h3>자동 알림</h3>
