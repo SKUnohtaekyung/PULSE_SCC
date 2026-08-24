@@ -5,5 +5,21 @@
       "Read(./**/.env.local)",
       "Read(./**/.env.*.local)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/sync-git-guide.sh\"",
+            "timeout": 10,
+            "statusMessage": "규칙 문서 변경 확인 중"
+          }
+        ]
+      }
+    ]
   }
 }
