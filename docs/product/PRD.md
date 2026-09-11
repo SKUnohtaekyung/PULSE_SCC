@@ -96,6 +96,8 @@
 
 ## 7. Functional Requirements
 
+상세 화면·기능·상태·데이터·인수 기준은 [손님분석 기능명세서](requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md)에서 관리한다.
+
 | ID | 요구사항 | 우선순위 | 비고 |
 |---|---|---|---|
 | FR-001 | 가게를 지정하면 네이버 지도·카카오맵의 공개 리뷰를 수집한다 | P0 | 수집 방식은 [ADR-002](../decisions/ADR-002-review-collection.md) |
