@@ -4,27 +4,45 @@
 
 | | |
 |---|---|
-| 상태 | **미확정 — 코드 없음** |
-| 최종 수정 | 2026-08-21 |
+| 상태 | **상위 수준 스택 확정 — 코드 없음** |
+| 최종 수정 | 2026-09-13 |
 | 소유 역할 | `role:platform` |
 
 ---
 
 ## 1. 현재 상태
 
-저장소에 애플리케이션 코드가 **없다.** 다음이 전부 미확정이다.
+저장소에 애플리케이션 코드는 아직 없다. 상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md)으로 확정했고, 세부 버전·도구·배포 방식은 미확정이다.
 
 | 항목 | 상태 |
 |---|---|
-| 프로젝트 유형 (Web / Mobile / API 포함 여부) | 확정 필요 |
-| Frontend framework | 확정 필요 |
-| Backend 존재 여부 (자체 서버 / BaaS / 없음) | 확정 필요 |
-| 데이터 저장소 | 확정 필요 |
-| 인증 방식 | 확정 필요 |
+| 프로젝트 유형 | Android 앱 + 자체 API + Python AI 처리 |
+| Frontend | Expo 기반 React Native + TypeScript |
+| Backend | Spring Boot |
+| AI·분석 | Python. 프레임워크 TBD |
+| 데이터 저장소 | PostgreSQL |
+| 인증 방식 | Google 소셜 로그인 + 서비스 자체 로그인 |
+| 페르소나 이미지 | OpenAI API |
 | 배포 환경 | 확정 필요 |
 | monorepo 여부 | 확정 필요 |
 
-**미확정 상태에서 `apps/`, `packages/` 같은 빈 디렉터리를 미리 만들지 않는다.**
+코드가 없는 상태에서 `apps/`, `packages/` 같은 빈 디렉터리를 미리 만들지 않는다. 실제 Expo·Spring Boot·Python 프로젝트를 생성할 때 프레임워크 관례와 역할 경계를 기준으로 구조를 확정한다.
+
+### 목표 호출 흐름
+
+```text
+Expo + React Native + TypeScript Android 앱
+  → Spring Boot API
+      ├─ 인증·권한
+      ├─ 분석 작업 상태
+      ├─ PostgreSQL
+      └─ Python AI·분석 컴포넌트
+          └─ OpenAI API 이미지 생성
+```
+
+Spring Boot와 Python 사이의 통신 방식, 리뷰 수집기의 실행 위치와 작업 큐 사용 여부는 아직 결정하지 않았다.
+
+분석 결과 저장은 [ADR-005](../decisions/ADR-005-analysis-storage-policy.md)를 따른다. PostgreSQL에서 계정당 저장 분석 1개를 고유 제약으로 보장하고, 추가 분석은 인증 세션에 귀속된 일회성 결과로 처리한다. 새 로그인 세션이 시작되면 이전 세션의 미저장 결과를 삭제한다.
 
 ## 1-A. 신청서에 선언된 기술 계획 — ⚠️ 계획일 뿐 확정 아님
 
@@ -44,7 +62,7 @@
 
 > 3단계 "대표 손님 유형"은 근거 문제가 있다. [PROBLEM_BASELINE.md §2.6](../product/PROBLEM_BASELINE.md) 참조
 
-### 기술 스택 (선언, 미확정)
+### 기술 스택 (과거 신청서 선언, 현재 정본 아님)
 
 | 계층 | 선언된 값 |
 |---|---|
@@ -62,7 +80,7 @@
 
 문서상 호출 흐름: `React → Spring Boot → FastAPI → 외부 AI·데이터 API → 결과 반환`
 
-**ADR을 쓸 때 반드시 다룰 것** — 15주 안에 학생 5명이 백엔드 두 벌(Spring Boot + FastAPI)과 DB 두 벌(MySQL + MongoDB)을 동시에 운영하는 비용이 정당한가. 신청서에 적혀 있다는 사실만으로는 ADR 근거가 되지 않는다.
+현재 결정은 [ADR-003](../decisions/ADR-003-application-stack.md)이다. FastAPI는 확정하지 않았고, MySQL·MongoDB 대신 PostgreSQL 하나를 사용하며, 영상 생성이 아닌 페르소나 이미지 생성에 OpenAI API를 사용한다.
 
 ### 영상 프롬프트 설계
 
@@ -76,7 +94,7 @@
 
 ### 데이터 수집
 
-**여기가 가장 큰 리스크다.** 내부 기술 문서는 Playwright로 네이버·카카오 리뷰를 자동 수집하는 구조를 제안하지만, 네이버·카카오 robots.txt가 AI·RAG 용도의 봇 접근을 명시적으로 금지한다.
+**여기가 가장 큰 리스크다.** 과거 내부 기술 문서는 Playwright로 네이버·카카오 리뷰를 자동 수집하는 구조를 제안했고, 두 플랫폼의 robots.txt는 AI·RAG 용도의 봇 접근을 명시적으로 금지한다. 현재 MVP 수집 대상은 [ADR-004](../decisions/ADR-004-naver-only-review-source.md)에 따라 네이버로 한정하지만, 네이버의 자동 수집 위험은 그대로 남는다.
 
 허용 순위와 근거는 [PROBLEM_BASELINE.md §2.5](../product/PROBLEM_BASELINE.md) 를 따른다. **ADR 없이 구현에 착수하지 않는다.**
 
@@ -132,7 +150,9 @@ SCC/
 
 | # | 질문 | 막고 있는 것 |
 |---|---|---|
-| 1 | 프로젝트 유형 | 디렉터리 구조 전체 |
-| 2 | 기술 스택 | 실행 명령, CI, verify 스킬 |
-| 3 | 백엔드 형태 (자체 / BaaS / 없음) | `API.md`·`DATA_MODEL.md` 필요 여부 |
-| 4 | 배포 환경 | CI 워크플로 |
+| 1 | 실제 프로젝트 디렉터리와 monorepo 여부 | 디렉터리 구조 전체 |
+| 2 | Expo SDK·React Native 버전과 workflow | 클라이언트 생성·실행 명령 |
+| 3 | Spring Boot·Java 버전과 빌드 도구 | 백엔드 생성·실행 명령 |
+| 4 | Python 프레임워크와 Spring Boot 연동 방식 | AI 서비스 경계 |
+| 5 | PostgreSQL 마이그레이션 도구 | DB 스키마 정본 위치 |
+| 6 | 배포 환경 | CI 워크플로 |

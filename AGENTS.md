@@ -13,7 +13,7 @@
 | 항목 | 값 |
 |---|---|
 | 이름 | SCC |
-| 제품 정의 | **TBD** — 정본은 [docs/product/PRD.md](docs/product/PRD.md) |
+| 제품 정의 | 공개 음식점 리뷰를 손님 인사이트와 실행 제안으로 바꾸는 Android 앱 — 정본은 [docs/product/PRD.md](docs/product/PRD.md) |
 | 팀 규모 | 4명 |
 | 협업 방식 | Git 기반. 역할별 소유 영역 분리 (5장) |
 | AI 도구 | Claude Code, Codex |
@@ -34,14 +34,16 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 
 ## 2. 기술 스택
 
-**현재 미확정이다. 확정 전까지 스택을 추측해서 코드·설정·문서를 작성하지 않는다.**
+**상위 수준 스택은 2026-09-12 확정했다.** 세부 버전·프레임워크·빌드 도구는 확정 전까지 추측해서 코드·설정·문서를 작성하지 않는다. 결정 근거는 [ADR-003](docs/decisions/ADR-003-application-stack.md)이다.
 
 | 항목 | 상태 |
 |---|---|
-| 프로젝트 유형 (Web / Mobile / API 포함 여부) | 확정 필요 |
-| Frontend framework | 확정 필요 |
-| Backend / BaaS | 확정 필요 |
-| 언어 | 확정 필요 |
+| 프로젝트 유형 | Android 앱 + 자체 API + Python AI 처리 |
+| Frontend framework | Expo 기반 React Native |
+| Backend / BaaS | Spring Boot + Python AI 컴포넌트 |
+| 데이터베이스 | PostgreSQL |
+| 언어 | TypeScript, Python / Spring Boot JVM 언어는 확정 필요 |
+| 이미지 생성 | OpenAI API |
 | 패키지 매니저 | 확정 필요 |
 | 테스트 러너 | 확정 필요 |
 
@@ -66,7 +68,7 @@ pnpm / yarn / bun → 미설치
 
 ## 3. 실행 명령
 
-**아직 없다.** 루트에 `package.json` 이 존재하지 않는다.
+**아직 없다.** 기술 방향은 확정됐지만 Expo·Spring Boot·Python 프로젝트와 매니페스트가 생성되지 않았다.
 존재하지 않는 명령을 실행했다고 기록하거나 CI·문서·PR에 넣지 않는다.
 
 | 목적 | 명령 |

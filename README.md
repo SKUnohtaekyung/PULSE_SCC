@@ -2,7 +2,7 @@
 
 4명이 Claude Code와 Codex를 함께 사용해 개발하는 프로젝트.
 
-> **현재 상태: 제품 정의는 확정, 기술 스택은 미확정.**
+> **현재 상태: 제품 정의와 상위 수준 기술 스택은 확정, 세부 프로젝트 구조·버전·실행 명령은 미확정.**
 > 애플리케이션 코드는 아직 이 저장소에 없다.
 
 **코드만 두는 저장소가 아니다.** 제품 문서, 조사 근거, 발표 자료, 회의·인터뷰 기록을 함께 관리한다.
@@ -61,9 +61,9 @@ research/                 조사 근거 — 언제 무엇을 확인했는가
 
 | 항목 | 이유 |
 |---|---|
-| `apps/`, `packages/` | 스택 미확정. 빈 디렉터리를 미리 만들지 않는다 |
-| `docs/architecture/API.md`, `DATA_MODEL.md` | 백엔드·DB 존재 여부 미확정 |
-| `package.json`, `.env.example` | 스택·환경변수 미확정 |
+| `apps/`, `packages/` | Expo·Spring Boot·Python 실제 프로젝트 구조와 monorepo 여부 미확정. 빈 디렉터리를 미리 만들지 않는다 |
+| `docs/architecture/API.md`, `DATA_MODEL.md` | 실제 API schema/types와 DB migration이 아직 없음 |
+| `package.json`, `.env.example` | 실제 프로젝트와 환경변수 목록이 아직 없음 |
 | `.github/workflows/` (CI) | 실행 명령이 존재하지 않아 검증할 것이 없다 |
 | `docs/architecture/API.md`, `DATA_MODEL.md` | 백엔드·DB 존재 여부 미확정 |
 | `.claude/rules/` | 규칙을 여기에 두면 `AGENTS.md` 와 중복된다. Claude는 `CLAUDE.md` 의 `@AGENTS.md` import로 이미 전부 읽는다 |
