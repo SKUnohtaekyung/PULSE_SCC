@@ -2,7 +2,7 @@
 
 ## Status
 
-진행중 — 핵심 사용자 플로우 7개와 앱·결과 화면 IA 초안 작성, 사용자 검토 전
+인수인계 준비 완료 — 사용자 플로우와 앱·결과 화면 IA까지 원격 브랜치에 반영, 제품 결정·역할별 리뷰·PR 전
 
 ## Owner
 
@@ -43,7 +43,7 @@
 
 | 경로 | 이유 |
 |---|---|
-| `docs/product/PRD.md` | 제품 요구사항 정본 4차 결정 반영 |
+| `docs/product/PRD.md` | 제품 요구사항 정본 5차 결정 반영 |
 | `docs/product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` | 상세 기능·상태·API 초안·인수 기준 동기화 |
 | `docs/product/requirements/USER_FLOW.md` | 확정사항과 미정사항을 분리한 MVP 핵심 사용자 플로우 7개 기록 |
 | `docs/product/requirements/RESULT_IA.md` | 앱 전체·결과 화면 IA와 최소 리뷰 수 제안·근거·충돌 기록 |
@@ -90,6 +90,8 @@
 | whitespace | `git diff --check` PASS |
 | 코드 검증 | 없음 — 코드와 매니페스트 미생성 |
 | Git 사용법 HTML 동기화 | 확인함 — 이번 변경은 Git 규칙·설정 변경이 아니므로 수정 불필요 |
+| 결과 IA 독립 검토 | Reviewer 재검토 PASS — 유효 토픽 부족, 결과 메타정보, 4관점별 근거 연결, 저장본 없는 세션 상태 보완 확인 |
+| 원격 반영 | `9836af1`이 `origin/docs/TASK-008-functional-spec`에 반영됨 |
 
 ## Unresolved
 
@@ -112,11 +114,30 @@
 17. 동시 분석 작업 수
 18. 하단 내비게이션 세 항목의 시각적 순서
 19. 알림·설정 세부 기능과 페르소나 이미지 보관·삭제 정책
+20. 가게 전체 4관점 분석을 결과 화면의 어느 계층에 둘지
+21. 유효 토픽이 3개보다 적은 분석 불충분 상태와 3칸 포디움의 관계
+22. 유형별 최소 리뷰 수를 도입할지와 3위 미달 시 포디움 표현
+23. 유효 세션은 있지만 저장된 분석이 없는 경우의 진입 위치
+24. 근거 리뷰의 기본 노출 여부와 상세 진입 방식
+25. 리뷰 사실과 AI 해석의 IA 표현
+26. 제안 4레이어의 기본 노출 범위와 내부 위계
+27. 결과 예외 상태 배치, 결과 라벨 체계, 포디움 최초 선택 순위
+
+## Do Not Assume
+
+- [RESULT_IA.md](../../product/requirements/RESULT_IA.md)는 확정본이 아니라 진행 중 결정 기록이다. `미정`을 구현값으로 추측하지 않는다.
+- 정상 분석 결과의 손님 유형은 3개지만 유효 토픽이 3개보다 적으면 임의로 채우지 않는다. 이때 포디움을 어떻게 보여줄지는 미정이다.
+- `30~49건 경고 후 제공`, `30건 미만`, `유형당 10건 미만`은 제안(미확정)이다. 현재 PRD는 유효 리뷰 50건 미만이면 분석을 시작하지 않는다.
+- 포디움 `고정`은 유형 전환 시 선택 영역을 유지한다는 뜻이다. 스크롤 중 sticky 동작은 확정하지 않았다.
+- 하단 내비게이션의 세 항목은 확정됐지만 시각적 순서는 미정이다.
+- 마이페이지에는 승인된 네 항목만 기록했다. 계정 정보·회원 탈퇴·약관 등 새 항목을 승인 없이 추가하지 않는다.
+- 현재 브랜치에는 제품·설계 문서만 있으며 애플리케이션 구현과 실행 검증은 미착수다.
+- PR은 아직 만들지 않았다. `main`에 직접 push하지 말고 현재 브랜치에서 역할별 리뷰 후 PR 템플릿을 실제로 읽어 생성한다.
 
 ## Next Action
 
-`role:product`, `role:design-system`, `role:platform` 리뷰 후 커밋하고 PR을 갱신한다. 이후 Expo·Spring Boot·Python 프로젝트를 만들기 전에 Unresolved 1~4를 결정한다.
+먼저 `docs/TASK-008-functional-spec` 브랜치의 HEAD와 원격 동기화를 확인한 뒤 [PRD.md](../../product/PRD.md), [USER_FLOW.md](../../product/requirements/USER_FLOW.md), [RESULT_IA.md](../../product/requirements/RESULT_IA.md)를 읽는다. 이어서 Unresolved 20의 가게 전체 4관점 위치부터 제품 결정을 진행하고, IA가 확정되면 `role:product`·`role:design-system`·`role:platform` 리뷰 후 PR을 만든다.
 
 ## Last Verified Commit
 
-`6460ea8` — PRD 4차 결정, 기능명세, ADR-003~005와 관련 문서 변경을 2026-09-13에 검증한 커밋.
+`9836af11c8633781e17b14dcf0b85f511ecf48ec` — PRD 5차 결정, 사용자 플로우, 결과 IA, 기능명세와 관련 문서가 검증되어 원격 브랜치에 반영된 커밋.
