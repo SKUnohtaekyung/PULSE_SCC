@@ -42,7 +42,7 @@ Expo + React Native + TypeScript Android 앱
 
 Spring Boot와 Python 사이의 통신 방식, 리뷰 수집기의 실행 위치와 작업 큐 사용 여부는 아직 결정하지 않았다.
 
-분석 결과 저장은 [ADR-005](../decisions/ADR-005-analysis-storage-policy.md)를 따른다. PostgreSQL에서 계정당 저장 분석 1개를 고유 제약으로 보장하고, 추가 분석은 인증 세션에 귀속된 일회성 결과로 처리한다. 새 로그인 세션이 시작되면 이전 세션의 미저장 결과를 삭제한다.
+분석 결과 저장은 [ADR-005](../decisions/ADR-005-analysis-storage-policy.md)를 따른다. PostgreSQL에서 계정당 저장 분석 1개를 고유 제약으로 보장한다. 저장본이 없으면 첫 결과를 자동 저장하고, 이후 새 분석에서는 사용자가 새 결과로 교체하거나 기존 결과를 유지한다. 기존 결과 유지 시 미저장 새 결과의 접근·삭제 정책은 아직 미정이다.
 
 ## 1-A. 신청서에 선언된 기술 계획 — ⚠️ 계획일 뿐 확정 아님
 
