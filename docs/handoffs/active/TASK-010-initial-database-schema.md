@@ -2,7 +2,7 @@
 
 ## Status
 
-구현·검증·독립 리뷰 완료 — 푸시 전
+구현·검증·독립 리뷰 완료 — PR #23 OPEN, 순차 병합 대기
 
 ## Owner
 
@@ -11,6 +11,16 @@
 ## Branch
 
 `feat/TASK-010-initial-database-schema`
+
+## Pull Requests
+
+| 순서 | PR | 현재 base ← head | 상태 |
+|---|---|---|---|
+| 1 | [#21 — 손님분석 기능명세와 구조 확정](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/21) | `main` ← `docs/TASK-008-functional-spec` | OPEN, MERGEABLE |
+| 2 | [#22 — 백엔드 프로젝트 골격](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/22) | `docs/TASK-008-functional-spec` ← `chore/TASK-009-backend-bootstrap` | OPEN, MERGEABLE |
+| 3 | [#23 — PostgreSQL 초기 스키마](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/23) | `chore/TASK-009-backend-bootstrap` ← `feat/TASK-010-initial-database-schema` | OPEN, MERGEABLE |
+
+세 PR은 stacked 상태다. #21을 `main`에 병합한 뒤 #22의 base를 `main`으로 변경하고 diff를 다시 확인한 후 병합한다. 이어서 #23의 base를 `main`으로 변경하고 diff를 다시 확인한 후 병합한다. 현재 base 그대로 #22·#23을 각각 병합하면 변경이 `main`이 아니라 중간 브랜치에만 들어가므로 주의한다.
 
 ## Goal
 
@@ -52,16 +62,22 @@
 
 - Docker가 없어 Testcontainers 4개를 실제 실행하지 못했다. 대신 별도 PostgreSQL 18.4 임시 클러스터에서 동일 migration과 핵심 제약을 검증했다.
 - 운영 DB role과 schema 분리, 인증 세션, 중복·보관·삭제 정책은 후속 결정이 필요하다.
+- 다음 인증 TASK 전 비밀번호 규칙, 전화번호 중복·인증 여부, Access/Refresh Token 수명과 회전·폐기 정책을 사용자가 결정해야 한다.
 
 ## Do Not Assume
 
 - Testcontainers 테스트 4개는 아직 Docker 컨테이너로 실행된 적이 없다. 격리된 로컬 PostgreSQL 검증은 이를 대체하는 추가 근거일 뿐이다.
 - `auth_sessions` 테이블은 누락이 아니라 의도적으로 V1에서 제외했다.
 - V1의 단일 DB 계정 구성을 운영에 그대로 사용하면 안 된다.
+- PR #22와 #23은 현재 `main`을 base로 하지 않는다. 선행 PR 병합 후 base 변경과 diff 재확인이 필요하다.
 
 ## Next Action
 
-커밋·푸시한 뒤 Docker가 있는 환경에서 Testcontainers 4개를 재실행한다.
+1. PR #21을 리뷰·병합한다.
+2. PR #22의 base를 `main`으로 변경하고 diff 확인 후 리뷰·병합한다.
+3. PR #23의 base를 `main`으로 변경하고 diff 확인 후 리뷰·병합한다.
+4. Docker가 있는 환경에서 Testcontainers 4개를 실제 실행한다.
+5. 인증 정책을 확정하고 `TASK-011` 인증 DB migration·API 구현을 시작한다.
 
 ## Last Verified Commit
 
