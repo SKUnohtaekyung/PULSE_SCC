@@ -10,18 +10,19 @@ user-invocable: true
 
 ## 0. 전제
 
-`AGENTS.md` 3장의 실행 명령 표는 현재 전부 `TBD` 이고, 루트에 `package.json` 이 없다.
-**따라서 명령을 추측해서 실행하지 않는다.** 아래 1단계로 실제 존재하는 명령을 먼저 찾는다.
+상위 기술 스택은 Expo·TypeScript, Spring Boot, PostgreSQL, Python으로 확정됐지만 실제 프로젝트와 매니페스트는 아직 없다. `AGENTS.md` 3장의 실행 명령 표도 현재 `TBD`다.
+**따라서 프레임워크 이름만 보고 명령을 추측해서 실행하지 않는다.** 아래 1단계로 실제 존재하는 명령을 먼저 찾는다.
 
 ## 1. 실행 가능한 명령 탐색
 
 이 순서로 실제 파일을 읽어 확인한다.
 
-1. `package.json` 의 `scripts`
-2. `Makefile` / `Taskfile.yml` / `justfile`
-3. `pyproject.toml`, `go.mod` 등 언어별 매니페스트
-4. `.github/workflows/*` 에 이미 정의된 명령
-5. `AGENTS.md` 3장 표
+1. Expo 클라이언트의 `package.json` scripts와 설정 파일
+2. Spring Boot의 Gradle 또는 Maven 매니페스트와 wrapper
+3. Python 컴포넌트의 `pyproject.toml` 또는 실제 의존성·테스트 설정
+4. `Makefile` / `Taskfile.yml` / `justfile`
+5. `.github/workflows/*` 에 이미 정의된 명령
+6. `AGENTS.md` 3장 표
 
 발견한 명령이 `AGENTS.md` 3장 표와 다르면 **표가 stale인 것이다.** 검증 후 표를 갱신한다.
 어느 것도 없으면 여기서 멈추고 "실행 가능한 검증 명령이 없음"이라고 보고한다. 없는 명령을 만들어 실행하지 않는다.
