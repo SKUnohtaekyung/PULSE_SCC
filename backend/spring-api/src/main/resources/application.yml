@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: scc-api
+  config:
+    import: optional:file:../.env[.properties]
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/scc}
+    username: ${POSTGRES_USER:scc}
+    password: ${POSTGRES_PASSWORD:}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+scc:
+  analysis-service:
+    base-url: ${ANALYSIS_SERVICE_BASE_URL:http://127.0.0.1:8000}
+    service-token: ${ANALYSIS_SERVICE_TOKEN:}

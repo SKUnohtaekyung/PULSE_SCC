@@ -2,8 +2,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **논리 설계 초안 v0.1 — migration 전** |
-| 기준일 | 2026-09-15 |
+| 상태 | **논리 설계 초안 v0.2 — Flyway 설정 완료, migration 전** |
+| 기준일 | 2026-09-16 |
 | 소유 역할 | `role:platform` |
 | 데이터베이스 | PostgreSQL 단일 사용 |
 | API 설계 | [API.md](API.md) |
@@ -379,7 +379,7 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 | Spring Boot | 사용자·인증 세션·분석 작업의 공개 상태·저장 분석 선택·알림·알림 설정 |
 | Python 분석 컴포넌트 | 리뷰·분석·페르소나·근거·제안·이미지 메타데이터를 준비 상태로 기록 |
 
-두 서비스의 실제 schema 분리와 DB role 권한은 Spring Boot–Python 통신 방식과 함께 확정한다. 하나의 트랜잭션이 양쪽 책임을 동시에 수정해야 하는 설계는 피하고, 작업 ID와 명시적 상태 전이로 연결한다.
+두 서비스의 실제 schema 분리와 DB role 권한은 비즈니스 migration 작성 전에 확정한다. migration 파일은 Spring Boot의 `backend/spring-api/src/main/resources/db/migration/**`에서 Flyway로 단독 관리한다. 하나의 트랜잭션이 양쪽 책임을 동시에 수정해야 하는 설계는 피하고, 작업 ID와 명시적 상태 전이로 연결한다.
 
 분석 완료 경계는 Spring Boot가 소유한다.
 
@@ -395,15 +395,13 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 
 ## 11. Migration 전 미확정 항목
 
-1. PostgreSQL 버전
-2. Flyway·Liquibase·기타 migration 도구
-3. Spring Boot와 Python의 schema·DB role 분리
-4. auth token 저장 모델
-5. 전화번호 정규화·암호화·중복 정책
-6. 네이버 place ID와 URL unique 규칙
-7. 동시 분석 작업 수와 활성 작업 unique 제약
-8. 리뷰·결과·이미지·알림 보관 기간
-9. 이미지 바이너리 저장소
-10. 알림 읽음 처리 여부
+1. Spring Boot와 Python의 schema·DB role 분리
+2. auth token 저장 모델
+3. 전화번호 정규화·암호화·중복 정책
+4. 네이버 place ID와 URL unique 규칙
+5. 동시 분석 작업 수와 활성 작업 unique 제약
+6. 리뷰·결과·이미지·알림 보관 기간
+7. 이미지 바이너리 저장소
+8. 알림 읽음 처리 여부
 
 이 항목을 확정하기 전에는 예시 DDL을 실제 migration으로 복사하지 않는다.

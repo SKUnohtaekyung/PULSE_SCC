@@ -2,8 +2,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **설계 초안 v0.1 — OpenAPI·구현 전** |
-| 기준일 | 2026-09-15 |
+| 상태 | **설계 계약 v0.2 — 실행 골격 구현, 비즈니스 OpenAPI 전** |
+| 기준일 | 2026-09-16 |
 | 소유 역할 | `role:platform` |
 | 제품 요구사항 | [PRD.md](../product/PRD.md) |
 | 상세 기능명세 | [GUEST_ANALYSIS_FUNCTIONAL_SPEC.md](../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
@@ -41,7 +41,7 @@ Python AI·분석 컴포넌트
 
 Spring Boot는 외부 클라이언트가 접근하는 유일한 API다. Android 앱은 Python 컴포넌트, 크롤러, PostgreSQL, OpenAI API에 직접 접근하지 않는다.
 
-Spring Boot와 Python 사이의 구체 통신 방식은 아직 확정되지 않았다. 내부 HTTP를 사용할 경우 이 문서 §9의 후보 계약을 적용하며, 프레임워크와 전송 방식이 확정되면 ADR과 실제 schema로 승격한다.
+Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에 따라 인증된 내부 HTTP로 통신한다. 구체 분석 endpoint와 서비스 토큰·timeout·재시도 값은 이 문서 §9와 실제 구현에서 확정한다.
 
 ---
 
@@ -443,9 +443,9 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 
 ---
 
-## 9. Spring Boot–Python 내부 계약 후보
+## 9. Spring Boot–Python 내부 계약
 
-이 절은 참고 PULSE 아키텍처의 검증된 경계 패턴을 SCC에 맞게 변환한 **제안**이다. Python 프레임워크와 통신 방식이 확정되기 전에는 구현 계약으로 간주하지 않는다.
+전송 방식은 내부 HTTP로 확정했다. 현재 구현된 endpoint는 Python의 `GET /internal/v1/health`뿐이며, 아래 분석 endpoint는 비즈니스 API 작업에서 구현·검증할 목표 계약이다.
 
 | Spring Boot | Python 후보 |
 |---|---|
@@ -453,7 +453,7 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 | `GET /api/v1/analysis-jobs/{jobId}` | `GET /internal/v1/analysis-jobs/{jobId}` |
 | `GET /api/v1/analysis-jobs/{jobId}/result` | `GET /internal/v1/analysis-jobs/{jobId}/result` |
 
-내부 HTTP를 선택하면 다음을 요구한다.
+내부 HTTP는 다음을 요구한다.
 
 - 외부 네트워크에 노출하지 않는다.
 - 별도 서비스 자격 증명을 사용하고 timing-safe 비교를 적용한다.
@@ -468,12 +468,11 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 
 1. 액세스·갱신 토큰 형식과 수명·회전·폐기
 2. 전화번호 인증·복구·탈퇴 API
-3. Spring Boot–Python 통신 방식과 Python 프레임워크
-4. 동시 분석 작업 수와 재분석 cooldown
-5. 기존 결과 유지 시 미저장 결과의 접근 범위·최대 보관 시간
-6. 근거 리뷰 pagination 최대 크기
-7. 분석 목표 처리 시간과 timeout
-8. 내부 서비스 자격 증명의 저장·회전 방식
-9. 객체 저장소 선택과 이미지 private cache·서명 URL 수명
+3. 동시 분석 작업 수와 재분석 cooldown
+4. 기존 결과 유지 시 미저장 결과의 접근 범위·최대 보관 시간
+5. 근거 리뷰 pagination 최대 크기
+6. 분석 목표 처리 시간과 timeout
+7. 내부 서비스 자격 증명의 저장·회전 방식
+8. 객체 저장소 선택과 이미지 private cache·서명 URL 수명
 
 미확정 값을 구현자가 임의로 채우지 않는다. 결정 후 ADR과 OpenAPI/schema/types에 반영한다.

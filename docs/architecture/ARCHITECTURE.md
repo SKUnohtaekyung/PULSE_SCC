@@ -4,29 +4,29 @@
 
 | | |
 |---|---|
-| 상태 | **상위 수준 스택·API·PostgreSQL 논리 모델 설계 — 코드 없음** |
-| 최종 수정 | 2026-09-15 |
+| 상태 | **백엔드 실행 골격 구현 — 비즈니스 API·migration 전** |
+| 최종 수정 | 2026-09-16 |
 | 소유 역할 | `role:platform` |
 
 ---
 
 ## 1. 현재 상태
 
-저장소에 애플리케이션 코드는 아직 없다. 상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md)으로 확정했고, 공개 API와 PostgreSQL 논리 설계는 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 세부 버전·도구·내부 통신·배포 방식은 미확정이다.
+상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)으로 확정했다. 공개 API와 PostgreSQL 논리 설계는 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot와 FastAPI의 실행 골격·헬스 체크·환경 설정은 존재하지만 비즈니스 API와 Flyway migration은 아직 없다.
 
 | 항목 | 상태 |
 |---|---|
 | 프로젝트 유형 | Android 앱 + 자체 API + Python AI 처리 |
 | Frontend | Expo 기반 React Native + TypeScript |
-| Backend | Spring Boot |
-| AI·분석 | Python. 프레임워크 TBD |
-| 데이터 저장소 | PostgreSQL |
+| Backend | Spring Boot 4.1.1 + Java 21 + Gradle Wrapper 9.7.1 |
+| AI·분석 | FastAPI 0.141.1 + Python 3.13 |
+| 데이터 저장소 | PostgreSQL 18.6, Flyway migration은 Spring 단독 소유 |
 | 인증 방식 | Google 소셜 로그인 + 서비스 자체 로그인 |
 | 페르소나 이미지 | OpenAI API |
 | 배포 환경 | 확정 필요 |
-| monorepo 여부 | 확정 필요 |
+| 저장소 구조 | 단일 저장소의 `backend/spring-api`, `backend/python-analysis` 독립 프로젝트 |
 
-코드가 없는 상태에서 `apps/`, `packages/` 같은 빈 디렉터리를 미리 만들지 않는다. 실제 Expo·Spring Boot·Python 프로젝트를 생성할 때 프레임워크 관례와 역할 경계를 기준으로 구조를 확정한다.
+프론트엔드 프로젝트 위치는 프론트엔드 스택 세부 결정 후 추가한다. 백엔드는 각 런타임의 관례를 유지하는 독립 프로젝트로 구성하며 공통 소스 패키지를 섣불리 만들지 않는다.
 
 ### 목표 호출 흐름
 
@@ -45,7 +45,7 @@ Expo + React Native + TypeScript Android 앱
               └─ PostgreSQL
 ```
 
-Spring Boot와 Python 사이의 통신 방식, 리뷰 수집기의 실행 위치와 작업 큐 사용 여부는 아직 결정하지 않았다. 참고 PULSE 구조의 `Spring Boot → 내부 HTTP → Python` 패턴은 [API.md §9](API.md#9-spring-bootpython-내부-계약-후보)에 후보로만 기록했으며 확정 구현으로 간주하지 않는다.
+Spring Boot와 Python은 인증된 내부 HTTP로 통신한다. 공개 상태와 완료 트랜잭션은 Spring이 소유하고 Python은 준비된 분석 산출물을 전달한다. 구체 endpoint와 서비스 토큰·timeout·재시도 값은 [API.md §9](API.md#9-spring-bootpython-내부-계약)에 따라 비즈니스 API 구현 시 확정한다. 작업 큐 도입 여부는 아직 결정하지 않았다.
 
 분석 결과 저장은 [ADR-005](../decisions/ADR-005-analysis-storage-policy.md)를 따른다. PostgreSQL에서 계정당 저장 분석 1개를 고유 제약으로 보장한다. 저장본이 없으면 첫 결과를 자동 저장하고, 이후 새 분석에서는 사용자가 새 결과로 교체하거나 기존 결과를 유지한다. 기존 결과 유지 시 미저장 새 결과의 접근·삭제 정책은 아직 미정이다. MySQL·MongoDB를 별도로 도입하지 않으며 작업·리뷰·분석 결과도 PostgreSQL 논리 모델로 통합한다.
 
@@ -85,7 +85,7 @@ Spring Boot와 Python 사이의 통신 방식, 리뷰 수집기의 실행 위치
 
 문서상 호출 흐름: `React → Spring Boot → FastAPI → 외부 AI·데이터 API → 결과 반환`
 
-현재 결정은 [ADR-003](../decisions/ADR-003-application-stack.md)이다. FastAPI는 확정하지 않았고, MySQL·MongoDB 대신 PostgreSQL 하나를 사용하며, 영상 생성이 아닌 페르소나 이미지 생성에 OpenAI API를 사용한다.
+현재 결정은 [ADR-003](../decisions/ADR-003-application-stack.md)과 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)이다. FastAPI 내부 서비스와 PostgreSQL 하나를 사용하며, 영상 생성이 아닌 페르소나 이미지 생성에 OpenAI API를 사용한다.
 
 ### 영상 프롬프트 설계
 
@@ -114,6 +114,12 @@ SCC/
 ├─ README.md
 ├─ .gitignore
 │
+├─ backend/
+│  ├─ spring-api/       Spring Boot 공개 API·Flyway 소유
+│  ├─ python-analysis/  FastAPI 내부 분석 서비스
+│  ├─ compose.yaml      로컬 PostgreSQL
+│  └─ .env.example      비밀이 없는 환경변수 예시
+│
 ├─ docs/
 │  ├─ product/          제품 요구사항 정본
 │  ├─ design/           UI/UX 원칙 정본
@@ -131,7 +137,7 @@ SCC/
    └─ ISSUE_TEMPLATE/
 ```
 
-애플리케이션 코드가 생기면 여기에 실제 구조를 추가한다.
+프론트엔드가 생성되면 실제 경로를 이 구조에 추가한다.
 
 ## 3. 구조 결정 시 지킬 것
 
@@ -154,9 +160,7 @@ SCC/
 
 | # | 질문 | 막고 있는 것 |
 |---|---|---|
-| 1 | 실제 프로젝트 디렉터리와 monorepo 여부 | 디렉터리 구조 전체 |
-| 2 | Expo SDK·React Native 버전과 workflow | 클라이언트 생성·실행 명령 |
-| 3 | Spring Boot JVM 언어·버전과 빌드 도구 | 백엔드 생성·실행 명령 |
-| 4 | Python 프레임워크와 Spring Boot 연동 방식 | AI 서비스 경계 |
-| 5 | PostgreSQL 마이그레이션 도구 | DB 스키마 정본 위치 |
-| 6 | 배포 환경 | CI 워크플로 |
+| 1 | Expo SDK·React Native 버전과 workflow | 클라이언트 생성·실행 명령 |
+| 2 | 내부 HTTP 서비스 토큰·timeout·재시도 값 | 분석 서비스 호출 구현 |
+| 3 | 작업 큐 도입 여부 | 장기 분석 실행·복구 방식 |
+| 4 | 배포 환경 | CI·컨테이너·비밀 관리 방식 |
