@@ -45,14 +45,14 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 | 언어 | TypeScript, Java 21, Python 3.13 |
 | 이미지 생성 | OpenAI API |
 | 패키지 매니저 | 백엔드: Gradle Wrapper, Python venv + pip / 프론트엔드: 확정 필요 |
-| 테스트 러너 | 백엔드: JUnit Platform, pytest / 프론트엔드: 확정 필요 |
+| 테스트 러너 | 백엔드: JUnit Platform, Testcontainers 2.0.5, pytest / 프론트엔드: 확정 필요 |
 
 로컬에서 실제 실행 확인된 도구 (2026-09-16 기준):
 
 ```
 java 21.0.8   python 3.13.2
 Gradle 9.7.1 → backend/spring-api/gradlew.bat으로 실행 확인
-Docker → 미설치, PostgreSQL compose 실행은 미확인
+Docker → 미설치, Testcontainers PostgreSQL 테스트는 컴파일 확인·실행 건너뜀
 ```
 
 ### 스택 확정 시 반드시 함께 갱신할 것
@@ -95,7 +95,7 @@ Docker → 미설치, PostgreSQL compose 실행은 미확인
 | 재사용 UI 컴포넌트 | 컴포넌트 코드 (위치 미정 — 스택 확정 후) |
 | 시스템 구조 | `docs/architecture/ARCHITECTURE.md` |
 | API 계약 | `docs/architecture/API.md` 설계 계약 + 실제 OpenAPI/schema/types (현재 실제 schema/types 없음) |
-| DB 구조 | `docs/architecture/DATA_MODEL.md` 논리 설계 + 실제 PostgreSQL schema/migration (현재 migration 없음) |
+| DB 구조 | 실제 Flyway migration `backend/spring-api/src/main/resources/db/migration/**` + `docs/architecture/DATA_MODEL.md` |
 | 현재 구현 상태 | Git + 실제 코드 |
 | 테스트 통과 여부 | 실제 테스트 실행 결과 |
 | 주요 기술 결정 근거 | `docs/decisions/*` |

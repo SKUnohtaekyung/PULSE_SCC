@@ -2,14 +2,15 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **논리 설계 초안 v0.2 — Flyway 설정 완료, migration 전** |
+| 상태 | **v1.0 — Flyway V1 초기 스키마 구현** |
 | 기준일 | 2026-09-16 |
 | 소유 역할 | `role:platform` |
 | 데이터베이스 | PostgreSQL 단일 사용 |
 | API 설계 | [API.md](API.md) |
 | 저장 정책 | [ADR-005](../decisions/ADR-005-analysis-storage-policy.md) |
+| 초기 스키마 결정 | [ADR-007](../decisions/ADR-007-initial-database-schema.md) |
 
-이 문서는 기존 PULSE의 MySQL 사용자·매장 데이터와 MongoDB 작업·리뷰·결과 문서를 SCC의 PostgreSQL 단일 데이터베이스에 맞게 변환한 논리 모델이다. 실제 migration과 ORM 모델이 생기면 컬럼명·타입·제약의 정본은 코드가 된다.
+이 문서는 기존 PULSE의 MySQL 사용자·매장 데이터와 MongoDB 작업·리뷰·결과 문서를 SCC의 PostgreSQL 단일 데이터베이스에 맞게 변환한 모델이다. 컬럼명·타입·제약의 구현 정본은 `backend/spring-api/src/main/resources/db/migration/**`이며 이 문서는 의미와 후속 결정을 설명한다.
 
 PostgreSQL을 MongoDB처럼 하나의 거대한 JSON 문서 저장소로 사용하지 않는다. 권한·저장 한도·근거 연결·교체 트랜잭션에 필요한 관계는 테이블과 외래키로 표현하고, 제공자별 부가 메타데이터처럼 구조가 가변적인 값만 제한적으로 `jsonb`를 사용한다.
 
@@ -379,7 +380,7 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 | Spring Boot | 사용자·인증 세션·분석 작업의 공개 상태·저장 분석 선택·알림·알림 설정 |
 | Python 분석 컴포넌트 | 리뷰·분석·페르소나·근거·제안·이미지 메타데이터를 준비 상태로 기록 |
 
-두 서비스의 실제 schema 분리와 DB role 권한은 비즈니스 migration 작성 전에 확정한다. migration 파일은 Spring Boot의 `backend/spring-api/src/main/resources/db/migration/**`에서 Flyway로 단독 관리한다. 하나의 트랜잭션이 양쪽 책임을 동시에 수정해야 하는 설계는 피하고, 작업 ID와 명시적 상태 전이로 연결한다.
+[ADR-007](../decisions/ADR-007-initial-database-schema.md)에 따라 V1은 `public` schema 하나에 생성한다. 로컬·통합 테스트 단계에서는 migration과 애플리케이션이 같은 DB 계정을 사용할 수 있지만 운영 배포 전에는 Spring·Python의 런타임 role과 Flyway migration role을 분리해야 한다. migration 파일은 Spring Boot의 `backend/spring-api/src/main/resources/db/migration/**`에서 Flyway로 단독 관리한다. 하나의 트랜잭션이 양쪽 책임을 동시에 수정해야 하는 설계는 피하고, 작업 ID와 명시적 상태 전이로 연결한다.
 
 분석 완료 경계는 Spring Boot가 소유한다.
 
@@ -393,9 +394,9 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 
 ---
 
-## 11. Migration 전 미확정 항목
+## 11. 후속 migration 전 미확정 항목
 
-1. Spring Boot와 Python의 schema·DB role 분리
+1. 운영 환경의 Spring·Python 런타임 DB role과 Flyway migration role 분리
 2. auth token 저장 모델
 3. 전화번호 정규화·암호화·중복 정책
 4. 네이버 place ID와 URL unique 규칙
@@ -404,4 +405,4 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 7. 이미지 바이너리 저장소
 8. 알림 읽음 처리 여부
 
-이 항목을 확정하기 전에는 예시 DDL을 실제 migration으로 복사하지 않는다.
+V1은 위 미확정 정책을 고정하지 않는다. 특히 `auth_sessions`는 토큰 저장·회전 정책이 확정된 뒤 만들며, 전화번호와 네이버 URL에는 아직 unique 제약을 두지 않고, 자동 삭제 정책도 추가하지 않는다.

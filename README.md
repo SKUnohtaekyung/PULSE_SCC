@@ -2,8 +2,8 @@
 
 4명이 Claude Code와 Codex를 함께 사용해 개발하는 프로젝트.
 
-> **현재 상태: 백엔드 실행 골격 구현 완료, 비즈니스 API·DB migration·프론트엔드 구현 전.**
-> Spring Boot·FastAPI 단위 검증은 가능하며 PostgreSQL 실행에는 Docker가 필요하다.
+> **현재 상태: 백엔드 실행 골격과 Flyway V1 초기 스키마 구현 완료, 비즈니스 API·프론트엔드 구현 전.**
+> Spring Boot·FastAPI 단위 검증은 가능하며 재현 가능한 PostgreSQL 통합 테스트 실행에는 Docker가 필요하다.
 
 **코드만 두는 저장소가 아니다.** 제품 문서, 조사 근거, 발표 자료, 회의·인터뷰 기록을 함께 관리한다.
 문서도 코드와 같은 규칙(브랜치 → PR → 리뷰)을 따른다. 자세한 것은 [AGENTS.md 1장](AGENTS.md).
@@ -71,7 +71,8 @@ backend/                  백엔드 실행 프로젝트
 | 항목 | 상태 |
 |---|---|
 | 백엔드 골격 | `backend/`에 Spring Boot·FastAPI·PostgreSQL Compose와 환경변수 예시 구현 |
-| 비즈니스 API와 migration | 설계 문서는 있지만 실제 endpoint·DTO·Flyway SQL은 다음 TASK에서 구현 |
+| 데이터베이스 | Flyway V1 초기 스키마와 Testcontainers PostgreSQL 통합 테스트 구현 |
+| 비즈니스 API | 설계 계약은 있지만 실제 endpoint·DTO는 아직 구현 전 |
 | 프론트엔드 | Expo 세부 버전과 workflow를 프론트 담당자가 확정한 뒤 생성 |
 | `.github/workflows/` (CI) | 로컬 검증 명령은 생겼지만 배포 환경과 CI 정책은 아직 미정 |
 | `.claude/rules/` | 규칙을 여기에 두면 `AGENTS.md` 와 중복된다. Claude는 `CLAUDE.md` 의 `@AGENTS.md` import로 이미 전부 읽는다 |
