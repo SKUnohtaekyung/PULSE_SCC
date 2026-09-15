@@ -2,7 +2,7 @@
 
 ## Status
 
-구현·검증·독립 리뷰 완료 — 커밋 전
+구현·검증·독립 리뷰 완료 — 푸시 전
 
 ## Owner
 
@@ -65,4 +65,4 @@
 
 ## Last Verified Commit
 
-작업 트리 — 커밋 전.
+`a000d2d` — Flyway V1과 PostgreSQL 제약 검증을 완료한 구현 커밋.
