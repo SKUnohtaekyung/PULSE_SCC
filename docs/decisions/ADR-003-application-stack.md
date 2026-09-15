@@ -75,3 +75,7 @@ OpenAI API 키와 인증 관련 비밀은 서버에서만 관리하며 Android �
 5. OpenAI 이미지 모델·크기·비용 한도
 6. Google·자체 로그인 계정 연결과 토큰 정책
 7. 개발·운영 배포 환경
+
+### 2026-09-16 후속 결정
+
+후속 항목 2~4의 백엔드 언어·버전·빌드 도구, Python 프레임워크·통신 방식, PostgreSQL 버전·migration 도구는 [ADR-006](ADR-006-backend-bootstrap.md)에서 확정했다. Expo와 배포 환경 등 나머지 항목은 계속 미정이다.

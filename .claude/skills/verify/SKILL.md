@@ -10,8 +10,8 @@ user-invocable: true
 
 ## 0. 전제
 
-상위 기술 스택은 Expo·TypeScript, Spring Boot, PostgreSQL, Python으로 확정됐지만 실제 프로젝트와 매니페스트는 아직 없다. `AGENTS.md` 3장의 실행 명령 표도 현재 `TBD`다.
-**따라서 프레임워크 이름만 보고 명령을 추측해서 실행하지 않는다.** 아래 1단계로 실제 존재하는 명령을 먼저 찾는다.
+백엔드 프로젝트와 검증 명령은 존재한다. 프론트엔드는 아직 프로젝트와 매니페스트가 없다.
+**따라서 아래 1단계로 실제 존재하는 명령을 먼저 찾고, `AGENTS.md` 3장의 현재 명령과 대조한다.**
 
 ## 1. 실행 가능한 명령 탐색
 
@@ -26,6 +26,18 @@ user-invocable: true
 
 발견한 명령이 `AGENTS.md` 3장 표와 다르면 **표가 stale인 것이다.** 검증 후 표를 갱신한다.
 어느 것도 없으면 여기서 멈추고 "실행 가능한 검증 명령이 없음"이라고 보고한다. 없는 명령을 만들어 실행하지 않는다.
+
+현재 백엔드 기준 명령:
+
+```powershell
+.\backend\spring-api\gradlew.bat -p backend\spring-api test
+.\backend\spring-api\gradlew.bat -p backend\spring-api build
+.\backend\python-analysis\.venv\Scripts\python.exe -m ruff check --no-cache backend\python-analysis
+.\backend\python-analysis\.venv\Scripts\python.exe -m ruff format --check --no-cache backend\python-analysis
+.\backend\python-analysis\.venv\Scripts\python.exe -m pytest backend\python-analysis
+```
+
+`.venv`가 없으면 먼저 `AGENTS.md` 3장의 Python install 명령을 실행한다. PostgreSQL 통합 테스트가 추가되면 Docker 또는 외부 테스트 DB가 실제로 준비됐는지 확인하고 실행한다.
 
 ## 2. 검증 실행
 

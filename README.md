@@ -2,8 +2,8 @@
 
 4명이 Claude Code와 Codex를 함께 사용해 개발하는 프로젝트.
 
-> **현재 상태: 제품 정의·상위 수준 기술 스택·API 및 PostgreSQL 논리 설계는 작성, 세부 프로젝트 구조·버전·실행 명령은 미확정.**
-> 애플리케이션 코드는 아직 이 저장소에 없다.
+> **현재 상태: 백엔드 실행 골격 구현 완료, 비즈니스 API·DB migration·프론트엔드 구현 전.**
+> Spring Boot·FastAPI 단위 검증은 가능하며 PostgreSQL 실행에는 Docker가 필요하다.
 
 **코드만 두는 저장소가 아니다.** 제품 문서, 조사 근거, 발표 자료, 회의·인터뷰 기록을 함께 관리한다.
 문서도 코드와 같은 규칙(브랜치 → PR → 리뷰)을 따른다. 자세한 것은 [AGENTS.md 1장](AGENTS.md).
@@ -47,6 +47,12 @@ research/                 조사 근거 — 언제 무엇을 확인했는가
 ├─ evidence_registry.csv  근거 대장 (등급·출처·한계)
 ├─ interviews/            현장 인터뷰 1차 자료  (기록자 소유)
 └─ *.md                   영역별 조사 보고서
+
+backend/                  백엔드 실행 프로젝트
+├─ spring-api/            Spring Boot 4.1.1 + Java 21 + Gradle Wrapper
+├─ python-analysis/       FastAPI + Python 3.13
+├─ compose.yaml           PostgreSQL 18.6 로컬 환경
+└─ .env.example           환경변수 예시
 ```
 
 **`docs/` 와 `research/` 는 성격이 다르다.** `docs/` 는 갱신하면 이전 값이 사라지는 정본이고,
@@ -60,19 +66,21 @@ research/                 조사 근거 — 언제 무엇을 확인했는가
 
 전체 흐름과 완료 기준은 [AGENTS.md 13·14장](AGENTS.md).
 
-## 아직 안 만든 것과 이유
+## 현재 구현 범위
 
-| 항목 | 이유 |
+| 항목 | 상태 |
 |---|---|
-| `apps/`, `packages/` | Expo·Spring Boot·Python 실제 프로젝트 구조와 monorepo 여부 미확정. 빈 디렉터리를 미리 만들지 않는다 |
-| `package.json`, `.env.example` | 실제 프로젝트와 환경변수 목록이 아직 없음 |
-| `.github/workflows/` (CI) | 실행 명령이 존재하지 않아 검증할 것이 없다 |
-| 실제 OpenAPI/schema/types와 PostgreSQL migration | API·데이터 모델 문서는 설계 초안이며 애플리케이션 코드가 아직 없음 |
+| 백엔드 골격 | `backend/`에 Spring Boot·FastAPI·PostgreSQL Compose와 환경변수 예시 구현 |
+| 비즈니스 API와 migration | 설계 문서는 있지만 실제 endpoint·DTO·Flyway SQL은 다음 TASK에서 구현 |
+| 프론트엔드 | Expo 세부 버전과 workflow를 프론트 담당자가 확정한 뒤 생성 |
+| `.github/workflows/` (CI) | 로컬 검증 명령은 생겼지만 배포 환경과 CI 정책은 아직 미정 |
 | `.claude/rules/` | 규칙을 여기에 두면 `AGENTS.md` 와 중복된다. Claude는 `CLAUDE.md` 의 `@AGENTS.md` import로 이미 전부 읽는다 |
 | `.codex/`, `.agents/skills/` | Codex 0.147.0이 프로젝트 레벨에서 읽지 않음 ([ADR-001](docs/decisions/ADR-001-agent-config-strategy.md)) |
 | `.claude/commands`, `hooks`, `output-styles`, `workflows` | 반복 자동화 필요성이 아직 확인되지 않음 |
 
 각 항목은 필요성이 생긴 시점에 추가한다.
+
+백엔드 설치·실행 방법은 [backend/README.md](backend/README.md), 상세 결정은 [ADR-006](docs/decisions/ADR-006-backend-bootstrap.md)을 따른다.
 
 ---
 
