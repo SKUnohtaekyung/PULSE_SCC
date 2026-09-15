@@ -1,4 +1,4 @@
-# PULSE 손님분석 기능명세서
+# SCC 손님분석 기능명세서
 
 ## 1. 문서 개요
 
@@ -85,7 +85,7 @@ flowchart TD
     F1 -- 예 --> F2[정확성 우려 메시지 포함]
     F1 -- 아니요 --> I[리뷰 정제 및 반복 패턴 분석]
     F2 --> I
-    I --> J[상위 토픽 3개와 페르소나 3개 생성]
+    I --> J[근거가 있는 상위 토픽과 페르소나를 최대 3개 생성]
     J --> K[마케팅 지식 참고 및 제안 생성]
     K --> L[결과 스키마와 근거 연결 검증]
     L --> M[Android 앱에 분석 결과 표시]
@@ -191,8 +191,8 @@ flowchart TD
 
 | 요구사항 ID | 기능 | 상세 명세 | 우선순위 |
 |---|---|---|---:|
-| PERSONA-001 | 상위 토픽 선정 | 반복 빈도와 근거가 확인되는 상위 토픽 3개를 선정한다. | P0 |
-| PERSONA-002 | 페르소나 3개 생성 | 상위 토픽마다 페르소나를 1개씩, 총 3개 생성한다. | P0 |
+| PERSONA-001 | 상위 토픽 선정 | 반복 빈도와 근거가 확인되는 상위 토픽을 최대 3개 선정한다. | P0 |
+| PERSONA-002 | 페르소나 생성 | 선정된 상위 토픽마다 페르소나를 1개씩 생성한다. 정상 결과는 총 3개이며 근거 부족 결과는 0~2개다. | P0 |
 | PERSONA-003 | 관찰 범위 제한 | 리뷰에서 확인할 수 없는 연령, 성별, 직업 등 인구통계를 실제 고객 특성처럼 단정하지 않는다. | P0 |
 | PERSONA-004 | 근거 리뷰 연결 | 각 유형에 해당 유형을 뒷받침하는 익명 근거 리뷰를 연결한다. | P0 |
 | PERSONA-005 | 유형 한계 고지 | 페르소나는 실제 개인이나 전체 고객 대표가 아니라 리뷰 패턴을 이해하기 쉽게 표현한 결과임을 표시한다. | P0 |
@@ -252,7 +252,7 @@ flowchart TD
 | NAV-003 | 분석하기 | 새 가게 정보를 입력하고 분석을 시작하는 흐름으로 진입한다. | P0 |
 | NAV-004 | 마이페이지 | 분석 완료·실패 인앱 알림, 알림 설정·서비스 정보, 로그아웃, 현재 저장 결과의 페르소나 이미지 최대 3개만 제공한다. | P0 |
 | NAV-005 | 알림 범위 | 분석 작업 완료·실패만 인앱으로 알리고 홍보 알림과 OS 푸시는 제공하지 않는다. | P0 |
-| NAV-006 | 설정 범위 | 분석 알림 켜기·끄기와 서비스 정보만 제공한다. | P0 |
+| NAV-006 | 설정 범위 | 분석 알림은 기본으로 켜며, 끄면 이후 완료·실패 작업의 새 인앱 알림을 생성하지 않는다. 기존 알림 이력은 삭제하지 않는다. 서비스 정보 외 설정은 제공하지 않는다. | P0 |
 | NAV-007 | 이미지 보관 범위 | 현재 저장 결과의 페르소나 이미지를 최대 3개까지 읽기 전용으로 보여준다. 결과 교체 시 함께 교체하며 별도 아카이브와 개별 삭제는 제공하지 않는다. | P0 |
 
 ---
@@ -295,72 +295,35 @@ Kiwi, BERTopic, 특정 임베딩·LLM 제품은 신청서상 계획이며 아직
 
 ## 7. 데이터 구조 초안
 
-아래는 구현 논의를 위한 논리 모델이며 DB 스키마 확정안이 아니다.
+PostgreSQL 단일 데이터베이스 기준의 논리 모델은 [DATA_MODEL.md](../../architecture/DATA_MODEL.md)에서 관리한다. 기존 PULSE의 MySQL·MongoDB 이중 저장 구조는 사용하지 않는다.
 
-| 엔티티 | 주요 필드 | 설명 |
-|---|---|---|
-| User | id, authProvider, providerSubject, loginEmail, credentialHash, phoneNumber, createdAt | Google 또는 서비스 자체 계정과 연결되는 사용자. 자체 계정 로그인 ID는 이메일 형식 |
-| AuthSession | id, userId, refreshTokenHash, expiresAt, revokedAt | 세션 복원과 로그아웃을 위한 서버 측 세션 메타데이터 후보 |
-| AnalysisJob | id, userId, sessionId, storeReference, status, progressStep, errorCode, requestedAt, startedAt, completedAt | 한 번의 분석 작업 |
-| StoreReference | name, category, naverPlaceUrl, externalStoreId | 사용자가 입력한 가게 이름·업종·네이버 가게 URL과 외부 식별자 |
-| Review | id, platform, content, rating, writtenAt, collectedAt, contentHash | 작성자 식별정보가 제거된 리뷰 |
-| Insight | id, analysisId, personaId, kind, reviewFact, interpretation, priority | 페르소나에 연결된 4개 관점의 분석 항목 |
-| EvidenceLink | insightId 또는 personaId 또는 adviceId, reviewId, excerpt | 결과와 근거 리뷰 연결 |
-| Persona | id, analysisId, label, summary, observedNeeds, observedPainPoints, observedContexts, caveat | 리뷰 관찰 범위의 손님 유형 |
-| PersonaImage | personaId, styleVersion, modelVersion, imageLocation, status | P0 생성 이미지 메타데이터 |
-| Advice | id, analysisId, reviewFact, interpretation, suggestedAction | 운영·마케팅 제안 |
-| KnowledgeReference | adviceId, sourceId, title, locator, retrievedAt | RAG에서 참고한 검증된 지식 근거 |
-| Analysis | id, jobId, reviewCount, sourcePlatforms, collectedAt, schemaVersion, modelVersions, createdAt | 완료된 결과와 재현성 정보 |
-| SavedAnalysis | userId, analysisId, savedAt | 계정당 하나만 허용하는 저장 연결. `userId`에 고유 제약 필요 |
+제품 관점에서 반드시 지켜야 하는 불변식은 다음과 같다.
 
-저장 분석은 계정당 최대 1개다. 첫 결과는 자동 저장하고, 이후에는 사용자가 새 결과로 교체하거나 기존 결과를 유지한다. 기존 결과 유지 시 미저장 새 결과의 세션 내 접근 범위와 최대 보관 시간은 미정이다.
+- 사용자·인증 세션·가게 참조·분석 작업·비식별 리뷰·분석 결과·페르소나·4관점·근거·제안·이미지 메타데이터·저장 결과·인앱 알림을 PostgreSQL에 저장한다.
+- 계정당 저장 분석은 최대 1개다.
+- 4관점 분석은 가게 전체가 아니라 페르소나에 연결한다.
+- 분석 결과는 0~3개 persona row를 가지며 빈 포디움 슬롯용 가짜 row를 만들지 않는다.
+- 리뷰 작성자 닉네임·프로필 링크·이미지 URL·계정 식별자 컬럼을 만들지 않는다.
+- 실제 컬럼·타입·제약의 정본은 향후 PostgreSQL migration과 ORM 모델이다.
 
 ---
 
 ## 8. API 초안
 
-API 경로와 필드는 기술 스택 확정 후 실제 OpenAPI/schema/types로 확정한다.
+공개 엔드포인트, 요청·응답 예시, 상태·오류 enum, 결과 JSON과 근거 조회 계약은 [API.md](../../architecture/API.md)에서 관리한다.
 
-| Method | Endpoint | 설명 |
-|---|---|---|
-| POST | `/v1/auth/google` | Google 인증 결과 검증 및 서비스 세션 발급 |
-| POST | `/v1/auth/login` | 서비스 자체 계정 로그인 |
-| POST | `/v1/auth/refresh` | 서비스 세션 갱신 |
-| POST | `/v1/auth/logout` | 현재 세션 폐기 |
-| POST | `/v1/analysis-jobs` | 가게 이름·업종·네이버 가게 URL을 받아 수집·분석 작업 생성 |
-| GET | `/v1/analysis-jobs/{jobId}` | 작업 상태, 현재 단계, 실패 사유 조회 |
-| GET | `/v1/analyses/{analysisId}` | 완료된 분석, 손님 유형, 제안과 근거 조회 |
-| PUT | `/v1/me/saved-analysis/{analysisId}` | 사용자가 선택한 새 분석 결과로 기존 저장본을 교체 |
-| GET | `/v1/me/saved-analysis` | 계정에 저장된 분석 결과 1개 조회 |
+기능명세 관점에서 API가 보장해야 하는 것은 다음과 같다.
 
-저장본이 없는 계정의 첫 분석 결과는 분석 완료 처리에서 자동 저장한다. 교체 API는 기존 저장본과 새 결과가 모두 요청 사용자 소유인지 확인하고 하나의 트랜잭션으로 교체한다.
+- Android 앱은 Spring Boot의 `/api/v1/**`만 호출한다.
+- 분석 생성은 가게 이름·업종·네이버 가게 URL을 받고 `202 Accepted`와 작업 ID를 반환한다.
+- 같은 사용자 요청의 안전한 재전송을 위해 멱등성 키를 지원한다.
+- 공개 작업 상태는 `QUEUED → RUNNING → COMPLETED | FAILED`로 정규화한다.
+- 결과는 분석 메타정보, 3칸 포디움, 페르소나 0~3개, 페르소나별 4관점·근거·제안을 표현한다.
+- 대표 근거 외 전체 리뷰는 작성자 식별정보 없이 cursor 방식으로 조회한다.
+- 첫 결과 자동 저장과 저장본 교체는 사용자 소유권 확인과 PostgreSQL 트랜잭션을 거친다.
+- 마이페이지 API는 분석 완료·실패 인앱 알림과 분석 알림 설정만 제공한다.
 
-### 8.1 분석 작업 생성 예시
-
-요청은 가게 이름, 업종, 네이버 가게 URL을 모두 받는다.
-
-```json
-{
-  "storeName": "예시 식당",
-  "category": "KOREAN",
-  "naverPlaceUrl": "https://map.naver.com/..."
-}
-```
-
-작업을 생성하면 완료를 기다리지 않고 `202 Accepted`와 작업 식별자를 반환한다.
-
-```json
-{
-  "jobId": "job_...",
-  "status": "QUEUED"
-}
-```
-
-업종 API 값은 한식·중식·일식·양식·카페/디저트·주점·기타와 1:1로 대응하는 enum으로 정의한다. 실제 enum 이름은 schema/types에서 확정한다.
-
-### 8.2 권한 정책
-
-모든 사용자 소유 데이터는 서버에서 인증과 소유권을 확인한다. Android 앱의 화면 상태나 전달된 사용자 ID만 신뢰하지 않는다. 액세스·갱신 토큰 형식, 수명, 회전과 폐기 정책은 인증 설계에서 확정한다.
+실제 OpenAPI/schema/types가 생성되면 해당 파일이 필드와 enum의 구현 계약 정본이 된다.
 
 ---
 
@@ -484,7 +447,7 @@ API 경로와 필드는 기술 스택 확정 후 실제 OpenAPI/schema/types로 
 - **And** 모든 표시 항목에는 하나 이상의 실제 근거 리뷰가 연결되어야 한다.
 - **And** 대표 근거 리뷰 1~2개가 기본 노출되고 나머지는 `근거 리뷰 전체 보기`로 확인할 수 있어야 한다.
 
-### AC-06 토픽별 페르소나 3개와 추론 제한
+### AC-06 토픽별 최대 3개 페르소나와 추론 제한
 
 - **Given** 손님 유형이 생성됐고
 - **When** 유형 상세를 조회하면
@@ -552,6 +515,9 @@ API 경로와 필드는 기술 스택 확정 후 실제 OpenAPI/schema/types로 
 - **Then** 왼쪽부터 홈·분석하기·마이페이지 순서로 이동할 수 있고 가운데 분석하기가 주요 행동으로 강조되어야 한다.
 - **And** 마이페이지에는 분석 완료·실패 인앱 알림, 알림 설정·서비스 정보, 로그아웃, 현재 저장 결과의 페르소나 이미지 최대 3개만 제공해야 한다.
 - **And** 홍보 알림·OS 푸시·별도 이미지 아카이브·개별 이미지 삭제를 제공하지 않아야 한다.
+- **Given** 사용자가 분석 알림을 끈 뒤 새 분석 작업이 완료되거나 실패했고
+- **When** 마이페이지 알림을 조회하면
+- **Then** 해당 작업의 새 인앱 알림은 생성·표시되지 않아야 하며 설정 전에 생성된 알림 이력은 유지되어야 한다.
 
 ### AC-14 결과 계층과 최초 선택
 

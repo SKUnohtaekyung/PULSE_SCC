@@ -2,7 +2,7 @@
 
 ## Status
 
-핵심 결과 IA 결정 반영·검증 완료 — 역할별 리뷰·PR 전
+핵심 결과 IA와 PostgreSQL 기반 API·데이터 모델 초안 반영·검증 완료 — 역할별 리뷰·PR 전
 
 ## Owner
 
@@ -43,6 +43,10 @@
 - 첫 분석 전 홈·하단 내비게이션 진입 제한과 `홈 → 분석하기 → 마이페이지` 순서 확정
 - 마이페이지를 분석 인앱 알림·알림 설정·서비스 정보·로그아웃·현재 결과 이미지 최대 3개로 한정
 - 프로젝트 계약, 아키텍처, README, `.gitignore`, verify 절차 동기화
+- 기존 PULSE 기능명세·기술 아키텍처의 비동기 작업·Spring/Python 경계 패턴을 SCC 요구사항에 맞게 선별 반영
+- Android 공개 API 초안과 표준 오류·작업 상태·결과·근거·저장·알림 계약을 `docs/architecture/API.md`에 작성
+- MySQL·MongoDB 이중 저장 구조를 사용하지 않는 PostgreSQL 단일 논리 모델을 `docs/architecture/DATA_MODEL.md`에 작성
+- 리뷰·작업·분석 결과까지 PostgreSQL 관계와 제한적 `jsonb`로 표현하고 계정당 저장 결과 1개를 제약으로 설계
 
 ## Changed
 
@@ -57,6 +61,8 @@
 | `docs/decisions/ADR-004-naver-only-review-source.md` | MVP 리뷰 출처를 네이버로 한정한 결정 기록 |
 | `docs/decisions/ADR-005-analysis-storage-policy.md` | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 정책 기록 |
 | `docs/architecture/ARCHITECTURE.md` | 목표 시스템 구조와 호출 흐름 갱신 |
+| `docs/architecture/API.md` | Android–Spring 공개 API와 Spring–Python 내부 경계 초안 신설 |
+| `docs/architecture/DATA_MODEL.md` | PostgreSQL 단일 데이터베이스 논리 모델·제약·인덱스 초안 신설 |
 | `AGENTS.md` | 제품 정의와 상위 스택 표 갱신 |
 | `README.md` | 현재 제품·스택 상태 갱신 |
 | `.gitignore` | Expo·Spring Boot·Python 산출물 제외 규칙 추가 |
@@ -90,6 +96,7 @@
 24. 도출된 페르소나가 1개 이상이면 최초 1위를 선택한다.
 25. 입력 오류·수집 및 분석 오류·결과 한계는 발생 단계에서 원인·현재 상태·다음 행동과 함께 표시한다.
 26. 마이페이지는 분석 완료·실패 인앱 알림, 알림 설정·서비스 정보, 로그아웃, 현재 저장 결과 이미지 최대 3개만 제공한다.
+27. 분석 알림은 기본으로 켜며, 끄면 이후 완료·실패 작업의 새 인앱 알림을 생성하지 않고 기존 이력은 유지한다.
 
 ## Verification
 
@@ -107,6 +114,10 @@
 | Git 사용법 HTML 동기화 | 확인함 — 이번 변경은 Git 규칙·설정 변경이 아니므로 수정 불필요 |
 | 결과 IA 독립 검토 | PASS — 0개 유형 경계조건, 부분 결과 이미지 조건, 추적표와 AC 보완 후 재검토 통과 |
 | 제품 문서 커밋 | `0db8a05` — 사용자 결과 IA 결정 반영 |
+| 상대 링크 | 저장소 Markdown 44개·로컬 링크 127개 기준 깨진 링크 0 |
+| API JSON 예제 | 11개 블록 모두 `ConvertFrom-Json` 파싱 PASS |
+| 실행 명령 탐색 | 매니페스트·wrapper·task runner·CI 없음 — 코드 검증 명령 없음 |
+| API·PostgreSQL 독립 검토 | PASS — 교차 사용자 근거 연결 방지, 완료·첫 저장·알림 원자성, 알림 설정, 이미지 권한 보완 후 재검토 통과 |
 
 ## Unresolved
 
@@ -130,6 +141,10 @@
 18. 유형별 최소 리뷰 수를 별도로 도입할지
 19. 가게 지정·분석 대기 화면의 세부 시각 구성
 20. 포디움을 스크롤 중 상단에 붙이는 sticky 동작 여부
+21. 실제 OpenAPI 작성 도구와 schema/types 생성 방향
+22. Spring Boot와 Python 간 내부 HTTP 사용 여부, 인증·timeout·재시도 값
+23. PostgreSQL schema/role 분리, migration 소유권과 보관·삭제 배치 방식
+24. 저장 결과 없음과 진행 중 결과 조회 등 API 오류별 최종 HTTP 상태
 
 ## Do Not Assume
 
@@ -144,8 +159,8 @@
 
 ## Next Action
 
-`role:product`·`role:design-system`·`role:platform` 리뷰를 받은 뒤 PR 템플릿을 읽고 `type:spec`, `role:product` 라벨로 PR을 만든다. 구현 TASK는 PR 병합과 개발 전 기술 결정 이후 별도로 분리한다.
+`role:product`·`role:design-system`·`role:platform` 리뷰를 받은 뒤 PR 템플릿을 읽고 `type:spec`, `role:product` 라벨로 PR을 만든다. 백엔드 구현 TASK는 Spring Boot 언어·빌드 도구, Python 통신 방식, PostgreSQL migration 도구를 먼저 결정한 뒤 `OpenAPI → migration → 인증/분석 작업 API → Python 분석 경계 → 저장·알림 API` 순서로 분리한다.
 
 ## Last Verified Commit
 
-`0db8a05` — PRD 6차 결정, 사용자 플로우, 결과 IA, 기능명세와 디자인 시스템의 사용자 결정 반영을 검증한 커밋.
+`8c4eaea` — 결과 IA 결정 반영 상태를 기록한 현재 작업의 기준 커밋. 이후 API·PostgreSQL 문서 변경은 아직 커밋하지 않았다.

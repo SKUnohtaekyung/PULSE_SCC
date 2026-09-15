@@ -2,7 +2,7 @@
 
 4명이 Claude Code와 Codex를 함께 사용해 개발하는 프로젝트.
 
-> **현재 상태: 제품 정의와 상위 수준 기술 스택은 확정, 세부 프로젝트 구조·버전·실행 명령은 미확정.**
+> **현재 상태: 제품 정의·상위 수준 기술 스택·API 및 PostgreSQL 논리 설계는 작성, 세부 프로젝트 구조·버전·실행 명령은 미확정.**
 > 애플리케이션 코드는 아직 이 저장소에 없다.
 
 **코드만 두는 저장소가 아니다.** 제품 문서, 조사 근거, 발표 자료, 회의·인터뷰 기록을 함께 관리한다.
@@ -27,7 +27,10 @@ Claude Code 사용자는 [CLAUDE.md](CLAUDE.md) 를 추가로 읽는다. Codex �
 docs/                     문서 정본 — 지금 무엇이 참인가
 ├─ product/               제품 요구사항        (role:product)
 ├─ design/                UI/UX 원칙           (role:design-system)
-├─ architecture/          시스템 구조          (role:platform)
+├─ architecture/          시스템 구조·API·데이터 모델 (role:platform)
+│  ├─ ARCHITECTURE.md     시스템 구조 정본
+│  ├─ API.md              공개 API 설계 계약
+│  └─ DATA_MODEL.md       PostgreSQL 논리 모델
 ├─ decisions/             ADR — 주요 결정      (role:platform)
 ├─ program/               SCC 프로그램·신청서  (role:platform)
 ├─ presentation/          발표 자료            (role:product)
@@ -62,10 +65,9 @@ research/                 조사 근거 — 언제 무엇을 확인했는가
 | 항목 | 이유 |
 |---|---|
 | `apps/`, `packages/` | Expo·Spring Boot·Python 실제 프로젝트 구조와 monorepo 여부 미확정. 빈 디렉터리를 미리 만들지 않는다 |
-| `docs/architecture/API.md`, `DATA_MODEL.md` | 실제 API schema/types와 DB migration이 아직 없음 |
 | `package.json`, `.env.example` | 실제 프로젝트와 환경변수 목록이 아직 없음 |
 | `.github/workflows/` (CI) | 실행 명령이 존재하지 않아 검증할 것이 없다 |
-| `docs/architecture/API.md`, `DATA_MODEL.md` | 백엔드·DB 존재 여부 미확정 |
+| 실제 OpenAPI/schema/types와 PostgreSQL migration | API·데이터 모델 문서는 설계 초안이며 애플리케이션 코드가 아직 없음 |
 | `.claude/rules/` | 규칙을 여기에 두면 `AGENTS.md` 와 중복된다. Claude는 `CLAUDE.md` 의 `@AGENTS.md` import로 이미 전부 읽는다 |
 | `.codex/`, `.agents/skills/` | Codex 0.147.0이 프로젝트 레벨에서 읽지 않음 ([ADR-001](docs/decisions/ADR-001-agent-config-strategy.md)) |
 | `.claude/commands`, `hooks`, `output-styles`, `workflows` | 반복 자동화 필요성이 아직 확인되지 않음 |
