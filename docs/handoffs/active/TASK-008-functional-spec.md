@@ -163,4 +163,4 @@
 
 ## Last Verified Commit
 
-`8c4eaea` — 결과 IA 결정 반영 상태를 기록한 현재 작업의 기준 커밋. 이후 API·PostgreSQL 문서 변경은 아직 커밋하지 않았다.
+`5749b4b` — PostgreSQL 단일 데이터베이스 기반 API·논리 모델과 관련 기능명세 정합화를 검증한 커밋.
