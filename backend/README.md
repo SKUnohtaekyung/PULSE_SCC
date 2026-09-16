@@ -12,7 +12,7 @@ backend/
 └─ .env.example       커밋 가능한 환경변수 예시
 ```
 
-현재는 프로젝트 골격과 헬스 체크만 구현했다. 비즈니스 API, Flyway migration, 리뷰 수집, 분석 모델 호출은 다음 TASK 범위다.
+현재는 프로젝트 골격, 헬스 체크, Flyway V1 초기 스키마를 구현했다. 비즈니스 API, 리뷰 수집, 분석 모델 호출은 다음 TASK 범위다.
 
 ## 1. 환경 파일
 
@@ -40,6 +40,8 @@ Set-Location backend/spring-api
 ```
 
 애플리케이션 실행에는 PostgreSQL과 `POSTGRES_PASSWORD` 환경변수가 필요하다. 공개 헬스 체크는 `GET http://localhost:8080/actuator/health`다. 그 외 요청은 인증 구현 전까지 기본 거부한다.
+
+`src/main/resources/db/migration/V1__create_initial_schema.sql`이 초기 테이블·관계·인덱스를 생성한다. `gradlew test`는 Docker가 있으면 PostgreSQL 18.6 컨테이너에서 migration과 핵심 소유권 제약을 검증하고, Docker가 없으면 통합 테스트 4개만 명시적으로 건너뛴다.
 
 ## 4. Python 분석 서비스
 
