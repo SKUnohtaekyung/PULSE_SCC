@@ -9,6 +9,13 @@ role:feature — 미배정
 ## Branch
 feat/TASK-011-authentication
 
+## Pull Request
+[PR #27 — feat(auth): 회전형 토큰 인증 구현](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/27)
+
+- 2026-09-16 종료 시점: `OPEN`, `MERGEABLE`, `mergeStateStatus=CLEAN`
+- 라벨: `type:feature`, `role:feature`
+- GitHub 자동 검사와 리뷰 승인: 없음
+
 ## Goal
 자체 가입·로그인과 Google 로그인, 회전형 Refresh Token, 로그아웃, 세션 복원 API를 구현한다.
 관련 이슈: #26
@@ -20,6 +27,7 @@ feat/TASK-011-authentication
 - Refresh Token 재사용 감지 시 사용자의 활성 세션을 모두 폐기하도록 했다.
 - 현재 세션 로그아웃과 DB 세션 상태를 확인하는 로그인 복원을 구현했다.
 - Flyway V2 `auth_sessions`와 인증 정책 ADR을 추가하고 API·DB·제품 문서를 동기화했다.
+- 이슈 #26을 닫도록 연결한 PR #27을 생성하고 원격 브랜치에 반영했다.
 
 ## Changed
 - `backend/spring-api/src/main/java/kr/co/scc/api/auth/**` — 인증 도메인, 서비스, 저장소, Google 검증, HTTP API 구현
@@ -65,7 +73,7 @@ feat/TASK-011-authentication
 - PostgreSQL migration은 컴파일됐지만 Docker 부재로 실제 DB에 적용 검증되지 않았다.
 
 ## Next Action
-독립 Reviewer와 `role:product`·`role:platform` 리뷰를 받은 뒤 Docker 환경에서 PostgreSQL 통합 테스트를 실행한다.
+PR #27에서 독립 Reviewer와 `role:product`·`role:platform` 리뷰를 요청한다. 이어서 Docker 환경에서 PostgreSQL 통합 테스트 4개를 실행하고 모두 PASS일 때만 병합한다.
 
 ## Last Verified Commit
 7773443 — 이 시점의 코드까지 위 Verification이 유효하다
