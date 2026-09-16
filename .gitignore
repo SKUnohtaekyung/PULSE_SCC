@@ -44,7 +44,26 @@ tmp/
 
 # ── Node (로컬에 node 22.16.0 / npm 10.9.2 설치 확인됨) ──
 node_modules/
+.expo/
+.expo-shared/
+web-build/
+
+# ── Spring Boot / JVM ──
+.gradle/
+target/
+build/
+*.class
+
+# ── Python ──
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # ── 빌드 산출물 ──
-# 스택 확정 후 실제 출력 경로를 추가한다. (예: dist/, build/, .next/, out/)
-# TODO: 스택 확정 시 갱신
+# 실제 프로젝트 생성 후 프레임워크가 추가로 만드는 출력 경로를 보완한다.
+dist/
+out/

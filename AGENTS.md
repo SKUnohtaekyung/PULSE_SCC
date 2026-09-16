@@ -13,7 +13,7 @@
 | 항목 | 값 |
 |---|---|
 | 이름 | SCC |
-| 제품 정의 | **TBD** — 정본은 [docs/product/PRD.md](docs/product/PRD.md) |
+| 제품 정의 | 공개 음식점 리뷰를 손님 인사이트와 실행 제안으로 바꾸는 Android 앱 — 정본은 [docs/product/PRD.md](docs/product/PRD.md) |
 | 팀 규모 | 4명 |
 | 협업 방식 | Git 기반. 역할별 소유 영역 분리 (5장) |
 | AI 도구 | Claude Code, Codex |
@@ -34,14 +34,16 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 
 ## 2. 기술 스택
 
-**현재 미확정이다. 확정 전까지 스택을 추측해서 코드·설정·문서를 작성하지 않는다.**
+**상위 수준 스택은 2026-09-12 확정했다.** 세부 버전·프레임워크·빌드 도구는 확정 전까지 추측해서 코드·설정·문서를 작성하지 않는다. 결정 근거는 [ADR-003](docs/decisions/ADR-003-application-stack.md)이다.
 
 | 항목 | 상태 |
 |---|---|
-| 프로젝트 유형 (Web / Mobile / API 포함 여부) | 확정 필요 |
-| Frontend framework | 확정 필요 |
-| Backend / BaaS | 확정 필요 |
-| 언어 | 확정 필요 |
+| 프로젝트 유형 | Android 앱 + 자체 API + Python AI 처리 |
+| Frontend framework | Expo 기반 React Native |
+| Backend / BaaS | Spring Boot + Python AI 컴포넌트 |
+| 데이터베이스 | PostgreSQL |
+| 언어 | TypeScript, Python / Spring Boot JVM 언어는 확정 필요 |
+| 이미지 생성 | OpenAI API |
 | 패키지 매니저 | 확정 필요 |
 | 테스트 러너 | 확정 필요 |
 
@@ -61,12 +63,12 @@ pnpm / yarn / bun → 미설치
 4. `.claude/skills/verify/SKILL.md` 의 명령 채우기
 5. `.gitignore` 에 스택별 항목 추가
 6. `docs/architecture/ARCHITECTURE.md` 갱신
-7. 백엔드/DB가 생기면 `docs/architecture/API.md`, `DATA_MODEL.md` 신설
+7. 백엔드/API/DB 변경 시 `docs/architecture/API.md`, `DATA_MODEL.md`와 실제 schema/types/migration 동기화
 8. 필요 시 `.github/workflows/` CI 추가
 
 ## 3. 실행 명령
 
-**아직 없다.** 루트에 `package.json` 이 존재하지 않는다.
+**아직 없다.** 기술 방향은 확정됐지만 Expo·Spring Boot·Python 프로젝트와 매니페스트가 생성되지 않았다.
 존재하지 않는 명령을 실행했다고 기록하거나 CI·문서·PR에 넣지 않는다.
 
 | 목적 | 명령 |
@@ -90,8 +92,8 @@ pnpm / yarn / bun → 미설치
 | 실제 디자인 토큰 값 | 토큰 코드 (위치 미정 — 스택 확정 후) |
 | 재사용 UI 컴포넌트 | 컴포넌트 코드 (위치 미정 — 스택 확정 후) |
 | 시스템 구조 | `docs/architecture/ARCHITECTURE.md` |
-| API 계약 | 실제 schema/types + architecture 문서 (현재 없음) |
-| DB 구조 | 실제 schema/migration (현재 없음) |
+| API 계약 | `docs/architecture/API.md` 설계 계약 + 실제 OpenAPI/schema/types (현재 실제 schema/types 없음) |
+| DB 구조 | `docs/architecture/DATA_MODEL.md` 논리 설계 + 실제 PostgreSQL schema/migration (현재 migration 없음) |
 | 현재 구현 상태 | Git + 실제 코드 |
 | 테스트 통과 여부 | 실제 테스트 실행 결과 |
 | 주요 기술 결정 근거 | `docs/decisions/*` |

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Accepted |
+| Status | Accepted — 수집 방식 유지, 플랫폼 범위는 [ADR-004](ADR-004-naver-only-review-source.md)로 변경 |
 | Date | 2026-08-23 |
 | 결정자 | 팀 (`role:product` 제안, 팀 확인) |
 | 관련 이슈 | #3 [SPEC] 리뷰 데이터 수집 경로 확정 (ADR) |
@@ -26,7 +26,7 @@
 
 ## Decision
 
-**MVP 단계에서 Playwright 등 브라우저 자동화로 네이버 지도·카카오맵의 공개 리뷰를 수집한다.**
+**MVP 단계에서 Playwright 등 브라우저 자동화로 공개 리뷰를 수집한다.** 2026-09-12 이후 MVP 플랫폼 범위는 [ADR-004](ADR-004-naver-only-review-source.md)에 따라 네이버로 한정한다.
 
 ## Reason
 

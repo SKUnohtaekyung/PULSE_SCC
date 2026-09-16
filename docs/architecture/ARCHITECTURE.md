@@ -4,27 +4,50 @@
 
 | | |
 |---|---|
-| 상태 | **미확정 — 코드 없음** |
-| 최종 수정 | 2026-08-21 |
+| 상태 | **상위 수준 스택·API·PostgreSQL 논리 모델 설계 — 코드 없음** |
+| 최종 수정 | 2026-09-15 |
 | 소유 역할 | `role:platform` |
 
 ---
 
 ## 1. 현재 상태
 
-저장소에 애플리케이션 코드가 **없다.** 다음이 전부 미확정이다.
+저장소에 애플리케이션 코드는 아직 없다. 상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md)으로 확정했고, 공개 API와 PostgreSQL 논리 설계는 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 세부 버전·도구·내부 통신·배포 방식은 미확정이다.
 
 | 항목 | 상태 |
 |---|---|
-| 프로젝트 유형 (Web / Mobile / API 포함 여부) | 확정 필요 |
-| Frontend framework | 확정 필요 |
-| Backend 존재 여부 (자체 서버 / BaaS / 없음) | 확정 필요 |
-| 데이터 저장소 | 확정 필요 |
-| 인증 방식 | 확정 필요 |
+| 프로젝트 유형 | Android 앱 + 자체 API + Python AI 처리 |
+| Frontend | Expo 기반 React Native + TypeScript |
+| Backend | Spring Boot |
+| AI·분석 | Python. 프레임워크 TBD |
+| 데이터 저장소 | PostgreSQL |
+| 인증 방식 | Google 소셜 로그인 + 서비스 자체 로그인 |
+| 페르소나 이미지 | OpenAI API |
 | 배포 환경 | 확정 필요 |
 | monorepo 여부 | 확정 필요 |
 
-**미확정 상태에서 `apps/`, `packages/` 같은 빈 디렉터리를 미리 만들지 않는다.**
+코드가 없는 상태에서 `apps/`, `packages/` 같은 빈 디렉터리를 미리 만들지 않는다. 실제 Expo·Spring Boot·Python 프로젝트를 생성할 때 프레임워크 관례와 역할 경계를 기준으로 구조를 확정한다.
+
+### 목표 호출 흐름
+
+```text
+Expo + React Native + TypeScript Android 앱
+  → Spring Boot API
+      ├─ 인증·권한
+      ├─ 분석 작업 상태
+      ├─ 저장 결과 선택·마이페이지 API
+      ├─ PostgreSQL
+      └─ 내부 인증 경계
+          → Python AI·분석 컴포넌트
+              ├─ 네이버 리뷰 수집·정제
+              ├─ 분석·근거 연결·제안 생성
+              ├─ OpenAI API 이미지 생성
+              └─ PostgreSQL
+```
+
+Spring Boot와 Python 사이의 통신 방식, 리뷰 수집기의 실행 위치와 작업 큐 사용 여부는 아직 결정하지 않았다. 참고 PULSE 구조의 `Spring Boot → 내부 HTTP → Python` 패턴은 [API.md §9](API.md#9-spring-bootpython-내부-계약-후보)에 후보로만 기록했으며 확정 구현으로 간주하지 않는다.
+
+분석 결과 저장은 [ADR-005](../decisions/ADR-005-analysis-storage-policy.md)를 따른다. PostgreSQL에서 계정당 저장 분석 1개를 고유 제약으로 보장한다. 저장본이 없으면 첫 결과를 자동 저장하고, 이후 새 분석에서는 사용자가 새 결과로 교체하거나 기존 결과를 유지한다. 기존 결과 유지 시 미저장 새 결과의 접근·삭제 정책은 아직 미정이다. MySQL·MongoDB를 별도로 도입하지 않으며 작업·리뷰·분석 결과도 PostgreSQL 논리 모델로 통합한다.
 
 ## 1-A. 신청서에 선언된 기술 계획 — ⚠️ 계획일 뿐 확정 아님
 
@@ -44,7 +67,7 @@
 
 > 3단계 "대표 손님 유형"은 근거 문제가 있다. [PROBLEM_BASELINE.md §2.6](../product/PROBLEM_BASELINE.md) 참조
 
-### 기술 스택 (선언, 미확정)
+### 기술 스택 (과거 신청서 선언, 현재 정본 아님)
 
 | 계층 | 선언된 값 |
 |---|---|
@@ -62,7 +85,7 @@
 
 문서상 호출 흐름: `React → Spring Boot → FastAPI → 외부 AI·데이터 API → 결과 반환`
 
-**ADR을 쓸 때 반드시 다룰 것** — 15주 안에 학생 5명이 백엔드 두 벌(Spring Boot + FastAPI)과 DB 두 벌(MySQL + MongoDB)을 동시에 운영하는 비용이 정당한가. 신청서에 적혀 있다는 사실만으로는 ADR 근거가 되지 않는다.
+현재 결정은 [ADR-003](../decisions/ADR-003-application-stack.md)이다. FastAPI는 확정하지 않았고, MySQL·MongoDB 대신 PostgreSQL 하나를 사용하며, 영상 생성이 아닌 페르소나 이미지 생성에 OpenAI API를 사용한다.
 
 ### 영상 프롬프트 설계
 
@@ -76,7 +99,7 @@
 
 ### 데이터 수집
 
-**여기가 가장 큰 리스크다.** 내부 기술 문서는 Playwright로 네이버·카카오 리뷰를 자동 수집하는 구조를 제안하지만, 네이버·카카오 robots.txt가 AI·RAG 용도의 봇 접근을 명시적으로 금지한다.
+**여기가 가장 큰 리스크다.** 과거 내부 기술 문서는 Playwright로 네이버·카카오 리뷰를 자동 수집하는 구조를 제안했고, 두 플랫폼의 robots.txt는 AI·RAG 용도의 봇 접근을 명시적으로 금지한다. 현재 MVP 수집 대상은 [ADR-004](../decisions/ADR-004-naver-only-review-source.md)에 따라 네이버로 한정하지만, 네이버의 자동 수집 위험은 그대로 남는다.
 
 허용 순위와 근거는 [PROBLEM_BASELINE.md §2.5](../product/PROBLEM_BASELINE.md) 를 따른다. **ADR 없이 구현에 착수하지 않는다.**
 
@@ -94,7 +117,7 @@ SCC/
 ├─ docs/
 │  ├─ product/          제품 요구사항 정본
 │  ├─ design/           UI/UX 원칙 정본
-│  ├─ architecture/     시스템 구조 정본
+│  ├─ architecture/     시스템 구조·API·PostgreSQL 논리 설계
 │  ├─ decisions/        ADR
 │  └─ handoffs/         작업 인수인계 (active / archive)
 │
@@ -115,9 +138,8 @@ SCC/
 1. **프레임워크 관례를 우선한다.** 임의의 구조를 프레임워크 관례보다 앞세우지 않는다.
 2. **필요해진 시점에 만든다.** 공유할 코드가 없는데 `packages/` 를 미리 만들지 않는다.
 3. **결정은 ADR로 남긴다.** `docs/decisions/`
-4. 백엔드/API가 생기면 `docs/architecture/API.md` 를 신설한다. **지금 만들지 않는다.**
-5. DB/스키마가 생기면 `docs/architecture/DATA_MODEL.md` 를 신설한다. **지금 만들지 않는다.**
-   - 단, API 계약과 DB 구조의 정본은 문서가 아니라 실제 schema/types/migration 이다. 문서는 그 위치와 설계 의도를 설명한다.
+4. 공개 API 설계는 `docs/architecture/API.md`에서 관리한다. 실제 OpenAPI/schema/types가 생기면 구현 계약의 정본으로 승격하고 문서와 동기화한다.
+5. PostgreSQL 논리 모델은 `docs/architecture/DATA_MODEL.md`에서 관리한다. 실제 migration이 생기면 컬럼·타입·제약의 정본은 migration과 ORM 모델이다.
 
 ## 4. 4인 협업을 위한 구조 요건
 
@@ -132,7 +154,9 @@ SCC/
 
 | # | 질문 | 막고 있는 것 |
 |---|---|---|
-| 1 | 프로젝트 유형 | 디렉터리 구조 전체 |
-| 2 | 기술 스택 | 실행 명령, CI, verify 스킬 |
-| 3 | 백엔드 형태 (자체 / BaaS / 없음) | `API.md`·`DATA_MODEL.md` 필요 여부 |
-| 4 | 배포 환경 | CI 워크플로 |
+| 1 | 실제 프로젝트 디렉터리와 monorepo 여부 | 디렉터리 구조 전체 |
+| 2 | Expo SDK·React Native 버전과 workflow | 클라이언트 생성·실행 명령 |
+| 3 | Spring Boot JVM 언어·버전과 빌드 도구 | 백엔드 생성·실행 명령 |
+| 4 | Python 프레임워크와 Spring Boot 연동 방식 | AI 서비스 경계 |
+| 5 | PostgreSQL 마이그레이션 도구 | DB 스키마 정본 위치 |
+| 6 | 배포 환경 | CI 워크플로 |
