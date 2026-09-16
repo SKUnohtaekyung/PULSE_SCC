@@ -34,25 +34,25 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 
 ## 2. 기술 스택
 
-**상위 수준 스택은 2026-09-12 확정했다.** 세부 버전·프레임워크·빌드 도구는 확정 전까지 추측해서 코드·설정·문서를 작성하지 않는다. 결정 근거는 [ADR-003](docs/decisions/ADR-003-application-stack.md)이다.
+**상위 수준 스택은 2026-09-12, 백엔드 실행 스택은 2026-09-16 확정했다.** 결정 근거는 [ADR-003](docs/decisions/ADR-003-application-stack.md), [ADR-006](docs/decisions/ADR-006-backend-bootstrap.md)이다. 프론트엔드 세부 버전은 확정 전까지 추측해서 코드·설정·문서를 작성하지 않는다.
 
 | 항목 | 상태 |
 |---|---|
 | 프로젝트 유형 | Android 앱 + 자체 API + Python AI 처리 |
 | Frontend framework | Expo 기반 React Native |
-| Backend / BaaS | Spring Boot + Python AI 컴포넌트 |
-| 데이터베이스 | PostgreSQL |
-| 언어 | TypeScript, Python / Spring Boot JVM 언어는 확정 필요 |
+| Backend | Spring Boot 4.1.1·Java 21·Gradle Wrapper 9.7.1 + FastAPI 0.141.1·Python 3.13 |
+| 데이터베이스 | PostgreSQL 18.6, migration은 Spring Boot Flyway가 단독 소유 |
+| 언어 | TypeScript, Java 21, Python 3.13 |
 | 이미지 생성 | OpenAI API |
-| 패키지 매니저 | 확정 필요 |
-| 테스트 러너 | 확정 필요 |
+| 패키지 매니저 | 백엔드: Gradle Wrapper, Python venv + pip / 프론트엔드: 확정 필요 |
+| 테스트 러너 | 백엔드: JUnit Platform, pytest / 프론트엔드: 확정 필요 |
 
-로컬에서 실제 실행 확인된 도구 (2026-08-21 기준):
+로컬에서 실제 실행 확인된 도구 (2026-09-16 기준):
 
 ```
-git 2.49.0   node v22.16.0   npm 10.9.2   python 3.13.2
-gh 2.73.0    claude 2.1.237  codex-cli 0.147.0
-pnpm / yarn / bun → 미설치
+java 21.0.8   python 3.13.2
+Gradle 9.7.1 → backend/spring-api/gradlew.bat으로 실행 확인
+Docker → 미설치, PostgreSQL compose 실행은 미확인
 ```
 
 ### 스택 확정 시 반드시 함께 갱신할 것
@@ -68,17 +68,19 @@ pnpm / yarn / bun → 미설치
 
 ## 3. 실행 명령
 
-**아직 없다.** 기술 방향은 확정됐지만 Expo·Spring Boot·Python 프로젝트와 매니페스트가 생성되지 않았다.
-존재하지 않는 명령을 실행했다고 기록하거나 CI·문서·PR에 넣지 않는다.
+백엔드 명령은 저장소 루트에서 실행한다. 프론트엔드는 아직 프로젝트가 없어 명령이 없다.
 
 | 목적 | 명령 |
 |---|---|
-| install | TBD |
-| dev | TBD |
-| lint | TBD |
-| typecheck | TBD |
-| test | TBD |
-| build | TBD |
+| PostgreSQL 시작 | `docker compose --env-file backend/.env -f backend/compose.yaml up -d postgres` |
+| Spring test | `.\backend\spring-api\gradlew.bat -p backend\spring-api test` |
+| Spring build | `.\backend\spring-api\gradlew.bat -p backend\spring-api build` |
+| Spring dev | `.\backend\spring-api\gradlew.bat -p backend\spring-api bootRun` |
+| Python install | `python -m venv backend\python-analysis\.venv` 후 `.\backend\python-analysis\.venv\Scripts\python.exe -m pip install -e ".\backend\python-analysis[dev]"` |
+| Python lint | `.\backend\python-analysis\.venv\Scripts\python.exe -m ruff check --no-cache backend\python-analysis` |
+| Python format check | `.\backend\python-analysis\.venv\Scripts\python.exe -m ruff format --check --no-cache backend\python-analysis` |
+| Python test | `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest backend\python-analysis` |
+| Backend typecheck | 없음 — 현재 정의하지 않음 |
 
 ## 4. Source of Truth
 
@@ -121,8 +123,8 @@ pnpm / yarn / bun → 미설치
 |---|---|---|---|
 | Product / Spec | `role:product` | `docs/product/**`, `docs/presentation/**`, `research/**` | — |
 | Design System | `role:design-system` | `docs/design/**` | 디자인 토큰, 공용 UI 컴포넌트 (경로 TBD) |
-| Feature | `role:feature` | 담당 `docs/handoffs/active/TASK-*` | 화면·기능 단위 (경로 TBD) |
-| Platform | `role:platform` | `docs/architecture/**`, `docs/decisions/**`, `docs/program/**` | 빌드 설정, `.github/**`, `.claude/**`, CI |
+| Feature | `role:feature` | 담당 `docs/handoffs/active/TASK-*` | `backend/spring-api/src/main/java/kr/co/scc/api/{auth,analysis,mypage}/**`, `backend/python-analysis/src/scc_analysis/**`의 담당 기능 |
+| Platform | `role:platform` | `docs/architecture/**`, `docs/decisions/**`, `docs/program/**` | `backend/**` 빌드·환경 설정, Spring `common/config/**`, `.github/**`, `.claude/**`, CI |
 
 `docs/meetings/**` 와 `research/interviews/**` 는 **참석자·기록자가 소유**한다. 남의 회의록·인터뷰 기록을 대신 고치지 않는다. 오류를 발견하면 해당 문서 하단에 정정을 덧붙이거나 기록자에게 알린다.
 
@@ -194,7 +196,7 @@ gh pr edit <번호> --add-label "type:feature"
 - 공유 브랜치에 force push
 - 다른 사람의 진행 중 변경 삭제
 - 작업과 무관한 파일을 함께 수정
-- `.env` 및 시크릿 커밋 — 환경변수는 `.env.example` 로만 공유한다 (현재 미생성, 스택 확정 후)
+- `.env` 및 시크릿 커밋 — 환경변수 이름과 로컬 예시는 `backend/.env.example`로만 공유한다
 
 ## 7. 개발 규칙
 
