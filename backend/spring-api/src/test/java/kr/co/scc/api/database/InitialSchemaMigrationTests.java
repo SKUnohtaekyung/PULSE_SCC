@@ -28,6 +28,7 @@ class InitialSchemaMigrationTests {
             "advice",
             "analyses",
             "analysis_jobs",
+            "auth_sessions",
             "evidence_links",
             "flyway_schema_history",
             "insights",
@@ -75,7 +76,7 @@ class InitialSchemaMigrationTests {
                         """)
                 .query(Long.class)
                 .single();
-        assertThat(migrations).isOne();
+        assertThat(migrations).isEqualTo(2L);
     }
 
     @Test

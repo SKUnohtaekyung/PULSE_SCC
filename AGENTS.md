@@ -94,7 +94,7 @@ Docker → 미설치, Testcontainers PostgreSQL 테스트는 컴파일 확인·�
 | 실제 디자인 토큰 값 | 토큰 코드 (위치 미정 — 스택 확정 후) |
 | 재사용 UI 컴포넌트 | 컴포넌트 코드 (위치 미정 — 스택 확정 후) |
 | 시스템 구조 | `docs/architecture/ARCHITECTURE.md` |
-| API 계약 | `docs/architecture/API.md` 설계 계약 + 실제 OpenAPI/schema/types (현재 실제 schema/types 없음) |
+| API 계약 | `docs/architecture/API.md` 설계 계약 + 실제 controller/DTO 코드 (인증 구현됨, OpenAPI 파일은 아직 없음) |
 | DB 구조 | 실제 Flyway migration `backend/spring-api/src/main/resources/db/migration/**` + `docs/architecture/DATA_MODEL.md` |
 | 현재 구현 상태 | Git + 실제 코드 |
 | 테스트 통과 여부 | 실제 테스트 실행 결과 |

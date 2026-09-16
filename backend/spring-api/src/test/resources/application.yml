@@ -1,0 +1,7 @@
+scc:
+  auth:
+    access-token-secret: test-only-access-token-secret-at-least-32-bytes
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    issuer: scc-api
+    google-client-id: test-google-client-id
