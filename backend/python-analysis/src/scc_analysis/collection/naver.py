@@ -11,7 +11,9 @@ from playwright.async_api import Browser, Frame, Page, async_playwright
 from scc_analysis.analysis.models import CollectedReview
 
 ALLOWED_NAVER_HOSTS = {"map.naver.com", "m.place.naver.com"}
+COLLECTION_NAVER_HOSTS = {*ALLOWED_NAVER_HOSTS, "pcmap.place.naver.com"}
 REVIEW_SELECTORS = (
+    "li[class*='place_apply_pui'] a[class='pui__GStJHb']",
     ".pui__vn15t2 a",
     ".pui__vn15t2",
     ".zPfVt",
@@ -37,6 +39,24 @@ def validate_public_naver_url(url: str) -> str:
         )
     _reject_non_public_host(parsed.hostname)
     return parsed.geturl()
+
+
+def review_collection_url(url: str) -> str:
+    parsed = urlparse(validate_public_naver_url(url))
+    match = re.search(r"/place/(\d+)", parsed.path)
+    if parsed.hostname == "map.naver.com" and match:
+        place_id = match.group(1)
+        return f"https://pcmap.place.naver.com/restaurant/{place_id}/review/visitor"
+    return parsed.geturl()
+
+
+def validate_collection_page_url(url: str) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in COLLECTION_NAVER_HOSTS:
+        raise ReviewCollectionError(
+            "INVALID_NAVER_PLACE_URL", "허용되지 않은 주소로 이동했습니다.", retryable=False
+        )
+    _reject_non_public_host(parsed.hostname)
 
 
 def _reject_non_public_host(hostname: str) -> None:
@@ -98,7 +118,7 @@ class NaverPublicReviewCollector:
         self.timeout_ms = timeout_seconds * 1000
 
     async def collect(self, url: str) -> list[CollectedReview]:
-        target = validate_public_naver_url(url)
+        target = review_collection_url(url)
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(headless=True)
             try:
@@ -111,7 +131,7 @@ class NaverPublicReviewCollector:
         page.set_default_timeout(self.timeout_ms)
         try:
             await page.goto(target, wait_until="domcontentloaded", timeout=self.timeout_ms)
-            validate_public_naver_url(page.url)
+            validate_collection_page_url(page.url)
             await self._open_review_surface(page)
             texts = await self._extract_review_texts(page)
         except ReviewCollectionError:
@@ -139,13 +159,17 @@ class NaverPublicReviewCollector:
             raise ReviewCollectionError(
                 "REVIEW_COLLECTION_BLOCKED", "네이버에서 접근을 제한했습니다.", retryable=True
             )
-        frames = [page.main_frame, *[frame for frame in page.frames if frame != page.main_frame]]
-        for frame in frames:
-            review_tab = frame.get_by_role("link", name=re.compile("리뷰"))
-            if await review_tab.count():
-                await review_tab.first.click()
-                await page.wait_for_timeout(1200)
-                break
+        if not any("/review/visitor" in frame.url for frame in page.frames):
+            frames = [
+                page.main_frame,
+                *[frame for frame in page.frames if frame != page.main_frame],
+            ]
+            for frame in frames:
+                review_tab = frame.get_by_role("link", name=re.compile("리뷰"))
+                if await review_tab.count():
+                    await review_tab.first.click()
+                    await page.wait_for_timeout(1200)
+                    break
         for _ in range(12):
             clicked = False
             for frame in [page.main_frame, *page.frames]:
@@ -160,6 +184,44 @@ class NaverPublicReviewCollector:
                     break
             if not clicked:
                 break
+        await self._load_visible_review_items(page)
+
+    async def _load_visible_review_items(self, page: Page) -> None:
+        review_frames: list[Frame] = []
+        for _ in range(20):
+            review_frames = [frame for frame in page.frames if "/review/visitor" in frame.url]
+            if review_frames:
+                break
+            await page.wait_for_timeout(500)
+        if not review_frames:
+            return
+        for frame in review_frames:
+            await frame.wait_for_load_state("domcontentloaded")
+            for _ in range(20):
+                if await frame.evaluate("document.body.scrollHeight") > 3000:
+                    break
+                await page.wait_for_timeout(500)
+            previous_position = -1
+            stagnant = 0
+            for _ in range(24):
+                await frame.evaluate("window.scrollBy(0, 700)")
+                await page.wait_for_timeout(250)
+                position = await frame.evaluate("window.scrollY")
+                if position == previous_position:
+                    stagnant += 1
+                else:
+                    stagnant = 0
+                previous_position = position
+                if stagnant >= 3:
+                    break
+
+            await frame.locator(".pui__vn15t2").first.wait_for(timeout=self.timeout_ms)
+
+            expanders = frame.locator("a.pui__wFzIYl")
+            for index in range(min(await expanders.count(), self.limit)):
+                expander = expanders.nth(index)
+                if await expander.is_visible():
+                    await expander.click()
 
     async def _extract_review_texts(self, page: Page) -> list[str]:
         result: list[str] = []

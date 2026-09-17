@@ -3,6 +3,7 @@ import pytest
 from scc_analysis.collection.naver import (
     ReviewCollectionError,
     build_reviews,
+    review_collection_url,
     validate_public_naver_url,
 )
 
@@ -29,4 +30,13 @@ def test_accepts_supported_naver_url(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("scc_analysis.collection.naver._reject_non_public_host", lambda _: None)
     assert validate_public_naver_url("https://map.naver.com/p/entry/place/123") == (
         "https://map.naver.com/p/entry/place/123"
+    )
+
+
+def test_converts_map_place_url_to_public_review_surface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("scc_analysis.collection.naver._reject_non_public_host", lambda _: None)
+    assert review_collection_url("https://map.naver.com/p/search/store/place/2017974390") == (
+        "https://pcmap.place.naver.com/restaurant/2017974390/review/visitor"
     )
