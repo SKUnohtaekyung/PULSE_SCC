@@ -1,13 +1,18 @@
 # TASK-012 — 네이버 리뷰 수집·분석 API와 프론트 연결
 
 ## Status
-리뷰 대기
+일시 중단 — 2026-09-17 작업 종료, 다음 작업일 재개 대기
 
 ## Owner
 `role:feature` — 미배정 (`role:platform`, `role:product`, `role:design-system` 교차 리뷰 필요)
 
 ## Branch
 `feat/TASK-012-analysis-pipeline`
+
+## Pause Note
+- 원격 push와 PR 생성은 수행하지 않았다. 현재 변경은 로컬 브랜치에만 있다.
+- 작업 재개 전 Windows 재부팅이 필요하다. 재부팅 후 Docker Desktop 엔진 상태부터 확인한다.
+- 채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다. 새 키는 로컬 `backend/.env`에만 설정한다.
 
 ## Goal
 Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실제 분석 상태·결과 조회와 오류 복구를 제공하고 약관 동의 이력을 기록한다. 관련 이슈: 미생성. 관련 요구사항: PRD FR-001~FR-011.
@@ -57,9 +62,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
 - 약관과 개인정보 처리방침은 법률 검토 전 초안이다.
 - 프론트 변경은 `C:\PULSE_SCC_FE`에만 있으며 현재 백엔드 저장소 커밋 대상이 아니다.
+- 이 브랜치는 원격에 push되지 않았고 PR도 생성되지 않았다.
 
 ## Next Action
-Windows 재부팅 후 Docker 엔진을 시작하고 새 OpenAI 키를 로컬 `backend/.env`에만 설정한 뒤 전체 E2E를 수행한다.
+`git status`로 로컬 변경을 확인한 다음 Windows를 재부팅한다. 이후 Docker 엔진을 시작하고 새 OpenAI 키를 로컬 `backend/.env`에만 설정한 뒤 전체 E2E를 수행한다.
 
 ## Last Verified Commit
 `bbc295c` — 이 commit의 백엔드·Python·문서와 별도 `C:\PULSE_SCC_FE` 파일을 대상으로 위 검증 수행
