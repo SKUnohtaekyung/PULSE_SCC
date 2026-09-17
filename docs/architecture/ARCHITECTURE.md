@@ -4,15 +4,15 @@
 
 | | |
 |---|---|
-| 상태 | **백엔드 실행 골격·초기 DB·인증 API 구현 — 분석 비즈니스 API 전** |
-| 최종 수정 | 2026-09-16 |
+| 상태 | **인증·분석 비즈니스 API와 내부 Python 분석 파이프라인 구현** |
+| 최종 수정 | 2026-09-17 |
 | 소유 역할 | `role:platform` |
 
 ---
 
 ## 1. 현재 상태
 
-상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md), 초기 DB 적용 범위는 [ADR-007](../decisions/ADR-007-initial-database-schema.md), 인증 정책은 [ADR-008](../decisions/ADR-008-authentication-policy.md)로 확정했다. 공개 API와 PostgreSQL 모델은 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot와 FastAPI 실행 골격, Flyway V1·V2와 인증 API가 존재하며 분석 비즈니스 API는 아직 없다.
+상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md), 초기 DB 적용 범위는 [ADR-007](../decisions/ADR-007-initial-database-schema.md), 인증 정책은 [ADR-008](../decisions/ADR-008-authentication-policy.md), 분석 실행·저장 경계는 [ADR-009](../decisions/ADR-009-analysis-execution-boundary.md)로 확정했다. 공개 API와 PostgreSQL 모델은 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot 공개 분석 API, FastAPI의 Playwright/OpenAI 파이프라인, Flyway V1~V3가 존재한다.
 
 | 항목 | 상태 |
 |---|---|
@@ -26,7 +26,7 @@
 | 배포 환경 | 확정 필요 |
 | 저장소 구조 | 단일 저장소의 `backend/spring-api`, `backend/python-analysis` 독립 프로젝트 |
 
-프론트엔드 프로젝트 위치는 프론트엔드 스택 세부 결정 후 추가한다. 백엔드는 각 런타임의 관례를 유지하는 독립 프로젝트로 구성하며 공통 소스 패키지를 섣불리 만들지 않는다.
+프론트엔드는 별도 작업 폴더 `C:\PULSE_SCC_FE`에서 Expo 프로젝트로 관리 중이며 이 백엔드 저장소에는 커밋하지 않는다. 백엔드는 각 런타임의 관례를 유지하는 독립 프로젝트로 구성한다.
 
 ### 목표 호출 흐름
 
@@ -41,11 +41,11 @@ Expo + React Native + TypeScript Android 앱
           → Python AI·분석 컴포넌트
               ├─ 네이버 리뷰 수집·정제
               ├─ 분석·근거 연결·제안 생성
-              ├─ OpenAI API 이미지 생성
-              └─ PostgreSQL
+              ├─ OpenAI API 구조화 분석·이미지 생성
+              └─ 완성된 결과를 내부 HTTP 응답으로 반환
 ```
 
-Spring Boot와 Python은 인증된 내부 HTTP로 통신한다. 공개 상태와 완료 트랜잭션은 Spring이 소유하고 Python은 준비된 분석 산출물을 전달한다. 구체 endpoint와 서비스 토큰·timeout·재시도 값은 [API.md §9](API.md#9-spring-bootpython-내부-계약)에 따라 비즈니스 API 구현 시 확정한다. 작업 큐 도입 여부는 아직 결정하지 않았다.
+Spring Boot와 Python은 서비스 토큰이 포함된 내부 HTTP로 통신한다. Python은 한 요청 안에서 공개 네이버 리뷰 수집, 정제, OpenAI 구조화 분석과 이미지 생성을 수행하고 완성된 결과를 반환한다. Spring Boot는 사용자 소유권, 공개 작업 상태, PostgreSQL 결과 저장, 이미지 파일 저장과 완료 트랜잭션을 소유한다. 현재 작업 실행기는 Spring 프로세스 내부 비동기 executor이므로 프로세스 재시작 후 자동 복구와 다중 인스턴스 분산 실행은 지원하지 않는다. 운영 전 내구성 있는 작업 큐와 재조정 정책이 필요하다.
 
 분석 결과 저장은 [ADR-005](../decisions/ADR-005-analysis-storage-policy.md)를 따른다. PostgreSQL에서 계정당 저장 분석 1개를 고유 제약으로 보장한다. 저장본이 없으면 첫 결과를 자동 저장하고, 이후 새 분석에서는 사용자가 새 결과로 교체하거나 기존 결과를 유지한다. 기존 결과 유지 시 미저장 새 결과의 접근·삭제 정책은 아직 미정이다. MySQL·MongoDB를 별도로 도입하지 않으며 작업·리뷰·분석 결과도 PostgreSQL 논리 모델로 통합한다.
 
@@ -161,6 +161,6 @@ SCC/
 | # | 질문 | 막고 있는 것 |
 |---|---|---|
 | 1 | Expo SDK·React Native 버전과 workflow | 클라이언트 생성·실행 명령 |
-| 2 | 내부 HTTP 서비스 토큰·timeout·재시도 값 | 분석 서비스 호출 구현 |
-| 3 | 작업 큐 도입 여부 | 장기 분석 실행·복구 방식 |
+| 2 | 내부 서비스 토큰 회전·비밀 저장 방식 | 운영 보안 |
+| 3 | 내구성 있는 작업 큐·재조정 방식 | 재시작 복구·다중 인스턴스 |
 | 4 | 배포 환경 | CI·컨테이너·비밀 관리 방식 |

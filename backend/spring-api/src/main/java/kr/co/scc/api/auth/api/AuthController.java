@@ -32,7 +32,12 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public SessionResponse register(@Valid @RequestBody RegisterRequest request) {
-        return SessionResponse.from(authService.register(request.email(), request.password(), request.phoneNumber()));
+        return SessionResponse.from(authService.register(
+                request.email(),
+                request.password(),
+                request.phoneNumber(),
+                request.termsVersion(),
+                request.privacyVersion()));
     }
 
     @PostMapping("/login")
@@ -72,7 +77,9 @@ public class AuthController {
     public record RegisterRequest(
             @NotBlank @Email String email,
             @NotBlank @Size(min = 8, max = 72) String password,
-            @NotBlank String phoneNumber) {
+            @NotBlank String phoneNumber,
+            @NotBlank String termsVersion,
+            @NotBlank String privacyVersion) {
     }
 
     public record LoginRequest(@NotBlank @Email String email, @NotBlank String password) {

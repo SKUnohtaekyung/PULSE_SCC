@@ -69,6 +69,18 @@ public class AuthRepository {
                 .update();
     }
 
+    public void insertLegalConsent(UUID userId, String documentType, String documentVersion) {
+        jdbc.sql("""
+                        INSERT INTO legal_consents (id, user_id, document_type, document_version)
+                        VALUES (:id, :userId, :documentType, :documentVersion)
+                        """)
+                .param("id", UUID.randomUUID())
+                .param("userId", userId)
+                .param("documentType", documentType)
+                .param("documentVersion", documentVersion)
+                .update();
+    }
+
     public void insertSession(
             UUID id,
             UUID userId,

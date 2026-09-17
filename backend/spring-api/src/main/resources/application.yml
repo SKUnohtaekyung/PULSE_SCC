@@ -37,3 +37,6 @@ scc:
   analysis-service:
     base-url: ${ANALYSIS_SERVICE_BASE_URL:http://127.0.0.1:8000}
     service-token: ${ANALYSIS_SERVICE_TOKEN:}
+    connect-timeout: ${ANALYSIS_CONNECT_TIMEOUT:5s}
+    read-timeout: ${ANALYSIS_READ_TIMEOUT:5m}
+    image-storage-path: ${ANALYSIS_IMAGE_STORAGE_PATH:../storage/personas}

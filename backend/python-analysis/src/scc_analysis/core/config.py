@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     port: int = 8000
     database_url: SecretStr | None = None
     service_token: SecretStr | None = None
+    openai_api_key: SecretStr | None = None
+    openai_analysis_model: str = "gpt-6-astra"
+    openai_image_model: str = "gpt-image-2.5-sunburst"
+    review_collection_limit: int = 120
+    review_collection_timeout_seconds: int = 45
 
 
 @lru_cache

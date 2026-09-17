@@ -9,6 +9,7 @@ import kr.co.scc.api.auth.domain.RefreshSession;
 import kr.co.scc.api.auth.domain.SessionTokens;
 import kr.co.scc.api.auth.domain.UserAccount;
 import kr.co.scc.api.auth.infrastructure.AuthRepository;
+import kr.co.scc.api.legal.LegalDocuments;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,9 +39,22 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResult register(String email, String password, String phoneNumber) {
+    public AuthResult register(
+            String email,
+            String password,
+            String phoneNumber,
+            String termsVersion,
+            String privacyVersion) {
         String normalizedEmail = AuthPolicy.normalizeEmail(email);
         validatePassword(password);
+        try {
+            LegalDocuments.requireCurrent(termsVersion, privacyVersion);
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(
+                    HttpStatus.BAD_REQUEST,
+                    "CURRENT_LEGAL_CONSENT_REQUIRED",
+                    "최신 이용약관과 개인정보처리방침에 동의해 주세요.");
+        }
         String normalizedPhone = normalizePhone(phoneNumber);
         ensureEmailAvailable(normalizedEmail);
 
@@ -54,6 +68,8 @@ public class AuthService {
         try {
             repository.insertUser(user);
             repository.insertIdentity(UUID.randomUUID(), userId, "LOCAL", normalizedEmail);
+            repository.insertLegalConsent(userId, "TERMS_OF_SERVICE", termsVersion);
+            repository.insertLegalConsent(userId, "PRIVACY_POLICY", privacyVersion);
         } catch (DataIntegrityViolationException exception) {
             throw emailConflict();
         }

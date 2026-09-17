@@ -380,14 +380,14 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 | 서비스 | 쓰기 책임 |
 |---|---|
 | Spring Boot | 사용자·인증 세션·분석 작업의 공개 상태·저장 분석 선택·알림·알림 설정 |
-| Python 분석 컴포넌트 | 리뷰·분석·페르소나·근거·제안·이미지 메타데이터를 준비 상태로 기록 |
+| Python 분석 컴포넌트 | PostgreSQL에 직접 접근하지 않고 수집·분석 산출물을 내부 HTTP로 반환 |
 
 [ADR-007](../decisions/ADR-007-initial-database-schema.md)에 따라 V1은 `public` schema 하나에 생성한다. 로컬·통합 테스트 단계에서는 migration과 애플리케이션이 같은 DB 계정을 사용할 수 있지만 운영 배포 전에는 Spring·Python의 런타임 role과 Flyway migration role을 분리해야 한다. migration 파일은 Spring Boot의 `backend/spring-api/src/main/resources/db/migration/**`에서 Flyway로 단독 관리한다. 하나의 트랜잭션이 양쪽 책임을 동시에 수정해야 하는 설계는 피하고, 작업 ID와 명시적 상태 전이로 연결한다.
 
 분석 완료 경계는 Spring Boot가 소유한다.
 
-1. Python은 모든 결과와 근거를 PostgreSQL에 기록하고 작업 ID와 결과 ID를 준비 완료로 전달한다. Python은 공개 상태를 `COMPLETED`로 바꾸지 않는다.
-2. Spring Boot는 결과가 같은 `(job_id, user_id, store_id)`에 속하고 필수 산출물·근거 제약을 충족하는지 확인한다.
+1. Python은 리뷰·분석·근거·이미지 바이너리를 구조화된 내부 응답으로 전달하며 DB에 직접 접근하지 않는다.
+2. Spring Boot는 응답 schema와 필수 산출물·근거 인덱스를 검증하고 같은 `(job_id, user_id, store_id)`에 저장한다.
 3. 하나의 PostgreSQL 트랜잭션에서 작업을 `COMPLETED`로 전이하고, `saved_analyses`가 없으면 첫 결과를 insert한다. 현재 알림 설정 row를 잠가 `analysis_result_enabled=true`인 경우에만 `(job_id, type)` unique를 이용해 완료 알림을 insert한다.
 4. 트랜잭션 전후 장애가 나면 작업은 `RUNNING`으로 남거나 이미 완전히 완료된 상태 중 하나이며, 재조정 작업이 같은 전이를 멱등하게 재시도한다.
 5. 실패 확정도 Spring Boot가 작업 `FAILED` 전이와, 알림 설정이 켜진 경우의 실패 알림 insert를 하나의 트랜잭션에서 처리한다.
@@ -407,3 +407,5 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 7. 알림 읽음 처리 여부
 
 V2는 `auth_sessions`와 토큰 회전 제약을 추가했다. 전화번호에는 정책에 따라 unique 제약을 두지 않았고, 전화번호 암호화·자동 삭제·네이버 URL unique 정책은 아직 추가하지 않는다.
+
+V3는 API 조회용 `analysis_result_documents` JSONB read model과 문서 종류·버전·동의 시각을 기록하는 `legal_consents`를 추가했다. JSON 문서는 정규화 테이블의 대체 정본이 아니라 현재 API 응답을 원자적으로 조회하기 위한 파생 read model이다. 약관·처리방침 본문, 실제 시행일과 보유기간은 법률 검토 후 확정해야 한다.

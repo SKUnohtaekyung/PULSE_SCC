@@ -12,6 +12,7 @@ desktop.ini
 # ── 환경변수 / 시크릿 ──
 # 절대 커밋하지 않는다. 공유는 .env.example 로만 한다.
 .env
+backend/storage/
 .env.*
 !.env.example
 

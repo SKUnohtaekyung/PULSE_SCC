@@ -118,8 +118,11 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | POST | `/api/v1/auth/refresh` | 갱신 토큰 | 서비스 세션 갱신 |
 | POST | `/api/v1/auth/logout` | 필요 | 현재 세션 폐기 |
 | GET | `/api/v1/auth/session` | 필요 | Access Token과 DB 세션 상태를 확인해 로그인 상태 복원 |
+| GET | `/api/v1/legal-documents` | 없음 | 현재 이용약관·개인정보 처리방침 버전 조회 |
 
 전화번호 인증·계정 복구·탈퇴 API는 정책이 확정되지 않아 이 계약에 추가하지 않는다.
+
+`GET /api/v1/legal-documents`는 현재 동의 가능한 `termsVersion`, `privacyVersion`과 `legallyReviewed`를 반환한다. 법률 전문가 검토가 완료되기 전에는 `legallyReviewed=false`이며 운영 가입을 열어서는 안 된다.
 
 ### 3.2 분석 작업과 결과
 
@@ -155,7 +158,9 @@ Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Sp
 {
   "email": "owner@example.com",
   "password": "<user-input>",
-  "phoneNumber": "01012345678"
+  "phoneNumber": "01012345678",
+  "termsVersion": "2026-09-17",
+  "privacyVersion": "2026-09-17"
 }
 ```
 
@@ -171,13 +176,13 @@ Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Sp
   "refreshTokenExpiresAt": "2026-10-15T12:45:00Z",
   "user": {
     "id": "8bf5c78a-...",
-    "email": "owner@example.com"
-  },
-  "hasSavedAnalysis": false
+    "email": "owner@example.com",
+    "hasSavedAnalysis": false
+  }
 }
 ```
 
-`hasSavedAnalysis=false`이면 앱은 홈이 아니라 가게 정보 입력으로 이동한다.
+`user.hasSavedAnalysis=false`이면 앱은 홈이 아니라 가게 정보 입력으로 이동한다.
 
 Refresh Token은 `/api/v1/auth/refresh` 요청 본문에서만 받고 매 성공 시 새 값으로 교체한다. 로그아웃은 JWT의 `sid`가 가리키는 현재 세션을 폐기한다. 이미 폐기된 Refresh Token 재사용이 감지되면 해당 사용자의 활성 세션을 모두 폐기한다.
 
@@ -205,7 +210,7 @@ Content-Type: application/json
 ```
 
 클라이언트가 `userId`, 내부 `storeId`, 리뷰 수 또는 분석 상태를 지정할 수 없다. 서버는 리다이렉트된 최종 URL까지 허용 목록과 사설·로컬 주소 여부를 검증한 뒤 작업을 만든다.
-`category`는 PRD에 정의된 사용자 표시값(`한식`, `중식`, `일식`, `양식`, `카페/디저트`, `주점`, `기타`)을 사용한다. 별도 영문 enum 코드는 OpenAPI 작성 시 확정하기 전까지 만들지 않는다.
+`category`는 PRD에 정의된 사용자 표시값(`한식`, `중식`, `일식`, `양식`, `카페/디저트`, `주점`, `기타`)을 사용한다. 별도 영문 enum 코드는 OpenAPI 작성 시 확정하기 전까지 만들지 않는다. `naverPlaceUrl`은 `https://map.naver.com` 또는 `https://m.place.naver.com` 호스트만 허용하며 Python 수집기도 DNS 해석 결과가 사설·loopback·link-local 주소이면 거부한다.
 
 ```json
 {
@@ -452,22 +457,22 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 
 ## 9. Spring Boot–Python 내부 계약
 
-전송 방식은 내부 HTTP로 확정했다. 현재 구현된 endpoint는 Python의 `GET /internal/v1/health`뿐이며, 아래 분석 endpoint는 비즈니스 API 작업에서 구현·검증할 목표 계약이다.
+전송 방식은 내부 HTTP로 확정했다. Python은 `GET /internal/v1/health`와 서비스 토큰으로 보호된 `POST /internal/v1/analysis-jobs`를 구현한다. Spring은 이 요청이 반환한 완성 결과를 검증·저장하고 공개 작업을 완료한다.
 
 | Spring Boot | Python 후보 |
 |---|---|
 | `POST /api/v1/analysis-jobs` | `POST /internal/v1/analysis-jobs` |
-| `GET /api/v1/analysis-jobs/{jobId}` | `GET /internal/v1/analysis-jobs/{jobId}` |
-| `GET /api/v1/analysis-jobs/{jobId}/result` | `GET /internal/v1/analysis-jobs/{jobId}/result` |
+| 이후 상태·결과 조회 | Spring이 PostgreSQL에서 직접 조회 |
 
 내부 HTTP는 다음을 요구한다.
 
 - 외부 네트워크에 노출하지 않는다.
 - 별도 서비스 자격 증명을 사용하고 timing-safe 비교를 적용한다.
-- 인증 사용자 ID와 검증된 가게 정보를 Spring Boot가 전달한다.
-- Python은 요청의 사용자·작업 소유권을 다시 검증한다.
+- 검증된 작업 ID와 가게 정보를 Spring Boot가 전달하며 사용자 ID는 내부 서비스로 보내지 않는다.
+- Python은 허용 호스트와 DNS 결과를 다시 검증하지만 사용자·작업 소유권은 Spring이 소유한다.
 - Spring Boot는 Python 내부 상태와 오류를 공개 enum·오류 구조로 정규화한다.
-- 연결·응답 timeout, 재시도, 중복 실행 방지 규칙을 실제 설정과 테스트로 확정한다.
+- 연결·응답 timeout은 환경변수로 설정하고 공개 생성 API는 사용자별 `Idempotency-Key`와 요청 해시로 중복 생성을 방지한다.
+- 현재 Spring 인프로세스 executor는 재시작 복구를 지원하지 않는다. 운영 전 작업 큐·lease·재조정 정책을 확정한다.
 
 ---
 
