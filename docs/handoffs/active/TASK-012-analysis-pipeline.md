@@ -60,4 +60,4 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 Docker PostgreSQL, FastAPI, Spring을 함께 실행하고 승인된 테스트 매장 URL·OpenAI 개발 키로 Android 실기기 E2E를 수행한다.
 
 ## Last Verified Commit
-`948e40483ea3e29a695577abc75a477698ef8b94` — 이 commit 기반 working tree에서 위 검증 수행; TASK-012 변경은 아직 미커밋
+`3bbc3db` — 이 commit의 백엔드·Python·문서와 별도 `C:\PULSE_SCC_FE` 파일을 대상으로 위 검증 수행
