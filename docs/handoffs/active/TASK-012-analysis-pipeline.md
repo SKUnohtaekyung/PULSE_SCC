@@ -62,4 +62,4 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 Windows 재부팅 후 Docker 엔진을 시작하고 새 OpenAI 키를 로컬 `backend/.env`에만 설정한 뒤 전체 E2E를 수행한다.
 
 ## Last Verified Commit
-`3bbc3db` — 이 commit의 백엔드·Python·문서와 별도 `C:\PULSE_SCC_FE` 파일을 대상으로 위 검증 수행
+`bbc295c` — 이 commit의 백엔드·Python·문서와 별도 `C:\PULSE_SCC_FE` 파일을 대상으로 위 검증 수행
