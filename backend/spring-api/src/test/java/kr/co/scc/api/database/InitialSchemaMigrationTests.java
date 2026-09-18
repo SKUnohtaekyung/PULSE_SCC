@@ -28,11 +28,13 @@ class InitialSchemaMigrationTests {
             "advice",
             "analyses",
             "analysis_jobs",
+            "analysis_result_documents",
             "auth_sessions",
             "evidence_links",
             "flyway_schema_history",
             "insights",
             "knowledge_references",
+            "legal_consents",
             "notification_settings",
             "notifications",
             "persona_images",
@@ -72,11 +74,11 @@ class InitialSchemaMigrationTests {
         Long migrations = jdbc.sql("""
                         SELECT count(*)
                         FROM flyway_schema_history
-                        WHERE success = true AND version = '1'
+                        WHERE success = true
                         """)
                 .query(Long.class)
                 .single();
-        assertThat(migrations).isEqualTo(2L);
+        assertThat(migrations).isEqualTo(3L);
     }
 
     @Test

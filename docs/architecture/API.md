@@ -2,8 +2,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **설계 계약 v0.3 — 인증 API 구현, 분석 API 구현 전** |
-| 기준일 | 2026-09-16 |
+| 상태 | **설계 계약 v0.4 — 인증·분석·마이페이지 API 구현** |
+| 기준일 | 2026-09-18 |
 | 소유 역할 | `role:platform` |
 | 제품 요구사항 | [PRD.md](../product/PRD.md) |
 | 상세 기능명세 | [GUEST_ANALYSIS_FUNCTIONAL_SPEC.md](../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
@@ -120,7 +120,7 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | GET | `/api/v1/auth/session` | 필요 | Access Token과 DB 세션 상태를 확인해 로그인 상태 복원 |
 | GET | `/api/v1/legal-documents` | 없음 | 현재 이용약관·개인정보 처리방침 버전 조회 |
 
-전화번호 인증·계정 복구·탈퇴 API는 정책이 확정되지 않아 이 계약에 추가하지 않는다.
+전화번호 인증·계정 복구는 정책이 확정되지 않았다. 계정 탈퇴는 `DELETE /api/v1/me/account`로 제공하며 자체 계정은 현재 비밀번호 확인 후 계정과 연계 데이터를 삭제한다. Google 전용 계정은 현재 인증 세션으로 본인을 확인한다.
 
 `GET /api/v1/legal-documents`는 현재 동의 가능한 `termsVersion`, `privacyVersion`과 `legallyReviewed`를 반환한다. 법률 전문가 검토가 완료되기 전에는 `legallyReviewed=false`이며 운영 가입을 열어서는 안 된다.
 
@@ -145,6 +145,7 @@ Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Sp
 | GET | `/api/v1/me/notifications` | 분석 완료·실패 인앱 알림 조회 |
 | GET | `/api/v1/me/notification-settings` | 분석 알림 설정 조회 |
 | PATCH | `/api/v1/me/notification-settings` | 분석 알림 켜기·끄기 |
+| DELETE | `/api/v1/me/account` | 자체 계정은 현재 비밀번호 확인 후 계정·세션·분석·리뷰·알림·이미지 삭제 |
 
 홍보 알림·OS 푸시·별도 이미지 아카이브 API는 MVP에 포함하지 않는다. 현재 저장 결과의 페르소나 이미지는 저장 분석 응답에 포함한다.
 

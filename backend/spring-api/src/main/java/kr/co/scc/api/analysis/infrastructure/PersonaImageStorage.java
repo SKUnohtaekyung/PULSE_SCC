@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.UUID;
 
 import org.springframework.core.io.Resource;
@@ -49,6 +50,26 @@ public class PersonaImageStorage {
             return resource;
         } catch (IOException exception) {
             throw new IllegalStateException("이미지 파일을 읽지 못했습니다.", exception);
+        }
+    }
+
+    public void deleteAll(Collection<String> storageKeys) {
+        for (String storageKey : storageKeys) {
+            try {
+                Path target = root.resolve(storageKey).normalize();
+                requireInsideRoot(target);
+                Files.deleteIfExists(target);
+                Path parent = target.getParent();
+                if (parent != null && !parent.equals(root) && Files.isDirectory(parent)) {
+                    try (var children = Files.list(parent)) {
+                        if (children.findAny().isEmpty()) {
+                            Files.deleteIfExists(parent);
+                        }
+                    }
+                }
+            } catch (IOException exception) {
+                throw new IllegalStateException("탈퇴 계정의 페르소나 이미지를 삭제하지 못했습니다.", exception);
+            }
         }
     }
 

@@ -151,6 +151,18 @@ public class AnalysisRepository {
                 .param("code", code)
                 .param("retryable", retryable)
                 .update();
+        jdbc.sql("""
+                        INSERT INTO notifications (id, user_id, job_id, type, message_code)
+                        SELECT :id, j.user_id, j.id, 'ANALYSIS_FAILED', 'ANALYSIS_FAILED'
+                        FROM analysis_jobs j
+                        JOIN notification_settings s ON s.user_id = j.user_id
+                        WHERE j.id = :jobId AND j.status = 'FAILED'
+                          AND s.analysis_result_enabled = true
+                        ON CONFLICT (job_id, type) DO NOTHING
+                        """)
+                .param("id", UUID.randomUUID())
+                .param("jobId", jobId)
+                .update();
     }
 
     public UUID saveCompleted(JobContext context, WorkerResponse response) {

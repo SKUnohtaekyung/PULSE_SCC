@@ -70,6 +70,7 @@ public class AuthService {
             repository.insertIdentity(UUID.randomUUID(), userId, "LOCAL", normalizedEmail);
             repository.insertLegalConsent(userId, "TERMS_OF_SERVICE", termsVersion);
             repository.insertLegalConsent(userId, "PRIVACY_POLICY", privacyVersion);
+            repository.insertNotificationSettings(userId);
         } catch (DataIntegrityViolationException exception) {
             throw emailConflict();
         }
@@ -152,6 +153,7 @@ public class AuthService {
         try {
             repository.insertUser(user);
             repository.insertIdentity(UUID.randomUUID(), user.id(), "GOOGLE", subject);
+            repository.insertNotificationSettings(user.id());
         } catch (DataIntegrityViolationException exception) {
             throw new AuthException(HttpStatus.CONFLICT, "ACCOUNT_ALREADY_EXISTS", "이미 등록된 계정입니다.");
         }

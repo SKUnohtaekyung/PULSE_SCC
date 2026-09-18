@@ -31,6 +31,17 @@ public class AuthRepository {
                 .optional();
     }
 
+    public Optional<UserAccount> findUserById(UUID userId) {
+        return jdbc.sql("""
+                        SELECT id, login_email, credential_hash, phone_number, status
+                        FROM users
+                        WHERE id = :userId
+                        """)
+                .param("userId", userId)
+                .query(this::mapUser)
+                .optional();
+    }
+
     public Optional<UserAccount> findUserByIdentity(String provider, String subject) {
         return jdbc.sql("""
                         SELECT u.id, u.login_email, u.credential_hash, u.phone_number, u.status
@@ -78,6 +89,16 @@ public class AuthRepository {
                 .param("userId", userId)
                 .param("documentType", documentType)
                 .param("documentVersion", documentVersion)
+                .update();
+    }
+
+    public void insertNotificationSettings(UUID userId) {
+        jdbc.sql("""
+                        INSERT INTO notification_settings (user_id)
+                        VALUES (:userId)
+                        ON CONFLICT (user_id) DO NOTHING
+                        """)
+                .param("userId", userId)
                 .update();
     }
 
