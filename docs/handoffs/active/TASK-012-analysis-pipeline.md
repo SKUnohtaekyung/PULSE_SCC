@@ -11,7 +11,7 @@
 
 ## Work Note
 - 원격 push와 PR 생성은 수행하지 않았다. 현재 변경은 로컬 브랜치에만 있다.
-- 최신 로컬 커밋은 `c5de733`, 기능 구현 커밋은 `36561f6`이다.
+- 최신 로컬 커밋은 `02cd854`, 분석 파이프라인 기능 구현 커밋은 `36561f6`이다.
 - Docker Desktop은 설치됐지만 WSL 런타임 미완료로 엔진이 시작되지 않는다. 로컬 PostgreSQL 18은 실행 중이나 테스트 계정 접속정보가 없다.
 - 채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다. 새 키는 로컬 `backend/.env`에만 설정한다.
 
@@ -57,9 +57,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | Frontend lint/typecheck/test | `npm run lint`, `npm run typecheck`, `npm test -- --runInBand` | PASS, 7 tests |
 | Android bundle | `npx expo export --platform android --output-dir dist-android` | PASS |
 | Visual QA | 실제 API·DB·OpenAI 키·테스트 매장 URL을 사용한 실기기 E2E | 미실행 |
-| Python test (2026-09-18) | `.venv\Scripts\python.exe -m pytest backend\python-analysis` | PASS, 16 tests (기존 7 + 날짜 보강 9) |
-| 날짜 보강 실데이터 검증 | 저장한 실제 `m.place.naver.com` 응답 1페이지에 수집 경로 적용 | PASS — `written_at` 확보 0/10건 → 10/10건, 수집 건수 후퇴 없음, 작성자 식별정보 유출 0 |
-| 2년 규칙 발동 검증 | 3년 전 리뷰 1건 + 최근 리뷰 1건 (기준일 2026-09-18) | PASS — 수정 전 `False`(오동작), 수정 후 `True` |
+| Python test (2026-09-18) | `.venv\Scripts\python.exe -m pytest backend\python-analysis` | PASS, 23 tests (기존 7 + 날짜 보강 16) |
+| 2년 규칙 발동 회귀 테스트 | 위 pytest의 `test_two_year_warning_fires_only_once_dates_are_known` | PASS — 커밋된 fixture로 재현 가능. 날짜 보강 전 `False`, 후 `True` |
+| 본문 접두사 충돌 처리 | 위 pytest의 `test_conflicting_dates_for_one_key_leave_the_date_unknown` 외 2건 | PASS — 충돌 시 날짜를 버리고 `None` 유지 |
+| 날짜 보강 실데이터 확인 | 로컬에 임시 저장한 실제 `m.place.naver.com` 응답 1페이지에 수집 경로 적용 | **재현 불가 — 응답 원본을 저장소에 커밋하지 않았다.** 1회 수동 확인 결과는 `written_at` 0/10건 → 10/10건, 수집 건수 후퇴 없음이었다. 저장소로 재현 가능한 근거는 위 fixture 테스트다 |
 
 ## 리뷰 작성일 보강 (2026-09-18)
 
@@ -84,6 +85,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - RAG 전문 지식 검색은 아직 구현되지 않아 제안의 지식 참고 목록이 비어 있다.
 - 날짜 보강의 **실제 브라우저 수집 중 동작은 미검증이다.** 저장된 응답과 단위 테스트로만 확인했다. 실제 수집 시 GraphQL 응답이 몇 건의 날짜를 채우는지는 다음 E2E에서 측정해야 한다.
 - `build_reviews` 의 `len(normalized) < 10` 최소 글자 수는 제품 결정 없이 들어간 임의 임계값이다. 확정하거나 제거해야 한다.
+- 실제 네이버 응답의 필드 형태(`__typename`, `representativeVisitDateTime`)를 저장소 안의 원자료로 대조하지 못했다. 커밋된 fixture는 1회 수동 확인한 형태를 본떠 만든 합성 데이터이므로, 네이버가 필드를 바꾸면 테스트는 통과하면서 수집만 조용히 실패할 수 있다.
+- DOM 텍스트 앞에 별점 등 접두어가 붙으면 본문 매칭이 실패해 날짜가 비는 열화가 발생한다. 실제 수집에서 발생률을 측정해야 한다.
 - 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전 정보가 미완료다. 탈퇴·연계 데이터 삭제 코드는 구현됐지만 실제 PostgreSQL 검증은 남아 있다.
 
 ## Do Not Assume
@@ -112,4 +115,5 @@ WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정
 7. 실제 DB 검증 후에는 회원 탈퇴가 `users`, 인증 세션, 약관 동의, 작업·리뷰·분석·근거·알림을 모두 제거하고 이미지 파일도 삭제하는지 반드시 확인한다.
 
 ## Last Verified Commit
-`36561f6` — 마이페이지 알림·설정, 회원 탈퇴·삭제, 분석 전체 흐름 통합 테스트 코드와 문서를 대상으로 컴파일·테스트·빌드 검증 수행
+
+`02cd854` — 리뷰 작성일 보강과 충돌 처리까지 위 Verification이 유효하다. 분석 파이프라인 본체의 직전 검증 기준 커밋은 `36561f6` — 마이페이지 알림·설정, 회원 탈퇴·삭제, 분석 전체 흐름 통합 테스트 코드와 문서를 대상으로 컴파일·테스트·빌드 검증 수행
