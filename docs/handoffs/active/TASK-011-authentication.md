@@ -89,4 +89,4 @@ feat/TASK-011-authentication
 PR #27에서 독립 Reviewer와 `role:product`·`role:platform` 리뷰를 요청한다. 이어서 Docker 환경에서 PostgreSQL 통합 테스트 4개를 실행하고 모두 PASS일 때만 병합한다.
 
 ## Last Verified Commit
-7773443 — 이 시점의 코드까지 위 Verification이 유효하다
+aa0dfa1 — 오류 계약 준수와 인증 테스트 보완까지 위 Verification이 유효하다. 인증 구현 본체의 직전 검증 기준 커밋은 7773443
