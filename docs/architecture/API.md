@@ -131,10 +131,12 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | POST | `/api/v1/analysis-jobs` | 가게 정보 검증 후 비동기 분석 작업 생성 |
 | GET | `/api/v1/analysis-jobs/{jobId}` | 작업 상태·진행 단계·실패 정보 조회 |
 | GET | `/api/v1/analysis-jobs/{jobId}/result` | 완료된 작업의 분석 결과 조회 |
-| GET | `/api/v1/analyses/{analysisId}/evidence` | 결과에 연결된 전체 근거 리뷰를 cursor 방식으로 조회 |
+| GET | `/api/v1/analyses/{analysisId}/evidence` | 결과에 연결된 전체 근거 리뷰를 cursor 방식으로 조회 — **미구현.** 설계 계약만 있고 controller가 없다 |
 | GET | `/api/v1/persona-images/{imageId}` | 요청 사용자 소유 결과의 페르소나 이미지 조회 |
 | GET | `/api/v1/me/saved-analysis` | 현재 계정의 저장 분석 1개 조회 |
 | PUT | `/api/v1/me/saved-analysis/{analysisId}` | 저장 분석을 새 결과로 교체 |
+
+`/analyses/{analysisId}/evidence`는 아직 구현되지 않았다. 앱은 결과 응답의 `evidencePreview`로 대표 근거만 보여주며, 전체 근거 보기는 이 endpoint가 생긴 뒤에 연결한다.
 
 Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Spring Boot에 준비 완료를 알린다. Spring Boot는 결과 소유권과 필수 산출물을 확인하고 하나의 완료 트랜잭션에서 작업을 `COMPLETED`로 전이하고, 저장본이 없는 계정에는 첫 결과를 저장하며, 알림 설정이 켜진 경우에만 완료 알림을 멱등하게 생성한다. 중간에 실패하면 작업은 공개 `COMPLETED`가 되지 않으며 같은 작업을 안전하게 재조정할 수 있어야 한다. 저장본이 있는 사용자가 새 결과를 유지하지 않기로 선택하면 교체 API를 호출하지 않는다.
 

@@ -30,6 +30,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 분석 Controller → Service → Repository 전체 흐름 Testcontainers 통합 테스트 추가
 - 회원 생성 시 기본 알림 설정 생성 및 분석 실패 알림 생성 보완
 - 리뷰 작성일을 네이버 구조화 필드에서 읽도록 보강해 PRD FR-009 2년 초과 경고를 실제 동작시킴
+- 프론트 포디움을 항상 3칸으로 고정하고 유형이 모자라면 빈 슬롯과 근거 부족 메시지를 표시 (TASK-008 결정 9·18)
+- 프론트 분석 불가 화면 신설 — 유효 리뷰 50건 미만은 실패·재시도와 분리해 원인·기준·다음 행동을 안내
+- 프론트 마이페이지 알림 목록과 알림 설정을 실제 API에 연결 (기존에는 로컬 state 토글만 있었다)
+- 프론트 Mock fixture를 유형 3·2·1·0개와 49건 미달 상태로 확장
 
 ## Changed
 - `backend/spring-api/**` — 공개 분석 API, 내부 Python gateway, 결과 저장, 이미지 보호, Flyway V3
@@ -60,6 +64,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | Python test (2026-09-18) | `.venv\Scripts\python.exe -m pytest backend\python-analysis` | PASS, 23 tests (기존 7 + 날짜 보강 16) |
 | 2년 규칙 발동 회귀 테스트 | 위 pytest의 `test_two_year_warning_fires_only_once_dates_are_known` | PASS — 커밋된 fixture로 재현 가능. 날짜 보강 전 `False`, 후 `True` |
 | 본문 접두사 충돌 처리 | 위 pytest의 `test_conflicting_dates_for_one_key_leave_the_date_unknown` 외 2건 | PASS — 충돌 시 날짜를 버리고 `None` 유지 |
+| Frontend typecheck (2026-09-18) | `npx tsc --noEmit` (`C:\PULSE_SCC_FE`) | PASS |
+| Frontend lint (2026-09-18) | `npm run lint` (`C:\PULSE_SCC_FE`) | PASS — `react-hooks/set-state-in-effect` 1건 수정 후 통과 |
+| Frontend test (2026-09-18) | `npm test` (`C:\PULSE_SCC_FE`) | PASS, 24 tests (기존 7 + 포디움·fixture 17) |
+| Frontend Visual QA | 실기기·에뮬레이터 렌더링 | **미실행 — 사용자 요청으로 이번 세션에서 서버·앱을 기동하지 않았다** |
 | 날짜 보강 실데이터 확인 | 로컬에 임시 저장한 실제 `m.place.naver.com` 응답 1페이지에 수집 경로 적용 | **재현 불가 — 응답 원본을 저장소에 커밋하지 않았다.** 1회 수동 확인 결과는 `written_at` 0/10건 → 10/10건, 수집 건수 후퇴 없음이었다. 저장소로 재현 가능한 근거는 위 fixture 테스트다 |
 
 ## 리뷰 작성일 보강 (2026-09-18)
@@ -71,6 +79,20 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 **검증된 DOM 텍스트 수집 경로는 그대로 두었다.** `__APOLLO_STATE__` 는 SSR 첫 페이지(약 20건)만 담고 나머지는 스크롤 시 GraphQL 응답으로 오므로, 구조화 추출로 전면 교체하면 수집 건수가 120건에서 20건 수준으로 후퇴해 50건 기준에 미달한다. 따라서 수집은 기존 방식을 유지하고 **날짜만 보강**한다. GraphQL 응답은 페이지가 스스로 보내는 요청의 응답을 읽을 뿐 별도 요청을 만들지 않는다.
 
 본문 정규식 방식은 fallback 으로 남겼다. 구조화 타임스탬프가 없으면 `written_at` 은 `None` 으로 두고 연도를 추정하지 않는다.
+
+## 프론트 구현 범위 (2026-09-18)
+
+`C:\PULSE_SCC_FE` 는 Git 저장소가 아니라 이 커밋에 포함되지 않는다. 실제 변경 파일은 다음과 같다.
+
+| 파일 | 내용 |
+|---|---|
+| `src/types/domain.ts` | `PodiumSlot`, `AppNotification`, `NotificationSetting`, `PODIUM_SLOT_COUNT`, `MINIMUM_VALID_REVIEWS` 추가 |
+| `src/services/api.ts` | `mapPodium` 으로 3칸 고정, 알림 조회·설정 API 3개 추가 |
+| `src/mocks/fixtures.ts` | 유형 3·2·1·0개 결과와 49건 미달 표시값 |
+| `src/features/app/PulseApp.tsx` | 빈 포디움 슬롯, 분석 불가 화면, 알림 목록 연결 |
+| `src/mocks/__tests__/fixtures.test.ts`, `src/services/__tests__/podium.test.ts` | 포디움 불변식 테스트 17개 |
+
+`GET /api/v1/analyses/{analysisId}/evidence` 는 **백엔드 미구현**이라 전체 근거 보기를 연결하지 않았다. 현재는 결과 응답의 `evidencePreview` 로 대표 근거만 보여준다.
 
 ## 폐기한 중복 브랜치
 
