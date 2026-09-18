@@ -7,6 +7,7 @@
 | 문서 목적 | PULSE의 손님분석 MVP를 구현하기 위한 화면, 기능, 상태, 데이터 및 인수 기준 정의 |
 | 제품 요구사항 정본 | [`../PRD.md`](../PRD.md) |
 | UI/UX 원칙 정본 | [`../../design/DESIGN_SYSTEM.md`](../../design/DESIGN_SYSTEM.md) |
+| 화면 상태 모델 | [`SCREEN_STATES.md`](SCREEN_STATES.md) |
 | 대상 사용자 | 리뷰를 직접 분석할 시간과 전문지식이 부족한 외식업 자영업자 |
 | 제공 형태 | Expo 기반 React Native·TypeScript Android 앱 |
 | 핵심 가치 | 가게 지정 한 번으로 공개 리뷰를 분석해 손님 인식과 실행 가능한 운영·마케팅 제안을 근거와 함께 제공 |

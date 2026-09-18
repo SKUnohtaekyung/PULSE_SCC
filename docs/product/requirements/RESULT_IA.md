@@ -10,6 +10,7 @@
 | 제품 요구사항 정본 | [PRD.md](../PRD.md) |
 | 사용자 흐름 | [USER_FLOW.md](USER_FLOW.md) |
 | 상세 기능명세 | [GUEST_ANALYSIS_FUNCTIONAL_SPEC.md](GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
+| 화면 상태 모델 | [SCREEN_STATES.md](SCREEN_STATES.md) |
 | UI/UX 원칙 | [DESIGN_SYSTEM.md](../../design/DESIGN_SYSTEM.md) |
 | 소유 역할 | `role:product` |
 

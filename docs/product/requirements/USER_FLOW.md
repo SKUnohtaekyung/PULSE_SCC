@@ -10,6 +10,7 @@
 | 제품 요구사항 정본 | [PRD.md](../PRD.md) |
 | 상세 기능명세 | [GUEST_ANALYSIS_FUNCTIONAL_SPEC.md](GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
 | 정보구조 | [RESULT_IA.md](RESULT_IA.md) |
+| 화면 상태 모델 | [SCREEN_STATES.md](SCREEN_STATES.md) |
 | 저장 정책 | [ADR-005](../../decisions/ADR-005-analysis-storage-policy.md) |
 | 소유 역할 | `role:product` |
 
