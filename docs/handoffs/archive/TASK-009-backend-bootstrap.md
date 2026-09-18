@@ -2,7 +2,7 @@
 
 ## Status
 
-구현·로컬 검증·독립 리뷰 완료 — PR 전
+완료 — PR #22가 `main`에 squash 병합됨 (`b4e9a79`)
 
 ## Owner
 
@@ -62,8 +62,8 @@
 
 ## Next Action
 
-사용자 확인 후 이 브랜치를 커밋하고 PR을 만든다. 다음 백엔드 TASK는 `docs/architecture/DATA_MODEL.md`를 기준으로 첫 Flyway migration과 Testcontainers PostgreSQL 통합 테스트를 구현한다.
+후속 TASK-010에서 첫 Flyway migration과 Testcontainers PostgreSQL 통합 테스트를 구현했고 PR #23으로 병합했다.
 
 ## Last Verified Commit
 
-`227b048` — 백엔드 골격·환경 설정·단위 검증을 완료한 구현 커밋.
+`b4e9a79` — PR #22의 `main` 병합 커밋. 백엔드 골격 반영 완료.
