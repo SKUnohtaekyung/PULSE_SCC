@@ -541,12 +541,10 @@ PostgreSQL 단일 데이터베이스 기준의 논리 모델은 [DATA_MODEL.md](
 
 PRD의 Open Questions와 직접 연결되는 결정이다.
 
+전체 애플리케이션 스택은 [ADR-003](../../decisions/ADR-003-application-stack.md), 백엔드–Python 실행 경계는 [ADR-006](../../decisions/ADR-006-backend-bootstrap.md), Expo SDK 57.0.24·React Native 0.86.3·React 19.2.3·Expo Router·development build 사용은 [ADR-011](../../decisions/ADR-011-frontend-bootstrap.md)로 확정했다.
+
 | 항목 | 결정 시점 | 막고 있는 구현 |
 |---|---|---|
-| 전체 기술 스택과 저장소 구조 | 코드 작성 전 | 프로젝트 생성, 실행 명령, CI |
-| 백엔드와 AI 처리 경계 | 코드 작성 전 | API 호출 구조, 배포 단위 |
-| Expo SDK·React Native 버전과 development build 사용 여부 | 앱 프로젝트 생성 전 | 화면 구조와 빌드 방식 |
-| Python 프레임워크와 Spring Boot 호출 경계 | 백엔드 구조 확정 전 | 서비스 경계와 배포 단위 |
 | 목표 처리 시간 | 아키텍처 확정 전 | 타임아웃, 작업 큐, UX |
 | 최소 Android OS·지원 기기 | UI 구현 전 | RESULT-005, AC-09 |
 | 페르소나 이미지 스타일 규칙 | FR-004 구현 전 | IMAGE-002 |

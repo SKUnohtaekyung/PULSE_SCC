@@ -6,8 +6,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **PULSE 디자인 기준·핵심 결과 IA 반영 / 구현 전 초안** |
-| 최종 수정 | 2026-09-15 |
+| 상태 | **PULSE 디자인 기준·핵심 결과 IA·프론트엔드 경로 반영 / 토큰 구현 전 초안** |
+| 최종 수정 | 2026-09-18 |
 | 소유 역할 | `role:design-system` |
 | 제품 요구사항 | [`../product/PRD.md`](../product/PRD.md) |
 | 상세 기능명세 | [`../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md`](../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
@@ -70,15 +70,15 @@ PULSE에서 사용한 `Modern Professional & Universal Clarity`를 SCC의 기본
 
 ### 3.1 토큰 정본 위치
 
-현재 코드가 없어 토큰 파일 위치와 표현 방식은 미정이다.
+Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../decisions/ADR-011-frontend-bootstrap.md)에서 결정했다. 아직 토큰 코드는 생성하지 않았으므로 실제 값의 정본은 이 문서의 이식 기준이다.
 
 | 항목 | 상태 |
 |---|---|
-| 토큰 표현 방식 | 기술 스택 확정 후 결정 |
-| 토큰 파일 경로 | 기술 스택 확정 후 결정 |
-| 공용 컴포넌트 경로 | 기술 스택 확정 후 결정 |
+| 토큰 표현 방식 | TypeScript readonly semantic theme object (`as const`) — 구현 전 |
+| 토큰 파일 경로 | `frontend/mobile/src/design/tokens/` — 경로 확정, 코드 생성 전 |
+| 공용 컴포넌트 경로 | `frontend/mobile/src/components/ui/` — 경로 확정, 코드 생성 전 |
 
-스택 확정 후 ADR을 작성하고 이 표를 실제 경로로 교체한다. CSS variables, Tailwind theme, theme object 중 선택한 프레임워크의 관례를 우선한다.
+웹 전용 CSS variables나 Tailwind를 정본으로 두지 않는다. 첫 토큰 구현 Task에서 위 경로에 실제 코드를 만들고 색상 대비·타입 행간을 검증한 뒤 코드 정본으로 전환한다.
 
 ### 3.2 색상 이식 기준
 
