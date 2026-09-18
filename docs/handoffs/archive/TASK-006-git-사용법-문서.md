@@ -78,7 +78,7 @@ Git·GitHub 개념과 이 저장소의 실제 설정을 한 화면에서 대조�
 
 ## Next Action
 **병합 후에도 `Unresolved` 2번은 결정되지 않았다.** archive 이동 시점(2026-09-18)에 다시 확인했더니 `git-관련-사용법.html` 은 여전히 루트에 있고, `README.md` 문서 지도와 `AGENTS.md` 4장 SoT 표 어디에도 등재돼 있지 않다.
-이 TASK는 종료하고, 배치 위치·SoT 등재 결정은 **별도 이슈로 세워 `role:platform`이 판단한다.** `Unresolved` 3~6번(규칙 복제, 팔레트 이중 정의, 표 접근성 미실측)도 같이 넘긴다.
+이 TASK는 종료하고, 배치 위치·SoT 등재 결정은 **별도 이슈로 세워 `role:platform`이 판단한다.** `Unresolved` 3~5번(규칙 복제, 팔레트 이중 정의, 표 접근성 미실측)도 같이 넘긴다. 6번은 넘길 항목이 아니라 이 문서를 고칠 때 지켜야 할 주의사항이다.
 
 ## Last Verified Commit
 `284de80` — PR #18의 `main` 병합 커밋. HTML 문서와 훅 반영 완료.

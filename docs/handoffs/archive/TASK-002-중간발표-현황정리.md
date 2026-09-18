@@ -11,8 +11,12 @@
 
 ## Branch
 
-**미생성.** 현재 `main` 작업트리에서 문서만 추가했고 커밋하지 않았다.
-커밋 전에 `docs/TASK-002-중간발표-현황정리` 브랜치를 만든다 (`AGENTS.md` 6장).
+`docs/TASK-002-중간발표-현황정리` (병합 후 삭제됨)
+
+> 아래는 문서 작성 당시의 기록이다. 이후 실제로 이 브랜치를 만들어 커밋했고 PR #9로 병합했다.
+>
+> **미생성.** 현재 `main` 작업트리에서 문서만 추가했고 커밋하지 않았다.
+> 커밋 전에 `docs/TASK-002-중간발표-현황정리` 브랜치를 만든다 (`AGENTS.md` 6장).
 
 ## Goal
 
@@ -171,9 +175,9 @@
 | 당시 Next Action | 현재 |
 |---|---|
 | 실제 진척 자료의 위치 확인 | **미착수.** 이 저장소에 코드 외 인터뷰·회의·프로토타입 기록이 여전히 없다 |
-| 인터뷰 최소 3~5곳 | **미실행.** `research/interviews/`에 템플릿만 있다 |
+| 인터뷰 최소 3~5곳 | **미실행.** `research/interviews/`에 `README.md`와 `TEMPLATE.md`만 있고 기록은 0건이다 |
 | 리뷰 수집 정책 ADR | **완료** — [ADR-002](../../decisions/ADR-002-review-collection.md), 범위는 [ADR-004](../../decisions/ADR-004-naver-only-review-source.md) |
-| 발표 서사 확정 | 이 저장소에 기록 없음 |
+| 발표 서사 확정 | **완료** — [SCC_PROGRAM.md](../../program/SCC_PROGRAM.md) §6 중심 서사. 이 TASK가 PR #9에서 함께 반영했다. 실제 덱 반영 여부는 원본 덱이 저장소 밖이라 **미확인** |
 | `PRD.md`·`ARCHITECTURE.md`·스택 ADR·`AGENTS.md` 정합화 | **완료** — TASK-004·TASK-008·[ADR-003](../../decisions/ADR-003-application-stack.md) |
 
 남은 인터뷰·자료 확보는 이 문서가 아니라 **별도 TASK와 이슈로 다시 세운다.** 이 문서의 주차·날짜·"지금 어디에 있는가" 서술은 전부 2026-08-21 기준이므로 현재 상태로 인용하지 않는다.
