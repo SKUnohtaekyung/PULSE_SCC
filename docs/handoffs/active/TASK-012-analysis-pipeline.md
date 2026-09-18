@@ -11,6 +11,7 @@
 
 ## Work Note
 - 원격 push와 PR 생성은 수행하지 않았다. 현재 변경은 로컬 브랜치에만 있다.
+- 최신 로컬 커밋은 `c5de733`, 기능 구현 커밋은 `36561f6`이다.
 - Docker Desktop은 설치됐지만 WSL 런타임 미완료로 엔진이 시작되지 않는다. 로컬 PostgreSQL 18은 실행 중이나 테스트 계정 접속정보가 없다.
 - 채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다. 새 키는 로컬 `backend/.env`에만 설정한다.
 
@@ -63,7 +64,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 2026-09-18 Docker Desktop 프로세스는 시작됐으나 WSL 런타임이 설치 완료 상태가 아니어서 엔진 연결 실패. 로컬 PostgreSQL 18 서비스는 실행 중이나 테스트 계정 비밀번호가 없어 실제 통합 테스트는 계속 미실행.
 - Spring 인프로세스 비동기 작업은 재시작 복구·다중 인스턴스를 지원하지 않는다. 운영 전 내구성 큐 필요.
 - RAG 전문 지식 검색은 아직 구현되지 않아 제안의 지식 참고 목록이 비어 있다.
-- 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전, 탈퇴·삭제 기능이 미완료다.
+- 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전 정보가 미완료다. 탈퇴·연계 데이터 삭제 코드는 구현됐지만 실제 PostgreSQL 검증은 남아 있다.
 
 ## Do Not Assume
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
@@ -73,6 +74,22 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Next Action
 WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정보를 준비한 뒤 `AnalysisApiIntegrationTests`와 `InitialSchemaMigrationTests`의 6개 Testcontainers 테스트를 실제 실행한다. 이후 새 OpenAI 키를 로컬 `backend/.env`에만 설정하고 전체 E2E를 수행한다.
+
+## Claude Continuation
+
+1. `git status --short`, `git log -3 --oneline`으로 로컬 브랜치와 변경 유무를 확인한다. 원격 push는 사용자가 별도로 요청하기 전까지 하지 않는다.
+2. Docker를 사용할 경우 `wsl --status`와 `docker info`부터 확인한다. 현재 `docker info`는 `docker_engine` 파이프 연결 실패 상태다.
+3. 로컬 PostgreSQL을 사용할 경우 운영 DB가 아닌 별도 테스트 DB와 계정을 준비한다. 비밀번호를 문서나 커밋에 넣지 않는다.
+4. 다음 명령으로 실제 통합 테스트를 실행한다.
+   - `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api test --tests "kr.co.scc.api.database.InitialSchemaMigrationTests" --rerun-tasks`
+   - `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api test --tests "kr.co.scc.api.analysis.AnalysisApiIntegrationTests" --rerun-tasks`
+5. 통합 테스트가 PASS하면 전체 `test`와 `build`를 다시 실행하고 이 문서의 SKIP 수·검증 결과·`Last Verified Commit`을 갱신한다.
+6. 집중 확인 파일:
+   - `backend/spring-api/src/main/java/kr/co/scc/api/mypage/**`
+   - `backend/spring-api/src/test/java/kr/co/scc/api/analysis/AnalysisApiIntegrationTests.java`
+   - `backend/spring-api/src/test/java/kr/co/scc/api/database/InitialSchemaMigrationTests.java`
+   - `docs/decisions/ADR-010-account-deletion.md`
+7. 실제 DB 검증 후에는 회원 탈퇴가 `users`, 인증 세션, 약관 동의, 작업·리뷰·분석·근거·알림을 모두 제거하고 이미지 파일도 삭제하는지 반드시 확인한다.
 
 ## Last Verified Commit
 `36561f6` — 마이페이지 알림·설정, 회원 탈퇴·삭제, 분석 전체 흐름 통합 테스트 코드와 문서를 대상으로 컴파일·테스트·빌드 검증 수행
