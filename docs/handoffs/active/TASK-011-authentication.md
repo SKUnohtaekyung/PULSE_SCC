@@ -59,6 +59,19 @@ feat/TASK-011-authentication
 | PostgreSQL 통합 테스트 | 위 Spring 명령에서 Testcontainers 테스트 실행 시도 | 미실행 — 로컬 Docker 없음으로 4개 skipped |
 | Visual QA | UI 변경 없음 | 없음 |
 
+## 독립 검토 후속 수정 (2026-09-19)
+
+독립 검토 FAIL 판정 중 계약 위반과 테스트 공백을 처리했다.
+
+- `traceId` 를 오류 응답에 추가하고 `fieldErrors` 를 필드 오류가 있을 때만 포함하도록 고쳐 `docs/architecture/API.md` 2.1 을 준수한다. 요청마다 `TraceIdFilter` 가 값을 만들고 `X-Trace-Id` 헤더와 MDC 에 함께 싣는다. 클라이언트가 보낸 값은 신뢰하지 않는다.
+- **Google issuer 를 문자열 클레임으로 읽도록 고쳤다.** `getIssuer()` 는 URL 로 변환하므로 Google 이 스킴 없는 `accounts.google.com` 을 보내면 `IllegalArgumentException` 이 발생하고, 기존 catch 가 이를 잡지 않아 인증 실패가 아니라 **500** 이 되는 경로였다. 테스트로 고정했다.
+- 이메일에 `@Size(max = 320)` 을 추가했다. `users.login_email` 이 `varchar(320)` 이라 초과 입력이 DB 제약 위반으로 떨어져 `409 EMAIL_ALREADY_EXISTS` 로 잘못 보고되던 경로를 입력 단계에서 막는다.
+- `GoogleJwtVerifier` 에 테스트용 decoder 주입 생성자를 추가하고 audience 불일치·issuer 위조·`email_verified` 누락·서명 실패·클레임 유출을 테스트로 고정했다.
+- `login`·`register` 테스트를 추가했다. 계정 부재와 비밀번호 오류가 **같은 코드·상태·메시지**를 반환하는지, 실패 시 세션을 발급하지 않는지, 비밀번호 원문이 오류에 실리지 않는지를 확인한다.
+- `denyAll` 의 핵심 성질(유효한 JWT 로도 미등록 경로는 403)과 `logout`·`session` 인증 요구를 테스트로 고정했다.
+
+테스트 12개 → **44개** (통과 40, Docker 부재로 skip 4).
+
 ## Unresolved
 - 이용약관·개인정보 처리 동의 시점과 저장 근거는 제품 결정이 필요하다. 결정 전 운영 가입 화면·API가 완결됐다고 간주하지 않는다.
 - 계정 복구·탈퇴·비밀번호 변경과 Google 계정 명시적 연결은 후속 범위다.
