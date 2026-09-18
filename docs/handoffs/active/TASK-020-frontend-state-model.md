@@ -78,4 +78,4 @@
 
 ## Last Verified Commit
 
-미커밋 — 검증 후 기록한다.
+`ce8c7ef` — State Model 2차 자체 교차 검토와 문서 링크·화면 추적 검증을 완료한 커밋.
