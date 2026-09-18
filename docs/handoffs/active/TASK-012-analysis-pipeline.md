@@ -29,6 +29,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 자체 계정 비밀번호 재확인을 포함한 회원 탈퇴 및 계정 연계 DB·이미지 삭제 구현
 - 분석 Controller → Service → Repository 전체 흐름 Testcontainers 통합 테스트 추가
 - 회원 생성 시 기본 알림 설정 생성 및 분석 실패 알림 생성 보완
+- 리뷰 작성일을 네이버 구조화 필드에서 읽도록 보강해 PRD FR-009 2년 초과 경고를 실제 동작시킴
 
 ## Changed
 - `backend/spring-api/**` — 공개 분석 API, 내부 Python gateway, 결과 저장, 이미지 보호, Flyway V3
@@ -56,6 +57,23 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | Frontend lint/typecheck/test | `npm run lint`, `npm run typecheck`, `npm test -- --runInBand` | PASS, 7 tests |
 | Android bundle | `npx expo export --platform android --output-dir dist-android` | PASS |
 | Visual QA | 실제 API·DB·OpenAI 키·테스트 매장 URL을 사용한 실기기 E2E | 미실행 |
+| Python test (2026-09-18) | `.venv\Scripts\python.exe -m pytest backend\python-analysis` | PASS, 16 tests (기존 7 + 날짜 보강 9) |
+| 날짜 보강 실데이터 검증 | 저장한 실제 `m.place.naver.com` 응답 1페이지에 수집 경로 적용 | PASS — `written_at` 확보 0/10건 → 10/10건, 수집 건수 후퇴 없음, 작성자 식별정보 유출 0 |
+| 2년 규칙 발동 검증 | 3년 전 리뷰 1건 + 최근 리뷰 1건 (기준일 2026-09-18) | PASS — 수정 전 `False`(오동작), 수정 후 `True` |
+
+## 리뷰 작성일 보강 (2026-09-18)
+
+기존 `_extract_date` 는 **리뷰 본문 글자에서** 정규식으로 날짜를 찾았다. 실제 리뷰 본문에는 날짜가 거의 적히지 않아 실측 10건 중 0건만 날짜를 얻었고, 그 결과 **PRD FR-009의 2년 초과 경고가 구조적으로 발동할 수 없었다.**
+
+네이버 응답의 `representativeVisitDateTime` 만 연도를 포함한 완전한 타임스탬프다(`visited`·`created` 는 `9.13.일` 형식으로 연도가 없다). 이 값을 읽어 본문에 매칭하는 `build_date_index` 를 추가했다.
+
+**검증된 DOM 텍스트 수집 경로는 그대로 두었다.** `__APOLLO_STATE__` 는 SSR 첫 페이지(약 20건)만 담고 나머지는 스크롤 시 GraphQL 응답으로 오므로, 구조화 추출로 전면 교체하면 수집 건수가 120건에서 20건 수준으로 후퇴해 50건 기준에 미달한다. 따라서 수집은 기존 방식을 유지하고 **날짜만 보강**한다. GraphQL 응답은 페이지가 스스로 보내는 요청의 응답을 읽을 뿐 별도 요청을 만들지 않는다.
+
+본문 정규식 방식은 fallback 으로 남겼다. 구조화 타임스탬프가 없으면 `written_at` 은 `None` 으로 두고 연도를 추정하지 않는다.
+
+## 폐기한 중복 브랜치
+
+`feat/TASK-012-naver-review-collector` (커밋 `739c516`) 는 같은 TASK 번호·같은 `collection/` 패키지·같은 ADR-009 번호로 수집 계층을 중복 구현한 브랜치다. 이 브랜치를 정본으로 유지하기로 결정하고 해당 브랜치는 개발을 중단했다. ref 는 삭제하지 않고 남겨 두었다. 위 날짜 보강은 그 브랜치에서 옮겨 온 유일한 항목이다.
 
 ## Unresolved
 - 네이버 정책은 원칙적으로 자동 수집을 금지한다. 명시적 승인 또는 공식 API/robots 허용 확인 전 운영 활성화 금지.
@@ -64,6 +82,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 2026-09-18 Docker Desktop 프로세스는 시작됐으나 WSL 런타임이 설치 완료 상태가 아니어서 엔진 연결 실패. 로컬 PostgreSQL 18 서비스는 실행 중이나 테스트 계정 비밀번호가 없어 실제 통합 테스트는 계속 미실행.
 - Spring 인프로세스 비동기 작업은 재시작 복구·다중 인스턴스를 지원하지 않는다. 운영 전 내구성 큐 필요.
 - RAG 전문 지식 검색은 아직 구현되지 않아 제안의 지식 참고 목록이 비어 있다.
+- 날짜 보강의 **실제 브라우저 수집 중 동작은 미검증이다.** 저장된 응답과 단위 테스트로만 확인했다. 실제 수집 시 GraphQL 응답이 몇 건의 날짜를 채우는지는 다음 E2E에서 측정해야 한다.
+- `build_reviews` 의 `len(normalized) < 10` 최소 글자 수는 제품 결정 없이 들어간 임의 임계값이다. 확정하거나 제거해야 한다.
 - 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전 정보가 미완료다. 탈퇴·연계 데이터 삭제 코드는 구현됐지만 실제 PostgreSQL 검증은 남아 있다.
 
 ## Do Not Assume

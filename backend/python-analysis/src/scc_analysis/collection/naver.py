@@ -1,9 +1,11 @@
 import hashlib
 import ipaddress
+import json
 import re
 import socket
-from collections.abc import Iterable
-from datetime import date
+from collections.abc import Iterable, Iterator
+from datetime import date, datetime
+from typing import Any
 from urllib.parse import urlparse
 
 from playwright.async_api import Browser, Frame, Page, async_playwright
@@ -20,6 +22,20 @@ REVIEW_SELECTORS = (
     "[data-pui-click-code='rvshowmore']",
     "li[class*='place_apply_pui'] [class*='text']",
 )
+
+
+REVIEW_TYPENAME = "VisitorReview"
+
+# 네이버 응답에서 연도가 있는 날짜는 이 필드뿐이다. visited/created 는 "9.13.일" 형식이라
+# 연도가 없고, 리뷰 본문에는 날짜가 거의 적히지 않는다. 이 필드를 쓰지 않으면
+# written_at 이 사실상 항상 None 이 되어 PRD FR-009 의 2년 초과 경고가 발동하지 않는다.
+STRUCTURED_DATE_FIELD = "representativeVisitDateTime"
+
+# ADR-002 "지켜야 할 것" 2번 — 작성자 식별정보는 리뷰와 같은 객체에 들어오므로
+# 구조화 추출에서 명시적으로 읽지 않는다. 아래 필드는 어떤 경로로도 저장하지 않는다.
+AUTHOR_FIELDS = frozenset({"author", "nickname", "userIdno", "loginIdno"})
+
+_MATCH_KEY_LENGTH = 40
 
 
 class ReviewCollectionError(RuntimeError):
@@ -78,7 +94,11 @@ def normalize_review_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
-def build_reviews(texts: Iterable[str], limit: int) -> list[CollectedReview]:
+def build_reviews(
+    texts: Iterable[str],
+    limit: int,
+    date_index: dict[str, date] | None = None,
+) -> list[CollectedReview]:
     reviews: list[CollectedReview] = []
     seen: set[str] = set()
     for raw in texts:
@@ -94,12 +114,82 @@ def build_reviews(texts: Iterable[str], limit: int) -> list[CollectedReview]:
                 content=normalized,
                 normalized_content=normalized,
                 content_hash=digest,
-                written_at=_extract_date(normalized),
+                written_at=_written_at_for(normalized, date_index),
             )
         )
         if len(reviews) >= limit:
             break
     return reviews
+
+
+def _written_at_for(normalized: str, date_index: dict[str, date] | None) -> date | None:
+    """Prefer the structured timestamp, then fall back to a date typed into the body."""
+    if date_index:
+        matched = date_index.get(match_key(normalized))
+        if matched is not None:
+            return matched
+    return _extract_date(normalized)
+
+
+def match_key(text: str) -> str:
+    """Join a DOM-scraped body to its structured record.
+
+    The DOM text and the GraphQL body can differ in trailing whitespace or truncation,
+    so only a normalized prefix is compared.
+    """
+    return normalize_review_text(text)[:_MATCH_KEY_LENGTH]
+
+
+def iter_review_nodes(payload: Any) -> Iterator[dict[str, Any]]:
+    if isinstance(payload, dict):
+        if payload.get("__typename") == REVIEW_TYPENAME:
+            yield payload
+        for value in payload.values():
+            yield from iter_review_nodes(value)
+    elif isinstance(payload, list):
+        for value in payload:
+            yield from iter_review_nodes(value)
+
+
+def build_date_index(payloads: Iterable[Any]) -> dict[str, date]:
+    """Map review body to its visit date, reading only body and timestamp.
+
+    Author identifiers sit on the same node and are deliberately never read.
+    """
+    index: dict[str, date] = {}
+    for payload in payloads:
+        for node in iter_review_nodes(payload):
+            body = node.get("body")
+            if not isinstance(body, str) or not body.strip():
+                continue
+            written_at = _iso_date(node.get(STRUCTURED_DATE_FIELD))
+            if written_at is None:
+                continue
+            index.setdefault(match_key(body), written_at)
+    return index
+
+
+def _iso_date(value: Any) -> date | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
+
+
+def parse_apollo_state(html: str) -> dict[str, Any] | None:
+    marker = html.find("window.__APOLLO_STATE__")
+    if marker < 0:
+        return None
+    start = html.find("{", marker)
+    if start < 0:
+        return None
+    try:
+        state, _ = json.JSONDecoder().raw_decode(html[start:])
+    except json.JSONDecodeError:
+        return None
+    return state
 
 
 def _extract_date(text: str) -> date | None:
@@ -129,11 +219,26 @@ class NaverPublicReviewCollector:
     async def _collect_from_browser(self, browser: Browser, target: str) -> list[CollectedReview]:
         page = await browser.new_page(locale="ko-KR")
         page.set_default_timeout(self.timeout_ms)
+
+        # 스크롤로 추가 로드되는 리뷰의 날짜는 GraphQL 응답에만 있다. 페이지가 스스로
+        # 보내는 요청의 응답을 그대로 읽어 둔다. 별도 요청을 만들지 않는다.
+        payloads: list[Any] = []
+
+        async def capture(response: Any) -> None:
+            if "graphql" not in response.url.lower():
+                return
+            try:
+                payloads.append(await response.json())
+            except Exception:  # noqa: BLE001 - JSON이 아니면 날짜 보강만 건너뛴다
+                return
+
+        page.on("response", capture)
         try:
             await page.goto(target, wait_until="domcontentloaded", timeout=self.timeout_ms)
             validate_collection_page_url(page.url)
             await self._open_review_surface(page)
             texts = await self._extract_review_texts(page)
+            payloads.extend(await self._apollo_states(page))
         except ReviewCollectionError:
             raise
         except Exception as error:
@@ -145,7 +250,7 @@ class NaverPublicReviewCollector:
         finally:
             await page.close()
 
-        reviews = build_reviews(texts, self.limit)
+        reviews = build_reviews(texts, self.limit, build_date_index(payloads))
         if not reviews:
             raise ReviewCollectionError(
                 "REVIEW_COLLECTION_BLOCKED",
@@ -222,6 +327,17 @@ class NaverPublicReviewCollector:
                 expander = expanders.nth(index)
                 if await expander.is_visible():
                     await expander.click()
+
+    async def _apollo_states(self, page: Page) -> list[Any]:
+        states: list[Any] = []
+        for frame in [page.main_frame, *page.frames]:
+            try:
+                state = parse_apollo_state(await frame.content())
+            except Exception:  # noqa: BLE001 - 프레임이 닫혔으면 날짜 보강만 건너뛴다
+                continue
+            if state is not None:
+                states.append(state)
+        return states
 
     async def _extract_review_texts(self, page: Page) -> list[str]:
         result: list[str] = []
