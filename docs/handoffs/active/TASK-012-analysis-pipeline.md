@@ -1,7 +1,7 @@
 # TASK-012 — 네이버 리뷰 수집·분석 API와 프론트 연결
 
 ## Status
-일시 중단 — 2026-09-17 작업 종료, 다음 작업일 재개 대기
+구현 진행 — 마이페이지·탈퇴 완료, 실제 PostgreSQL 실행 검증 대기
 
 ## Owner
 `role:feature` — 미배정 (`role:platform`, `role:product`, `role:design-system` 교차 리뷰 필요)
@@ -9,9 +9,9 @@
 ## Branch
 `feat/TASK-012-analysis-pipeline`
 
-## Pause Note
+## Work Note
 - 원격 push와 PR 생성은 수행하지 않았다. 현재 변경은 로컬 브랜치에만 있다.
-- 작업 재개 전 Windows 재부팅이 필요하다. 재부팅 후 Docker Desktop 엔진 상태부터 확인한다.
+- Docker Desktop은 설치됐지만 WSL 런타임 미완료로 엔진이 시작되지 않는다. 로컬 PostgreSQL 18은 실행 중이나 테스트 계정 접속정보가 없다.
 - 채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다. 새 키는 로컬 `backend/.env`에만 설정한다.
 
 ## Goal
@@ -24,6 +24,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 약관/개인정보 문서 버전 동의 기록과 법률 검토 전 초안·출시 체크리스트 작성
 - Playwright Chromium 설치 및 headless smoke test 완료
 - 제공된 테스트 매장 URL의 지도 iframe을 공개 리뷰 화면으로 정규화해 리뷰 본문 120건 수집 확인
+- 마이페이지 분석 완료·실패 알림 조회와 알림 설정 조회·변경 API 구현
+- 자체 계정 비밀번호 재확인을 포함한 회원 탈퇴 및 계정 연계 DB·이미지 삭제 구현
+- 분석 Controller → Service → Repository 전체 흐름 Testcontainers 통합 테스트 추가
+- 회원 생성 시 기본 알림 설정 생성 및 분석 실패 알림 생성 보완
 
 ## Changed
 - `backend/spring-api/**` — 공개 분석 API, 내부 Python gateway, 결과 저장, 이미지 보호, Flyway V3
@@ -44,6 +48,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | Python lint/format | `.venv\\Scripts\\python.exe -m ruff check ...`, `ruff format --check ...` | PASS |
 | Python test | `.venv\\Scripts\\python.exe -m pytest backend\\python-analysis` | PASS, 7 tests |
 | Spring test | `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api test` | PASS, 14 tests 중 4 Testcontainers tests는 Docker 부재로 SKIP |
+| Spring test (2026-09-18) | `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api test --rerun-tasks` | PASS, 19 tests 중 13 PASS·6 Testcontainers SKIP |
+| PostgreSQL 통합 테스트 코드 | `AnalysisApiIntegrationTests` | 분석 전체 흐름·알림·탈퇴 삭제 시나리오 작성, 컴파일 PASS |
 | Playwright runtime | Chromium 설치 후 headless page title smoke | PASS |
 | 네이버 공개 리뷰 수집 | 제공된 테스트 URL, limit 120 | PASS, 본문 120건(작성자 식별정보 제외) |
 | Frontend lint/typecheck/test | `npm run lint`, `npm run typecheck`, `npm test -- --runInBand` | PASS, 7 tests |
@@ -54,6 +60,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 네이버 정책은 원칙적으로 자동 수집을 금지한다. 명시적 승인 또는 공식 API/robots 허용 확인 전 운영 활성화 금지.
 - 실제 OpenAI API 호출을 포함한 전체 분석 E2E는 미실행. 채팅에 노출된 키는 사용하지 않고 폐기·재발급이 필요하다.
 - Docker Desktop 4.91.0과 WSL/VirtualMachinePlatform 기능은 설치·활성화했으나 재부팅 전이라 Flyway V3와 PostgreSQL 저장 통합 테스트는 미실행.
+- 2026-09-18 Docker Desktop 프로세스는 시작됐으나 WSL 런타임이 설치 완료 상태가 아니어서 엔진 연결 실패. 로컬 PostgreSQL 18 서비스는 실행 중이나 테스트 계정 비밀번호가 없어 실제 통합 테스트는 계속 미실행.
 - Spring 인프로세스 비동기 작업은 재시작 복구·다중 인스턴스를 지원하지 않는다. 운영 전 내구성 큐 필요.
 - RAG 전문 지식 검색은 아직 구현되지 않아 제안의 지식 참고 목록이 비어 있다.
 - 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전, 탈퇴·삭제 기능이 미완료다.
@@ -65,7 +72,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 이 브랜치는 원격에 push되지 않았고 PR도 생성되지 않았다.
 
 ## Next Action
-`git status`로 로컬 변경을 확인한 다음 Windows를 재부팅한다. 이후 Docker 엔진을 시작하고 새 OpenAI 키를 로컬 `backend/.env`에만 설정한 뒤 전체 E2E를 수행한다.
+WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정보를 준비한 뒤 `AnalysisApiIntegrationTests`와 `InitialSchemaMigrationTests`의 6개 Testcontainers 테스트를 실제 실행한다. 이후 새 OpenAI 키를 로컬 `backend/.env`에만 설정하고 전체 E2E를 수행한다.
 
 ## Last Verified Commit
-`bbc295c` — 이 commit의 백엔드·Python·문서와 별도 `C:\PULSE_SCC_FE` 파일을 대상으로 위 검증 수행
+`36561f6` — 마이페이지 알림·설정, 회원 탈퇴·삭제, 분석 전체 흐름 통합 테스트 코드와 문서를 대상으로 컴파일·테스트·빌드 검증 수행
