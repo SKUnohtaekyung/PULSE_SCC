@@ -15,6 +15,7 @@ Expo 기반 React Native·TypeScript Android 클라이언트다. 제품 요구�
 ```powershell
 cd frontend\mobile
 npm install
+npm run verify:tokens
 npm run lint
 npm run typecheck
 npm run export:android
@@ -41,5 +42,7 @@ npm run android:device
 - Expo Router의 `src/app` 파일 기반 route
 - `expo-dev-client` development build
 - ESLint와 TypeScript strict 검사
+- `src/design/tokens/foundation.ts`의 readonly semantic theme
+- Pretendard v1.3.9 정적 굵기 4종과 토큰 대비 자동 검증
 
-앱 패키지 ID, 서명, EAS 프로젝트, 최종 아이콘·스플래시 자산은 아직 확정하지 않았다. 현재 화면과 이미지 자산은 부트스트랩 확인용이며 제품 UI 완료 증거가 아니다.
+앱 패키지 ID, 서명, EAS 프로젝트, 최종 아이콘·스플래시 자산은 아직 확정하지 않았다. 현재 첫 화면은 Design Foundation을 렌더링하는 개발용 견본이고 기본 이미지 자산은 임시값이므로 제품 UI 완료 증거가 아니다.

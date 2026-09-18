@@ -2,7 +2,7 @@
 
 4명이 Claude Code와 Codex를 함께 사용해 개발하는 프로젝트.
 
-> **현재 상태: 백엔드 실행 골격·Flyway V1 초기 스키마와 Expo Android 프론트엔드 실행 골격 구현 완료, 비즈니스 기능 구현 전.**
+> **현재 상태: 백엔드 실행 골격·Flyway V1 초기 스키마와 Expo Android 프론트엔드 실행 골격·Design Foundation 구현 완료, 비즈니스 기능 구현 전.**
 > Spring Boot·FastAPI 단위 검증은 가능하며 재현 가능한 PostgreSQL 통합 테스트 실행에는 Docker가 필요하다.
 
 **코드만 두는 저장소가 아니다.** 제품 문서, 조사 근거, 발표 자료, 회의·인터뷰 기록을 함께 관리한다.
@@ -76,7 +76,7 @@ frontend/                 프론트엔드 실행 프로젝트
 | 백엔드 골격 | `backend/`에 Spring Boot·FastAPI·PostgreSQL Compose와 환경변수 예시 구현 |
 | 데이터베이스 | Flyway V1 초기 스키마와 Testcontainers PostgreSQL 통합 테스트 구현 |
 | 비즈니스 API | 설계 계약은 있지만 실제 endpoint·DTO는 아직 구현 전 |
-| 프론트엔드 | `frontend/mobile`에 Expo SDK 57·React Native 0.86·Expo Router·development build 골격 구현. 실제 기능 화면 전 |
+| 프론트엔드 | `frontend/mobile`에 Expo SDK 57·React Native 0.86·Expo Router·development build 골격과 semantic token·Pretendard 구현. 실제 기능 화면 전 |
 | `.github/workflows/` (CI) | 로컬 검증 명령은 생겼지만 배포 환경과 CI 정책은 아직 미정 |
 | `.claude/rules/` | 규칙을 여기에 두면 `AGENTS.md` 와 중복된다. Claude는 `CLAUDE.md` 의 `@AGENTS.md` import로 이미 전부 읽는다 |
 | `.codex/`, `.agents/skills/` | Codex 0.147.0이 프로젝트 레벨에서 읽지 않음 ([ADR-001](docs/decisions/ADR-001-agent-config-strategy.md)) |

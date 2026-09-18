@@ -1,12 +1,12 @@
 # SCC — Design System
 
-**이 문서는 SCC 손님분석 MVP의 UI/UX 원칙과 구현 전 디자인 기준의 정본이다.**
+**이 문서는 SCC 손님분석 MVP의 UI/UX 원칙과 디자인 기준의 정본이다.**
 
-실제 디자인 토큰과 컴포넌트가 생기면 값과 동작의 정본은 코드가 된다. 이 문서는 코드가 지켜야 할 의미·우선순위·사용 규칙과, 코드 생성 전 이식할 기준값을 관리한다.
+실제 디자인 토큰 값의 정본은 코드다. 이 문서는 코드가 지켜야 할 의미·우선순위·사용 규칙과 구현 근거를 관리한다.
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **PULSE 디자인 기준·핵심 결과 IA·프론트엔드 경로 반영 / 토큰 구현 전 초안** |
+| 상태 | **Design Foundation 구현 — 토큰·Pretendard·접근성 기준 코드 반영** |
 | 최종 수정 | 2026-09-18 |
 | 소유 역할 | `role:design-system` |
 | 제품 요구사항 | [`../product/PRD.md`](../product/PRD.md) |
@@ -39,7 +39,7 @@ Google 소셜 로그인과 서비스 자체 로그인은 MVP 범위다. 대시�
 | 제품 기능과 범위 | `docs/product/PRD.md` |
 | 화면·기능·상태 | `docs/product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` |
 | 디자인 의미와 사용 원칙 | 이 문서 |
-| 실제 색상·간격·타입 값 | 구현 후 토큰 코드 |
+| 실제 색상·간격·타입 값 | `frontend/mobile/src/design/tokens/foundation.ts` |
 | 컴포넌트 props와 동작 | 구현 후 컴포넌트 코드와 타입 |
 
 ---
@@ -70,19 +70,21 @@ PULSE에서 사용한 `Modern Professional & Universal Clarity`를 SCC의 기본
 
 ### 3.1 토큰 정본 위치
 
-Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../decisions/ADR-011-frontend-bootstrap.md)에서 결정했다. 아직 토큰 코드는 생성하지 않았으므로 실제 값의 정본은 이 문서의 이식 기준이다.
+Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../decisions/ADR-011-frontend-bootstrap.md)에서 결정했다. 실제 값은 코드가 정본이며, 이 문서는 사용 의미와 변경 절차를 설명한다.
 
 | 항목 | 상태 |
 |---|---|
-| 토큰 표현 방식 | TypeScript readonly semantic theme object (`as const`) — 구현 전 |
-| 토큰 파일 경로 | `frontend/mobile/src/design/tokens/` — 경로 확정, 코드 생성 전 |
-| 공용 컴포넌트 경로 | `frontend/mobile/src/components/ui/` — 경로 확정, 코드 생성 전 |
+| 토큰 표현 방식 | TypeScript readonly semantic theme object (`as const`) — 구현됨 |
+| 토큰 정본 | `frontend/mobile/src/design/tokens/foundation.ts` |
+| 공개 export | `frontend/mobile/src/design/tokens/index.ts` |
+| 자동 검증 | `frontend/mobile/scripts/verify-design-tokens.mjs` |
+| 공용 컴포넌트 경로 | `frontend/mobile/src/components/ui/` — 경로 확정, 컴포넌트 구현 전 |
 
-웹 전용 CSS variables나 Tailwind를 정본으로 두지 않는다. 첫 토큰 구현 Task에서 위 경로에 실제 코드를 만들고 색상 대비·타입 행간을 검증한 뒤 코드 정본으로 전환한다.
+웹 전용 CSS variables나 Tailwind를 정본으로 두지 않는다. 컴포넌트는 `palette` 원시값보다 `colors` 의미 토큰을 우선 사용한다. 값 변경 시 토큰 검증, lint, typecheck, Android bundle을 함께 실행한다.
 
 ### 3.2 색상 이식 기준
 
-아래 값은 사용자 제공 PULSE 대조본에서 확인된 기존 코드 값이다. SCC 토큰 코드를 만들 때의 **초기 이식 기준**이며, 아직 이 저장소에서 실행 검증된 값은 아니다.
+아래 값은 사용자 제공 PULSE 대조본에서 확인된 기존 코드 값과 SCC가 채택한 불투명 action 원색이다. 전체 원시 팔레트와 실제 의미 매핑은 토큰 코드가 정본이다.
 
 | 의미 토큰 후보 | 값 | 용도 |
 |---|---|---|
@@ -93,7 +95,8 @@ Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../dec
 | `primary-border` | `#002B7A66` | 강조 경계선 |
 | `primary-tint` | `#002B7A1A` | 선택·정보 배경 |
 | `primary-stripe` | `#002B7A0D` | 아주 연한 구분 배경 |
-| `action` | `#FF5A36CC` | 분석 시작·재시도 등 행동 CTA |
+| `action-source-overlay` | `#FF5A36CC` | 기존 PULSE의 반투명 값 보존. 단독 CTA 배경으로 쓰지 않음 |
+| `action-primary` | `#FF5A36` | 분석 시작·재시도 등 행동 CTA의 불투명 배경 |
 | `action-bg` | `#FF5A361A` | 행동 관련 연한 배경 |
 | `action-hover` | `#FF5A3633` | 기존 코드의 action hover 후보 |
 | `background-page` | `#F5F7FA` | 페이지 배경 |
@@ -103,14 +106,14 @@ Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../dec
 | `neutral-100` | `#F1F5F9` | 태그·보조 배경 |
 | `neutral-200` | `#E2E8F0` | 구분선·카드 경계 |
 | `neutral-300` | `#CBD5E1` | 비활성 배경 |
-| `neutral-400` | `#94A3B8` | placeholder·힌트 후보 |
+| `neutral-400` | `#94A3B8` | 비활성 콘텐츠. 일반 본문·placeholder에 쓰지 않음 |
 | `neutral-600` | `#475569` | 보조 본문 |
 | `neutral-900` | `#0F172A` | 강한 제목 |
 | `success` | `#059669` | 성공 |
 | `warning` | `#D97706` | 주의·근거 한계 |
 | `error` | `#DC2626` | 오류 |
 
-8자리 HEX 색상은 알파값을 포함한다. 실제 배경에 합성됐을 때 대비가 달라지므로, `action`, `primary-sub`, `neutral-400` 등을 텍스트나 버튼에 사용할 때는 구현 화면에서 WCAG 대비를 검증한다. 검증 전에는 “접근성 충족”으로 판정하지 않는다.
+8자리 HEX는 알파를 포함하므로 배경에 따라 대비가 바뀐다. 따라서 원래의 `#FF5A36CC`는 `sourceOverlay`로만 보존하고, 주요 CTA는 불투명 `#FF5A36` 위에 `#191F28` 텍스트를 쓴다. 자동 검증 결과 이 조합은 5.34:1이다. `neutral-400`은 비활성 표현에만 쓰고 일반 보조 본문과 placeholder는 7.58:1인 `neutral-600`을 사용한다.
 
 ### 3.3 색상 사용 규칙
 
@@ -124,52 +127,60 @@ Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../dec
 
 ### 3.4 타이포그래피 이식 기준
 
-기본 글꼴은 PULSE에서 사용한 Pretendard 계열을 우선한다.
+기본 글꼴은 Pretendard v1.3.9다. Android 7까지의 렌더링 호환성을 위해 가변 글꼴 대신 Regular·Medium·SemiBold·Bold 정적 OTF를 `frontend/mobile/assets/fonts/`에 포함하고 `expo-font`로 로드한다. 원본과 OFL 라이선스, SHA-256은 같은 폴더의 `README.md`가 기록한다.
 
-```text
-"Pretendard Variable", Pretendard, -apple-system,
-BlinkMacSystemFont, system-ui, Roboto, sans-serif
-```
+기존 PULSE 타입 스케일에 모바일 본문용 행간을 확정해 구현했다.
 
-기존 PULSE 코드에서 확인된 타입 스케일을 초기 이식 기준으로 사용한다.
-
-| 토큰 후보 | 크기 | 굵기 | 행간 후보 | 주 사용처 |
+| 코드 토큰 | 크기 | 굵기 | 행간 | 주 사용처 |
 |---|---:|---:|---:|---|
-| `head-1` | 34px | 700 | 1.4 | 결과 페이지 제목 |
-| `head-2` | 32px | 600 | 1.4 | 주요 섹션 제목 |
-| `head-3` | 26px | 600 | 1.4 | 결과 그룹 제목 |
-| `head-4` | 22px | 600 | 1.4 | 카드 묶음 제목 |
-| `head-5` | 20px | 600 | 1.4 | 카드 제목 |
-| `body-1` | 18px | 700 | 확정 필요 | 강한 본문·핵심 수치 |
-| `body-2` | 18px | 500 | 확정 필요 | 강조 본문 |
-| `body-3` | 18px | 400 | 확정 필요 | 넓은 화면 본문 후보 |
-| `body-4` | 16px | 400 | 확정 필요 | 기본 본문 |
-| `body-5` | 14px | 700 | 확정 필요 | 작은 강조문 |
-| `body-6` | 14px | 600 | 확정 필요 | 레이블 |
-| `body-7` | 14px | 400 | 확정 필요 | 보조 정보 |
-| `caption` | 12px | 400 | 확정 필요 | 날짜·출처·메타데이터 |
-| `button-main` | 16px | 600 | 확정 필요 | 주요 버튼 |
-| `button-sub` | 15px | 500 | 확정 필요 | 보조 버튼 |
-| `error-text` | 13px | 500 | 확정 필요 | 입력 오류 |
+| `head1` | 34px | 700 | 48px | 결과 페이지 제목 |
+| `head2` | 32px | 600 | 45px | 주요 섹션 제목 |
+| `head3` | 26px | 600 | 37px | 결과 그룹 제목 |
+| `head4` | 22px | 600 | 31px | 카드 묶음 제목 |
+| `head5` | 20px | 600 | 28px | 카드 제목 |
+| `body1` | 18px | 700 | 27px | 강한 본문·핵심 수치 |
+| `body2` | 18px | 500 | 27px | 강조 본문 |
+| `body3` | 18px | 400 | 27px | 넓은 화면 본문 후보 |
+| `body4` | 16px | 400 | 24px | 기본 본문 |
+| `body5` | 14px | 700 | 21px | 작은 강조문 |
+| `body6` | 14px | 600 | 21px | 레이블 |
+| `body7` | 14px | 400 | 21px | 보조 정보 |
+| `caption` | 12px | 400 | 18px | 날짜·출처·메타데이터 |
+| `buttonMain` | 16px | 600 | 24px | 주요 버튼 |
+| `buttonSub` | 15px | 500 | 22px | 보조 버튼 |
+| `errorText` | 13px | 500 | 20px | 입력 오류 |
 
-모든 타입 토큰의 자간 후보는 기존 값인 `-0.02em`이다. 모바일에서 `head-1`이 과도하면 반응형 타입 토큰을 별도로 정의한다. 본문은 기본 16px를 우선하고, 12~14px 텍스트는 부가 정보에만 사용한다.
+모든 타입 토큰의 자간은 글자 크기의 `-2%`를 React Native 절대값으로 변환해 저장한다. 본문은 기본 16px를 우선하고 12~14px 텍스트는 부가 정보에만 사용한다. 시스템 글자 크기 확대를 막는 `allowFontScaling={false}`는 사용하지 않는다.
 
 ### 3.5 간격·모서리·그림자 기준
 
-기존 PULSE 문서의 계층 기준을 SCC의 시작점으로 사용한다.
+기존 PULSE 문서의 계층 기준을 다음 값으로 구현했다.
 
-| 대상 | 기준 후보 |
+| 대상 | 기준 |
 |---|---|
-| 페이지 좌우 여백 | 모바일 16px 이상, 실제 breakpoint별 값은 토큰으로 확정 |
+| spacing | 4px 기본 단위. `0, 4, 8, 12, 16, 20, 24, 32…128` |
+| 페이지 좌우 여백 | compact 16px / medium 24px / expanded 32px |
+| breakpoint | compact 0~599 / medium 600~1023 / expanded 1024 이상 |
+| 콘텐츠 최대 너비 | 일반 960px / 긴 문장 640px |
+| 제품 터치 영역 | 최소 44px |
 | 메인 결과 패널 | radius 24px |
 | 내부 카드·버튼 | radius 12px |
 | 배지·작은 요소 | radius 8px 또는 pill |
-| 부드러운 강조 그림자 | `0 4px 20px rgba(0, 43, 122, 0.15)` 후보 |
+| 부드러운 강조 그림자 | `0 4px 20px rgba(0, 43, 122, 0.15)`, Android 7 fallback elevation 4 |
 
 - spacing, radius, shadow는 토큰으로 정의한다.
 - 분석 카드마다 서로 다른 모서리값을 임의로 추가하지 않는다.
 - 그림자로만 카드 경계를 표현하지 않는다. 저대비 환경을 위해 배경이나 경계선도 고려한다.
 - 기존 PULSE에서 관찰된 28px, 30px, 32px 예외값은 SCC의 전역 토큰으로 자동 승격하지 않는다.
+
+### 3.6 Asset Rules
+
+- 제품에 포함하는 외부 에셋은 출처, 버전, 라이선스, 무결성 해시를 같은 디렉터리에 기록한다.
+- ImageGen으로 만드는 Step 4 시안은 UX 가설 탐색 자료다. 선택 전에는 앱의 제품 에셋으로 넣지 않는다.
+- 선택된 래스터 에셋만 `frontend/mobile/assets/images/`에 넣고, Android 밀도별 파일이 필요하면 React Native의 `@2x`·`@3x` 규칙을 따른다.
+- 아이콘과 로고는 이미지 생성으로 대체하지 않는다. 일관된 벡터·코드 자산을 사용하고 아이콘 버튼에는 접근 가능한 이름을 제공한다.
+- 페르소나 이미지는 실제 인물 사진처럼 오인시키지 않으며, 생성 사실·기능 중심 대체 텍스트·로딩·실패 대체 상태를 함께 제공한다.
+- 이미지가 없어도 유형명, 관찰 특성, 근거 리뷰, 결과 한계를 이해할 수 있어야 한다.
 
 ---
 
@@ -348,13 +359,15 @@ loading / empty / error / normal
 
 ### 8.2 정량 기준
 
-WCAG 목표 등급과 지원 Android·보조기술 조합은 확정 필요다. 확정 전에도 일반 텍스트와 컨트롤의 대비, 외부 키보드 흐름, 포커스, 글자 크기 확대를 검증한다.
+제품 목표는 [WCAG 2.2](https://www.w3.org/TR/WCAG22/) **AA**다. 일반 텍스트는 4.5:1 이상, 큰 텍스트와 의미 있는 비텍스트 요소는 3:1 이상으로 검증한다. WCAG 2.2 AA의 포인터 대상 최소값은 24×24px이지만, PULSE 제품 터치 영역은 44×44px 이상을 사용한다. 포커스 표시는 제거하지 않고 최소 2px 토큰을 제공한다.
+
+토큰 자동 검증은 대표 전경·배경 조합과 상태 아이콘 대비를 검사한다. 개별 화면에서는 이미지 위 텍스트, 합성된 반투명색, 모든 interaction state를 실제 렌더링으로 다시 확인해야 한다. 지원 Android 기기와 TalkBack 조합은 아직 확정되지 않았으므로 네이티브 접근성 완료로 판정하지 않는다.
 
 ---
 
 ## 9. 모션
 
-기존 PULSE에서 Button 0.15초, Modal 0.2초, Drawer 0.25초, 일반 fade-in 0.3초가 사용됐다. SCC 구현 시 참고할 수 있지만 자동 확정값은 아니다.
+상태 전환 토큰은 quick 150ms, standard 200ms, emphasized 250ms, reveal 300ms로 확정했다. 어떤 컴포넌트가 어떤 토큰을 쓰는지는 해당 컴포넌트 구현에서 검증한다.
 
 - 모션은 상태 변화와 화면 관계를 설명할 때만 사용한다.
 - 분석 결과가 실제보다 빠르거나 확정적인 것처럼 보이게 하는 가짜 진행 애니메이션을 사용하지 않는다.
@@ -412,17 +425,12 @@ UI 변경은 `.claude/skills/visual-qa/SKILL.md` 절차를 읽고 실제 렌더�
 
 ---
 
-## 13. 구현 전 확정할 디자인 항목
+## 13. 남은 디자인 결정
 
 | 항목 | 결정 시점 |
 |---|---|
-| 토큰 표현 방식과 파일 경로 | 프론트엔드 스택 확정 직후 |
-| action 계열 8자리 HEX의 실제 합성색과 대비 | 첫 버튼 구현 전 |
-| 타입 토큰의 body·caption 행간 | 첫 화면 구현 전 |
-| 모바일·태블릿·데스크톱 breakpoint | 레이아웃 구현 전 |
 | 최소 Android OS와 지원 기기 범위 | Visual QA 기준 작성 전 |
-| WCAG 목표 등급 | 공용 컴포넌트 완료 전 |
 | 페르소나 이미지 화풍·톤·구성 | FR-004 구현 전 |
 | 사실·해석·지식·제안 카드 시안 | 결과 화면 구현 전 |
 | 긴 근거 리뷰의 접기·펼치기 방식 | SC-005 구현 전 |
-| 로딩 단계 표시 방식과 모션 시간 | SC-003 구현 전 |
+| 로딩 단계 표시 방식 | SC-003 구현 전 |

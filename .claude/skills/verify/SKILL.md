@@ -41,6 +41,7 @@ user-invocable: true
 
 ```powershell
 npm --prefix frontend/mobile install
+npm --prefix frontend/mobile run verify:tokens
 npm --prefix frontend/mobile run lint
 npm --prefix frontend/mobile run typecheck
 npm --prefix frontend/mobile run export:android

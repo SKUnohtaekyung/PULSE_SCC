@@ -12,7 +12,7 @@
 
 ## 1. 현재 상태
 
-상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md), 초기 DB 적용 범위는 [ADR-007](../decisions/ADR-007-initial-database-schema.md), 프론트엔드 실행 스택은 [ADR-011](../decisions/ADR-011-frontend-bootstrap.md)로 확정했다. 공개 API와 PostgreSQL 모델은 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot·FastAPI·Expo 실행 골격과 Flyway V1 초기 스키마는 존재하지만 비즈니스 기능은 아직 없다.
+상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md), 초기 DB 적용 범위는 [ADR-007](../decisions/ADR-007-initial-database-schema.md), 프론트엔드 실행 스택은 [ADR-011](../decisions/ADR-011-frontend-bootstrap.md)로 확정했다. 공개 API와 PostgreSQL 모델은 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot·FastAPI·Expo 실행 골격, Flyway V1 초기 스키마, 프론트엔드 Design Foundation은 존재하지만 비즈니스 기능은 아직 없다.
 
 | 항목 | 상태 |
 |---|---|
@@ -123,7 +123,8 @@ SCC/
 ├─ frontend/
 │  └─ mobile/            Expo Android 클라이언트
 │     ├─ src/app/        Expo Router route 전용
-│     ├─ assets/         임시 앱 아이콘 자산
+│     ├─ src/design/     semantic token, font loader, 개발용 토큰 견본
+│     ├─ assets/         Pretendard와 임시 앱 아이콘 자산
 │     ├─ app.json        Expo 앱 설정
 │     └─ package.json    실행·검증 명령과 의존성
 │

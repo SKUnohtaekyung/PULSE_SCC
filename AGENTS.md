@@ -84,6 +84,7 @@ Android SDK·adb·emulator → 미설치, 네이티브 development build·실기
 | Python test | `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest backend\python-analysis` |
 | Backend typecheck | 없음 — 현재 정의하지 않음 |
 | Frontend install | `npm --prefix frontend/mobile install` |
+| Frontend design token 검증 | `npm --prefix frontend/mobile run verify:tokens` |
 | Frontend lint | `npm --prefix frontend/mobile run lint` |
 | Frontend typecheck | `npm --prefix frontend/mobile run typecheck` |
 | Frontend Android bundle | `npm --prefix frontend/mobile run export:android` |
@@ -99,8 +100,8 @@ Android SDK·adb·emulator → 미설치, 네이티브 development build·실기
 | 제품 목표·요구사항 | `docs/product/PRD.md` |
 | 상세 기능 요구사항 | `docs/product/requirements/*` (기능이 커지면 신설) |
 | UI/UX 원칙 | `docs/design/DESIGN_SYSTEM.md` |
-| 실제 디자인 토큰 값 | 토큰 코드 (위치 미정 — 스택 확정 후) |
-| 재사용 UI 컴포넌트 | 컴포넌트 코드 (위치 미정 — 스택 확정 후) |
+| 실제 디자인 토큰 값 | `frontend/mobile/src/design/tokens/foundation.ts` |
+| 재사용 UI 컴포넌트 | `frontend/mobile/src/components/ui/**` (현재 미구현) |
 | 시스템 구조 | `docs/architecture/ARCHITECTURE.md` |
 | API 계약 | `docs/architecture/API.md` 설계 계약 + 실제 OpenAPI/schema/types (현재 실제 schema/types 없음) |
 | DB 구조 | 실제 Flyway migration `backend/spring-api/src/main/resources/db/migration/**` + `docs/architecture/DATA_MODEL.md` |

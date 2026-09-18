@@ -31,6 +31,7 @@
     "android": "expo run:android",
     "android:device": "expo run:android --device",
     "web": "expo start --web",
+    "verify:tokens": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-design-tokens.mjs",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "export:android": "expo export --platform android"
