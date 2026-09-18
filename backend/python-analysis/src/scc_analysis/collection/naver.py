@@ -4,7 +4,7 @@ import json
 import re
 import socket
 from collections.abc import Iterable, Iterator
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -36,6 +36,10 @@ STRUCTURED_DATE_FIELD = "representativeVisitDateTime"
 AUTHOR_FIELDS = frozenset({"author", "nickname", "userIdno", "loginIdno"})
 
 _MATCH_KEY_LENGTH = 40
+
+# 네이버가 화면에 표시하는 방문일은 KST 기준이다. 늦은 밤 방문은 UTC 날짜와 하루
+# 어긋나므로 표시값과 같은 기준으로 맞춘다.
+KST = timezone(timedelta(hours=9))
 
 
 class ReviewCollectionError(RuntimeError):
@@ -97,7 +101,7 @@ def normalize_review_text(value: str) -> str:
 def build_reviews(
     texts: Iterable[str],
     limit: int,
-    date_index: dict[str, date] | None = None,
+    date_index: "ReviewDateIndex | None" = None,
 ) -> list[CollectedReview]:
     reviews: list[CollectedReview] = []
     seen: set[str] = set()
@@ -122,9 +126,9 @@ def build_reviews(
     return reviews
 
 
-def _written_at_for(normalized: str, date_index: dict[str, date] | None) -> date | None:
+def _written_at_for(normalized: str, date_index: "ReviewDateIndex | None") -> date | None:
     """Prefer the structured timestamp, then fall back to a date typed into the body."""
-    if date_index:
+    if date_index is not None and len(date_index):
         matched = date_index.get(match_key(normalized))
         if matched is not None:
             return matched
@@ -151,13 +155,23 @@ def iter_review_nodes(payload: Any) -> Iterator[dict[str, Any]]:
             yield from iter_review_nodes(value)
 
 
-def build_date_index(payloads: Iterable[Any]) -> dict[str, date]:
-    """Map review body to its visit date, reading only body and timestamp.
+class ReviewDateIndex:
+    """Body prefix to visit date, built from payloads the page fetched on its own.
 
-    Author identifiers sit on the same node and are deliberately never read.
+    Only `body` and the timestamp are read. Author identifiers sit on the same node and
+    are never read, so nothing here can carry them (ADR-002 "지켜야 할 것" 2번).
+
+    Two different reviews can share a body prefix, and an identical short body can appear
+    twice with different visit dates. Picking one would silently attach a stranger's date,
+    which is the guessing this module exists to avoid. A key with conflicting dates is
+    dropped instead, leaving `written_at` as None.
     """
-    index: dict[str, date] = {}
-    for payload in payloads:
+
+    def __init__(self) -> None:
+        self._dates: dict[str, date] = {}
+        self._ambiguous: set[str] = set()
+
+    def add(self, payload: Any) -> None:
         for node in iter_review_nodes(payload):
             body = node.get("body")
             if not isinstance(body, str) or not body.strip():
@@ -165,7 +179,31 @@ def build_date_index(payloads: Iterable[Any]) -> dict[str, date]:
             written_at = _iso_date(node.get(STRUCTURED_DATE_FIELD))
             if written_at is None:
                 continue
-            index.setdefault(match_key(body), written_at)
+            key = match_key(body)
+            if key in self._ambiguous:
+                continue
+            existing = self._dates.get(key)
+            if existing is None:
+                self._dates[key] = written_at
+            elif existing != written_at:
+                del self._dates[key]
+                self._ambiguous.add(key)
+
+    def get(self, key: str) -> date | None:
+        return self._dates.get(key)
+
+    @property
+    def ambiguous_count(self) -> int:
+        return len(self._ambiguous)
+
+    def __len__(self) -> int:
+        return len(self._dates)
+
+
+def build_date_index(payloads: Iterable[Any]) -> ReviewDateIndex:
+    index = ReviewDateIndex()
+    for payload in payloads:
+        index.add(payload)
     return index
 
 
@@ -173,7 +211,7 @@ def _iso_date(value: Any) -> date | None:
     if not isinstance(value, str) or not value.strip():
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(KST).date()
     except ValueError:
         return None
 
@@ -221,16 +259,19 @@ class NaverPublicReviewCollector:
         page.set_default_timeout(self.timeout_ms)
 
         # 스크롤로 추가 로드되는 리뷰의 날짜는 GraphQL 응답에만 있다. 페이지가 스스로
-        # 보내는 요청의 응답을 그대로 읽어 둔다. 별도 요청을 만들지 않는다.
-        payloads: list[Any] = []
+        # 보내는 요청의 응답을 읽는다. 별도 요청을 만들지 않는다.
+        # 응답 원본에는 닉네임·userIdno 가 들어 있으므로 보관하지 않고 즉시 날짜만
+        # 추려 버린다. 보관하지 않으면 이후 로깅으로도 유출될 수 없다.
+        date_index = ReviewDateIndex()
 
         async def capture(response: Any) -> None:
             if "graphql" not in response.url.lower():
                 return
             try:
-                payloads.append(await response.json())
-            except Exception:  # noqa: BLE001 - JSON이 아니면 날짜 보강만 건너뛴다
+                payload = await response.json()
+            except Exception:  # JSON이 아니면 날짜 보강만 건너뛴다
                 return
+            date_index.add(payload)
 
         page.on("response", capture)
         try:
@@ -238,7 +279,8 @@ class NaverPublicReviewCollector:
             validate_collection_page_url(page.url)
             await self._open_review_surface(page)
             texts = await self._extract_review_texts(page)
-            payloads.extend(await self._apollo_states(page))
+            for state in await self._apollo_states(page):
+                date_index.add(state)
         except ReviewCollectionError:
             raise
         except Exception as error:
@@ -250,7 +292,7 @@ class NaverPublicReviewCollector:
         finally:
             await page.close()
 
-        reviews = build_reviews(texts, self.limit, build_date_index(payloads))
+        reviews = build_reviews(texts, self.limit, date_index)
         if not reviews:
             raise ReviewCollectionError(
                 "REVIEW_COLLECTION_BLOCKED",
@@ -333,7 +375,7 @@ class NaverPublicReviewCollector:
         for frame in [page.main_frame, *page.frames]:
             try:
                 state = parse_apollo_state(await frame.content())
-            except Exception:  # noqa: BLE001 - 프레임이 닫혔으면 날짜 보강만 건너뛴다
+            except Exception:  # 프레임이 닫혔으면 날짜 보강만 건너뛴다
                 continue
             if state is not None:
                 states.append(state)
