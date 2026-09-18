@@ -83,4 +83,4 @@ Expo Android 클라이언트의 실제 버전·routing·development build·검�
 
 ## Last Verified Commit
 
-미커밋 — 검증 후 기록한다.
+`07912cb` — Expo 실행 골격, 문서 동기화, lint·typecheck·Expo Doctor·Android bundle 검증을 기록한 커밋.
