@@ -65,4 +65,4 @@ ui/TASK-015-design-exploration
 합성 방향을 팀과 확인하고, 제품·플랫폼 소유자에게 Android 지원 범위와 개발 빌드 식별자 결정을 요청한다.
 
 ## Last Verified Commit
-미커밋 — 검증과 독립 리뷰 후 기록
+`be970ff` — ImageGen 시안 4개, 비교 문서, 링크·이미지 무결성 검사와 독립 리뷰까지 유효
