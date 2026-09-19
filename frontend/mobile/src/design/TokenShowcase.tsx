@@ -69,19 +69,28 @@ export function TokenShowcase() {
         <View style={styles.hero}>
           <View style={styles.heroCopy}>
             <Text style={styles.heroLabel}>리뷰에서 확인</Text>
-            <Text style={styles.heroTitle}>근거가 먼저, 해석은 명확하게</Text>
+            <Text accessibilityRole="header" style={styles.heroTitle}>
+              근거가 먼저, 해석은 명확하게
+            </Text>
             <Text style={styles.heroBody}>
               분석 결과는 실제 리뷰 근거와 AI 해석을 분리해 보여줍니다.
             </Text>
           </View>
-          <View style={styles.actionBadge}>
+          <View
+            accessibilityLabel="Action 스타일 예시, 분석하기. 실행되지 않는 개발용 견본입니다."
+            accessibilityRole="text"
+            accessible
+            style={styles.actionBadge}
+          >
             <Text style={styles.actionBadgeText}>분석하기</Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeading}>
-            <Text style={styles.sectionTitle}>Semantic color</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>
+              Semantic color
+            </Text>
             <Text style={styles.sectionCaption}>역할이 먼저이고, 화면은 역할 토큰만 사용합니다.</Text>
           </View>
           <View style={styles.swatchGrid}>
@@ -93,7 +102,9 @@ export function TokenShowcase() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeading}>
-            <Text style={styles.sectionTitle}>Typography</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>
+              Typography
+            </Text>
             <Text style={styles.sectionCaption}>Pretendard 정적 굵기와 읽기 쉬운 행간을 적용했습니다.</Text>
           </View>
           <View style={styles.typeList}>
@@ -108,7 +119,9 @@ export function TokenShowcase() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeading}>
-            <Text style={styles.sectionTitle}>Structure</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>
+              Structure
+            </Text>
             <Text style={styles.sectionCaption}>4px 간격과 세 단계 모서리 계층을 공통 기준으로 씁니다.</Text>
           </View>
           <View style={styles.structureGrid}>
@@ -130,7 +143,7 @@ export function TokenShowcase() {
         <View style={styles.accessibilityCard}>
           <View style={styles.statusDot} />
           <View style={styles.accessibilityCopy}>
-            <Text style={styles.accessibilityTitle}>
+            <Text accessibilityRole="header" style={styles.accessibilityTitle}>
               {accessibility.standard} {accessibility.level}
             </Text>
             <Text style={styles.accessibilityBody}>

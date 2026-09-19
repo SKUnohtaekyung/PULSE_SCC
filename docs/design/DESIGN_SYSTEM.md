@@ -127,7 +127,7 @@ Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../dec
 
 ### 3.4 타이포그래피 이식 기준
 
-기본 글꼴은 Pretendard v1.3.9다. Android 7까지의 렌더링 호환성을 위해 가변 글꼴 대신 Regular·Medium·SemiBold·Bold 정적 OTF를 `frontend/mobile/assets/fonts/`에 포함하고 `expo-font`로 로드한다. 원본과 OFL 라이선스, SHA-256은 같은 폴더의 `README.md`가 기록한다.
+기본 글꼴은 Pretendard v1.3.9다. 구형 Android의 가변 폰트 동작에 의존하지 않도록 Regular·Medium·SemiBold·Bold 정적 OTF를 `frontend/mobile/assets/fonts/`에 포함하고 `expo-font`로 로드한다. 이 선택은 최소 지원 OS를 확정하지 않는다. 원본과 OFL 라이선스, SHA-256은 같은 폴더의 `README.md`가 기록한다.
 
 기존 PULSE 타입 스케일에 모바일 본문용 행간을 확정해 구현했다.
 
