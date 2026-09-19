@@ -90,4 +90,4 @@ Step 4 `Design Exploration` Task에서 ImageGen으로 핵심 결과 경험에 �
 
 ## Last Verified Commit
 
-`ed8de82` — Design Foundation 코드·문서, 토큰 검증, lint·typecheck·Android bundle·보조 Web Visual QA가 유효한 커밋.
+`985b79f` — Design Foundation 코드·문서, 접근성 의미 구조 보완, 토큰 검증·lint·typecheck·Android bundle, 웹 QA·Android 에뮬레이터 QA와 독립 리뷰가 유효한 커밋.
