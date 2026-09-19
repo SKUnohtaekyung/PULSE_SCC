@@ -88,6 +88,7 @@ public class AuthRepository {
     public Optional<RefreshSession> findSessionByTokenHash(String tokenHash) {
         return jdbc.sql("""
                         SELECT s.id AS session_id, s.expires_at, s.revoked_at,
+                               s.replaced_by_session_id,
                                u.id, u.login_email, u.credential_hash, u.phone_number, u.status
                         FROM auth_sessions s
                         JOIN users u ON u.id = s.user_id
@@ -98,7 +99,8 @@ public class AuthRepository {
                         rs.getObject("session_id", UUID.class),
                         mapUser(rs, rowNum),
                         rs.getObject("expires_at", OffsetDateTime.class).toInstant(),
-                        optionalInstant(rs.getObject("revoked_at", OffsetDateTime.class))))
+                        optionalInstant(rs.getObject("revoked_at", OffsetDateTime.class)),
+                        rs.getObject("replaced_by_session_id", UUID.class)))
                 .optional();
     }
 
@@ -112,6 +114,27 @@ public class AuthRepository {
                 .param("replacementId", replacementId)
                 .param("currentId", currentId)
                 .update() == 1;
+    }
+
+    /**
+     * 회전 경합에서 져서 쓰이지 못한 교체 세션 행을 제거한다.
+     *
+     * <p>회전은 {@code replaced_by_session_id} FK 때문에 교체 행을 먼저 INSERT 해야 한다.
+     * CAS 가 실패하면 그 행은 아무도 가리키지 않는 고아가 되므로 즉시 지운다.
+     * 다른 세션이 이미 이 행을 교체 대상으로 가리키고 있으면 지우지 않는다.
+     */
+    public void deleteUnusedSession(UUID sessionId) {
+        jdbc.sql("""
+                        DELETE FROM auth_sessions
+                        WHERE id = :sessionId
+                          AND revoked_at IS NULL
+                          AND NOT EXISTS (
+                              SELECT 1 FROM auth_sessions other
+                              WHERE other.replaced_by_session_id = :sessionId
+                          )
+                        """)
+                .param("sessionId", sessionId)
+                .update();
     }
 
     public void revokeSession(UUID sessionId, UUID userId, Instant revokedAt) {

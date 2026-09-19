@@ -30,11 +30,13 @@ class AuthServiceTests {
                 "hash",
                 "01012345678",
                 "ACTIVE");
+        // 유예 창을 넘어선 시점에 회전된 세션이다. 정상 재시도가 아니라 토큰 재사용이다.
         RefreshSession session = new RefreshSession(
                 UUID.randomUUID(),
                 user,
                 now.plusSeconds(3600),
-                now.minusSeconds(1));
+                now.minus(AuthService.ROTATION_GRACE).minusSeconds(1),
+                UUID.randomUUID());
         when(tokenService.hashRefreshToken("rotated-token")).thenReturn("token-hash");
         when(repository.findSessionByTokenHash("token-hash")).thenReturn(Optional.of(session));
 

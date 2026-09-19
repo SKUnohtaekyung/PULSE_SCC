@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -205,6 +206,53 @@ class AuthCredentialTests {
             return exception;
         }
         throw new AssertionError("AuthException 이 발생하지 않았다");
+    }
+
+    /**
+     * 계정이 없어도 비밀번호 해시 비교를 한 번 수행해야 한다. 건너뛰면 응답 시간
+     * 차이만으로 가입 여부가 드러난다.
+     */
+    @Test
+    void checksAPasswordEvenWhenTheAccountDoesNotExist() {
+        when(repository.findUserByEmail("missing@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("decoy-hash");
+
+        catchAuth(() -> service.login("missing@example.com", "any-password"));
+
+        verify(passwordEncoder).matches("any-password", "decoy-hash");
+    }
+
+    @Test
+    void checksAPasswordEvenForAGoogleOnlyAccount() {
+        when(repository.findUserByEmail("owner@example.com"))
+                .thenReturn(Optional.of(account("owner@example.com", null)));
+        when(passwordEncoder.encode(anyString())).thenReturn("decoy-hash");
+
+        catchAuth(() -> service.login("owner@example.com", "any-password"));
+
+        verify(passwordEncoder).matches("any-password", "decoy-hash");
+    }
+
+    @Test
+    void theDecoyHashNeverGrantsAccess() {
+        when(repository.findUserByEmail("missing@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("decoy-hash");
+        when(passwordEncoder.matches(anyString(), eq("decoy-hash"))).thenReturn(true);
+
+        assertThat(catchAuth(() -> service.login("missing@example.com", "any-password")).code())
+                .isEqualTo("INVALID_CREDENTIALS");
+        verify(tokenService, never()).issue(any(), any());
+    }
+
+    @Test
+    void theDecoyHashIsComputedOnlyOnce() {
+        when(repository.findUserByEmail(anyString())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("decoy-hash");
+
+        catchAuth(() -> service.login("a@example.com", "pw"));
+        catchAuth(() -> service.login("b@example.com", "pw"));
+
+        verify(passwordEncoder, org.mockito.Mockito.times(1)).encode(anyString());
     }
 
     @Test
