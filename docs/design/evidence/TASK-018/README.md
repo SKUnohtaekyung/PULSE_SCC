@@ -9,6 +9,25 @@
 - Data: 전부 디자인 검증용 가상 데이터
 - 검증일: 2026-09-21
 
+## Direct run
+
+`Medium_Phone` 에뮬레이터가 열린 뒤 저장소 루트에서 다음 명령을 실행한다. 현재 `npm run start`는 development build용이므로, 이 프로토타입은 package와 scheme이 확정되기 전까지 Expo Go 모드를 명시한다.
+
+```powershell
+$androidSdk = "$env:LOCALAPPDATA\Android\Sdk"
+$env:ANDROID_HOME = $androidSdk
+$env:Path = "$androidSdk\platform-tools;$androidSdk\emulator;$env:Path"
+cd frontend\mobile
+npx expo start --go --android
+```
+
+에뮬레이터가 닫혀 있으면 먼저 다음 명령으로 실행하고 Android 홈 화면이 뜬 뒤 위 명령을 실행한다.
+
+```powershell
+$androidSdk = "$env:LOCALAPPDATA\Android\Sdk"
+Start-Process -FilePath "$androidSdk\emulator\emulator.exe" -ArgumentList @('-avd', 'Medium_Phone')
+```
+
 ## Final evidence
 
 | 파일 | 확인 내용 |
