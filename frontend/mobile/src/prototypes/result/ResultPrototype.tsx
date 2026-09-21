@@ -427,7 +427,8 @@ function RankCard({
       >
         <Animated.Image
           accessibilityIgnoresInvertColors
-          accessibilityLabel={persona.imageAlt}
+          accessible={false}
+          importantForAccessibility="no"
           resizeMode="contain"
           source={persona.image}
           style={[styles.rankImage, { width: imageSize, height: imageSize }]}
@@ -526,18 +527,22 @@ function DisclosureRow({
   sourceSlot?: string;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ expanded }}
-      onPress={onPress}
-      style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
-    >
-      <View style={styles.disclosureHeading}>
+    <View style={styles.disclosure}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.disclosureHeading,
+          expanded && styles.disclosureHeadingExpanded,
+          pressed && styles.pressed,
+        ]}
+      >
         <Text style={styles.disclosureTitle}>{title}</Text>
         <Text aria-hidden style={[styles.disclosureArrow, expanded && styles.disclosureArrowExpanded]}>
           ›
         </Text>
-      </View>
+      </Pressable>
       {expanded ? (
         <View style={styles.disclosureContent}>
           <Text style={styles.disclosureBody}>{body}</Text>
@@ -562,7 +567,7 @@ function DisclosureRow({
           ) : null}
         </View>
       ) : null}
-    </Pressable>
+    </View>
   );
 }
 
@@ -713,10 +718,13 @@ export function ResultPrototype() {
               <Text accessibilityRole="header" style={styles.insightTitle}>
                 영등원조쌈밥
               </Text>
-              <Text style={styles.insightBody}>리뷰 59개에서 손님 유형 3개를 찾았어요.</Text>
+              <Text style={styles.insightBody}>네이버 공개 리뷰 59건에서 손님 유형 3개를 찾았어요.</Text>
               <View style={styles.heroDateRow}>
                 <CalendarIcon />
-                <Text style={styles.heroDateText}>2026.09.18</Text>
+                <View style={styles.heroDateList}>
+                  <Text style={styles.heroDateText}>수집 2026.09.18</Text>
+                  <Text style={styles.heroDateText}>분석 완료 2026.09.18</Text>
+                </View>
               </View>
             </View>
             <CompletionArt largeText={largeText} />
@@ -799,6 +807,8 @@ export function ResultPrototype() {
               <Image
                 accessibilityIgnoresInvertColors
                 accessibilityLabel={selectedPersona.imageAlt}
+                accessibilityRole="image"
+                accessible
                 resizeMode="contain"
                 source={selectedPersona.image}
                 style={styles.personaImage}
@@ -969,6 +979,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[2],
     marginTop: spacing[1],
+  },
+  heroDateList: {
+    flexShrink: 1,
   },
   heroDateText: {
     ...typography.body6,
@@ -1591,19 +1604,21 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   disclosure: {
-    minHeight: layout.touchTargetMin,
     backgroundColor: colors.background.surface,
     borderColor: colors.border.default,
     borderRadius: radii.control,
     borderWidth: strokes.hairline,
-    padding: spacing[4],
-    gap: spacing[2],
   },
   disclosureHeading: {
+    minHeight: layout.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing[3],
+    padding: spacing[4],
+  },
+  disclosureHeadingExpanded: {
+    paddingBottom: spacing[2],
   },
   disclosureTitle: {
     ...typography.body6,
@@ -1624,6 +1639,8 @@ const styles = StyleSheet.create({
   },
   disclosureContent: {
     gap: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[4],
   },
   sourceLink: {
     minHeight: layout.touchTargetMin,
@@ -1634,6 +1651,7 @@ const styles = StyleSheet.create({
   },
   sourceLinkText: {
     ...typography.body6,
+    flexShrink: 1,
     color: colors.text.brand,
   },
   prototypeFootnote: {

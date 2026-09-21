@@ -1,7 +1,7 @@
 # TASK-018 — 웹 정렬 TOP3 선택 프로토타입
 
 ## Status
-사용자 피드백 반영·코드 검증·Android Visual QA PASS · 최종 사용자 확인 대기
+사용자 피드백·Codex 리뷰 반영, 코드 검증과 Android Visual QA(글자 100%·200%) PASS · Reviewer·최종 사용자 확인 대기
 
 ## Owner
 role:design-system — Codex
@@ -27,6 +27,12 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 - 사용자 참고 이미지에 맞춰 완료 히어로를 딥 네이비로 바꾸고 달력·문서·체크·반짝임 장식을 추가했다.
 - TOP3의 화면상 순위 배지를 제거하고 선택 카드의 크기·브랜드 테두리·태그·설명·페이지 표시로 현재 선택을 전달하도록 수정했다. 순위와 선택 상태는 접근성 레이블에 유지했다.
 - 1·2·3위 전환과 200% 글자 크기를 다시 실행 검증하고 최종 화면을 Android 캡처로 남겼다.
+- 2026-09-21 Codex CLI 읽기 전용 리뷰(5건) 중 4건을 Claude Code 세션에서 반영했다.
+  - 히어로에 플랫폼·리뷰 수와 수집·분석 완료 시점을 구분해 표시했다 (PRD 사용자 흐름 4단계, RESULT_IA 분석 기준 정보).
+  - TOP3 카드 이미지는 탭 버튼 레이블과 중복되므로 접근성 트리에서 제외하고, 선택 유형 상세 이미지만 대체 텍스트를 가진 포커스 요소로 만들었다.
+  - 펼침 버튼 안에 중첩됐던 출처 링크를 버튼 밖으로 분리했다.
+  - evidence README의 캡처를 시점별 묶음으로 나눠 최종 판정 근거를 명확히 했다.
+- 유형 부족·loading·empty·error 상태 지적은 이번에 반영하지 않았다. 아래 Unresolved의 D8·D12·D15 항목과 같다.
 
 ## Changed
 
@@ -56,6 +62,9 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 | build | `npm --prefix frontend/mobile run export:android` | 사용자 피드백 반영 후 재실행 PASS |
 | Visual QA | API 37 Expo Go, 1080×2400·420dpi | 사용자 피드백 반영 후 기본·2위·3위 선택·200% 글자 재검증 PASS |
 | 접근성 | UIAutomator XML | 화면상 순위 배지 없이도 TOP3 순위 레이블·선택 상태, 더보기, 하단 내비게이션 이름 PASS |
+| Codex 리뷰 반영 후 코드 검증 | `verify:tokens`, `lint`, `typecheck`, `export:android` | 전부 PASS (2026-09-21, 커밋 전 작업 트리) |
+| Codex 리뷰 반영 후 Visual QA | API 37 Expo Go 완전 재실행, 글자 100%·200% | 히어로 분석 기준 정보·참고 지식 펼침 PASS. 200%에서 출처 링크 여백 초과를 발견해 수정 후 재캡처 PASS |
+| Codex 리뷰 반영 후 접근성 | UIAutomator XML | TOP3 이미지 비포커스·빈 설명, 상세 이미지 포커스·대체 텍스트, 펼침 버튼과 출처 링크 분리 PASS |
 | TalkBack 발화 | 미실행 — 재검증 시 서비스 비활성 | 미확인 |
 | 실기기 | 미실행 — USB 기기 미연결 | 미확인 |
 
@@ -66,7 +75,8 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 - RESULT_IA D8·D12·D15의 유형 부족·첫 분석 전·오류 상태는 별도 설계가 필요하다.
 - 최소 Android OS, 지원 기기 범위, `android.package`, scheme은 확정되지 않았다.
 - `frontend/mobile/README.md`와 `AGENTS.md`의 로컬 도구 설명은 Android SDK·AVD가 없다고 적혀 있으나 현재 PC에는 SDK와 `Medium_Phone` AVD가 있다. 플랫폼 소유 문서 갱신이 필요하다.
-- 독립 Reviewer 검토는 미실행이다. 이번 턴에는 현재 작업을 직접 재검토하고 코드·Android 검증까지만 완료했다.
+- Codex 리뷰 반영분은 `reviewer` 서브에이전트 독립 검토 PASS(P0~P2 없음, 문서 P3 4건 반영)를 받았다. TASK-018 전체 변경(`f38658a..HEAD`)에 대한 독립 검토는 아직 받지 않았다. Codex CLI 리뷰는 보조 의견이다.
+- 히어로의 수집 시점과 분석 완료 시점은 둘 다 가상 날짜 `2026.09.18`이다. 두 시점을 구분하는 표시 형식만 검증했다.
 
 ## Do Not Assume
 
