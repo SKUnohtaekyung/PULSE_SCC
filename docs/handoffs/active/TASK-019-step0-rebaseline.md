@@ -6,7 +6,12 @@
 진행중 — Step 0~2 정본 재정렬 완료, 번호 변경은 히스토리 재작성 권한 대기, 공유 순서는 팀 합의 대기. 로컬 브랜치에 커밋만 하며 push·이슈·PR을 만들지 않았다.
 
 ## Owner
-role:platform — 미배정 (정본 통합은 `role:product`, `role:design-system`, `role:feature` 교차 합의 필요)
+role:product — 미배정. 이 브랜치가 고친 파일은 대부분 `docs/product/**`다.
+
+PR을 만들 때 라벨은 `type:spec`·`role:product`로 붙인다. 소유 영역 밖 수정이 있어 다음 역할의 리뷰가 필수다(`AGENTS.md` 5장 규칙 4·5).
+- `role:design-system` — `docs/design/DESIGN_SYSTEM.md` SC-012와 남은 결정
+- `role:feature` — `SCREEN_STATES` 불변식 9·10, 탈퇴·약관 상태가 백엔드 동작을 맞게 해석했는지
+- `role:platform` — `AGENTS.md`, `README.md`, `frontend/mobile/README.md`
 
 ## Branch
 docs/TASK-019-step0-rebaseline — `ui/TASK-018-top3-selection-prototype`(`dc84e82`) 위에서 분기
@@ -91,7 +96,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 
 ## Step 0 재시작 순서 (제안)
 
-1. **팀 합의** — 아래 `팀에 물을 것` 5개를 결정한다.
+1. **팀 합의** — 아래 `팀에 물을 것` 중 남은 항목을 결정한다.
 2. **번호 정리** — 합의한 쪽의 TASK·ADR 번호를 바꾸고 상대 링크를 전수 검사한다.
 3. **공유 순서 확정** — `main`에 들어갈 순서를 정한다. 원격 PR #27(TASK-011) → 원격 TASK-012 → 로컬 스택 순이면, 원격 TASK-012를 최신 TASK-011(`74d6df8`) 위로 rebase하며 `SecurityConfigTests.java`를 해소하고, 그다음 로컬 스택을 그 위로 rebase하며 README·ARCHITECTURE를 해소한다. 원격 TASK-012 rebase는 팀원 소유 작업이다.
 4. **Contract 갱신** — PRD에 C4 결정(특히 탈퇴의 마이페이지 범위)과 페르소나 이미지 방향을 반영하고, `AGENTS.md` 2장·README 현재 상태를 실제와 맞춘다.
@@ -106,7 +111,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | 1 | 프론트엔드 정본 | **해소** — `frontend/mobile` (C3) |
 | 2 | TASK-012·ADR-008 충돌에서 어느 쪽이 번호를 바꾸는가 | 로컬이 바꾼다(원격이 먼저 공개). 로컬 상태 모델 → `TASK-020`, 로컬 프론트 ADR → `ADR-011`. 실행은 아래 Unresolved의 권한 대기 |
 | 3 | 로컬 스택 일곱 TASK를 어떤 단위·순서로 PR로 올리는가 | 팀 합의 필요 |
-| 4 | 계정 탈퇴를 MVP 마이페이지 범위에 넣는가 | **해소** — 넣는다. [Google Play 계정 삭제 정책](https://support.google.com/googleplay/android-developer/answer/13327111)은 계정 생성이 가능한 앱에 앱 안 삭제 경로와 웹 삭제 요청 링크를 모두 요구한다. 백엔드는 이미 구현했다 |
+| 4 | 계정 탈퇴를 MVP 마이페이지 범위에 넣는가 | **해소** — 넣는다. [Google Play 계정 삭제 정책](https://support.google.com/googleplay/android-developer/answer/13327111)은 계정 생성이 가능한 앱에 앱 안 삭제 경로와 웹 삭제 요청 링크를 모두 요구한다. 백엔드는 구현했으나 실제 PostgreSQL 검증 전이다(원격 TASK-012 handoff) |
 | 5 | 페르소나 이미지를 사람 대신 음식·공간 상징으로 확정하는가 (PRD §13-9) | 팀 합의 필요 |
 
 ## Completed
@@ -115,7 +120,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 - Step 0 재시작 순서와 팀 합의 질문을 정리했다.
 - Step 0: PRD FR-012·Acceptance Criteria에 계정 탈퇴를 넣고 §13-24(웹 삭제 요청 링크)를 추가했다. `AGENTS.md`·`frontend/mobile/README.md`의 `Android SDK 미설치` 서술과 `README.md`의 `hooks 미생성` 서술을 실제에 맞췄다.
 - Step 1: `RESULT_IA`에 새 결과 확인(미저장), 근거 리뷰 전체 목록(`SC-005`), 계정 탈퇴를 넣고, `USER_FLOW`에 탈퇴 흐름을 넣었다. 기능명세 SC-012·NAV-004·NAV-008·AC-13·추적표, `DESIGN_SYSTEM` SC-012를 동기화했다.
-- Step 2: `SCREEN_STATES`에 백엔드 인증 정책·오류 계약·Refresh 회전 유예와 `AUTH-SIGNUP-UNAVAILABLE`, `AUTH-ACCOUNT-LINK-REQUIRED`, `ACCOUNT-DELETE-*` 5개를 추가했다.
+- Step 2: `SCREEN_STATES`에 백엔드 인증 정책·오류 계약(불변식 9·10)과 `AUTH-LEGAL-LOADING`, `AUTH-LEGAL-ERROR`, `AUTH-CONSENT-OUTDATED`, `AUTH-SIGNUP-UNAVAILABLE`, `AUTH-ACCOUNT-LINK-REQUIRED`, `ACCOUNT-DELETE-*` 5개를 추가했다. 30초 Refresh 회전 유예는 TASK-011 코드에만 있어 정본이 아닌 미정 항목으로 분리했다.
 
 ## Changed
 - `docs/handoffs/active/TASK-019-step0-rebaseline.md` — 신설
@@ -145,13 +150,19 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | 병합 충돌 | `git merge-tree --write-tree --name-only` | C5 표와 일치 |
 | TASK-019 미사용 | `git ls-remote`, `git branch -a`, `docs/**` 검색 | 사용처 없음 |
 | lint·typecheck·test·build | 미실행 — 문서만 추가 | 해당 없음 |
-| 독립 Reviewer | `reviewer` 서브에이전트 | 초회 FAIL(P1 1·P2 2·P3 8) 전부 반영 → 2차 FAIL(P2 1, `traceId` 행 분류 오류) 반영 → 3차 PASS(P3 2건 반영) |
+| 독립 Reviewer — 감사 문서 | `reviewer` 서브에이전트 | 초회 FAIL(P1 1·P2 2·P3 8) 전부 반영 → 2차 FAIL(P2 1, `traceId` 행 분류 오류) 반영 → 3차 PASS(P3 2건 반영) |
+| 독립 Reviewer — 정본 재정렬 `034c786` | `reviewer` 서브에이전트 | FAIL(P2 6·P3 8). P2 전부와 P3 중 7건 반영 후 재검토 필요 |
+| Android 도구 | `adb devices`, `emulator -list-avds`, `getprop` (reviewer 실행) | `emulator-5554`, `Medium_Phone`, API 37 — `AGENTS.md` 서술과 일치 |
+| Google Play 정책 원문 | WebFetch·`curl` | 앱 안 삭제 경로와 웹 삭제 요청 링크를 모두 요구하는 문장 확인 |
 
 ## Unresolved
 - `팀에 물을 것` 3·5
 - 번호 변경(로컬 `TASK-012`→`TASK-020`, `ADR-008-frontend-bootstrap`→`ADR-011-frontend-bootstrap`) — 히스토리 재작성 권한 대기. 변경 전 브랜치는 `backup/pre-renumber/*`로 보존해 두었다
 - 번호를 확정하려면 스택을 push해야 한다. 그 전까지 팀원이 `TASK-013`~`TASK-020`, `ADR-011`을 새로 쓰면 다시 충돌한다
 - 원격 브랜치 병합 전까지 `SCREEN_STATES`의 백엔드 계약 출처는 원격 브랜치 경로로만 적었다. 병합 후 상대 링크로 바꾼다
+- 원격과 같은 줄이라 일부러 남긴 탈퇴 관련 옛 문구를 병합 때 정리해야 한다: PRD §13-11 "탈퇴 정책", 기능명세 §12 "탈퇴 정책", 로컬 `docs/architecture/API.md`의 "탈퇴 API는 계약에 추가하지 않는다"(원격 API.md는 `DELETE /api/v1/me/account`를 이미 담고 있다)
+- Refresh 회전 유예: TASK-011(`74d6df8`)과 TASK-012(`a4ab15b`)의 `AuthService` 동작이 다르다. 병합 시 어느 쪽을 남길지와 ADR·API.md 반영은 `role:feature`·`role:platform` 결정이다
+- 되돌릴 수 없는 행동의 버튼 색 토큰이 없다(`DESIGN_SYSTEM` §13)
 - `C:\PULSE_SCC_FE`의 실제 코드는 이 PC에 없어 원격 handoff 기술로만 확인했다. 코드 대조는 미확인이다.
 - 원격 TASK-012 handoff가 적은 "채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다"가 처리됐는지 미확인이다.
 
