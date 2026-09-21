@@ -43,6 +43,7 @@ type Persona = {
   id: string;
   rank: number;
   name: string;
+  tags: [string, string];
   shortSignal: string;
   summary: string;
   image: ImageSourcePropType;
@@ -69,6 +70,7 @@ const personas: Persona[] = [
     id: 'revisit',
     rank: 1,
     name: '추억 재방문형',
+    tags: ['#재방문', '#익숙한맛'],
     shortSignal: '변함없는 맛을 다시 찾는 방문',
     summary:
       '예전부터 방문해 온 손님이 익숙한 맛과 정겨운 분위기를 이유로 다시 찾는 패턴이에요.',
@@ -149,6 +151,7 @@ const personas: Persona[] = [
     id: 'spice',
     rank: 2,
     name: '매운맛 조절형',
+    tags: ['#맵기조절', '#개운한맛'],
     shortSignal: '취향에 맞는 맵기를 찾는 방문',
     summary: '맛있는 매운맛을 선호하지만 단계나 조절 가능 여부를 미리 알고 싶어 하는 패턴이에요.',
     image: personaImages.spice,
@@ -228,6 +231,7 @@ const personas: Persona[] = [
     id: 'solo',
     rank: 3,
     name: '혼밥 안심형',
+    tags: ['#혼밥', '#편안한식사'],
     shortSignal: '혼자서도 편안한 한 끼를 찾는 방문',
     summary: '혼자 방문해도 부담 없는 상차림과 빠른 식사를 중요하게 보는 패턴이에요.',
     image: personaImages.solo,
@@ -323,6 +327,49 @@ function SectionHeading({ eyebrow, title }: { eyebrow?: string; title: string })
   );
 }
 
+function CalendarIcon() {
+  return (
+    <View aria-hidden style={styles.calendarIcon}>
+      <View style={styles.calendarBindingRow}>
+        <View style={styles.calendarBinding} />
+        <View style={styles.calendarBinding} />
+      </View>
+      <View style={styles.calendarDivider} />
+      <View style={styles.calendarDateDot} />
+    </View>
+  );
+}
+
+function CompletionArt({ largeText }: { largeText: boolean }) {
+  return (
+    <View aria-hidden style={[styles.heroArt, largeText && styles.heroArtLargeText]}>
+      <View style={styles.heroOrbLarge} />
+      <View style={styles.heroOrbSmall} />
+      <Text style={styles.heroSparkleLeft}>✦</Text>
+      <Text style={styles.heroSparkleRight}>✦</Text>
+      <View style={styles.heroDocument}>
+        <View style={[styles.heroDocumentLine, styles.heroDocumentLineWide]} />
+        <View style={[styles.heroDocumentLine, styles.heroDocumentLineMedium]} />
+        <View style={[styles.heroDocumentLine, styles.heroDocumentLineShort]} />
+      </View>
+      <View style={styles.heroCheckCircle}>
+        <Text style={styles.heroCheck}>✓</Text>
+      </View>
+    </View>
+  );
+}
+
+function PersonaGroupIcon() {
+  return (
+    <View aria-hidden style={styles.personaGroupIcon}>
+      <View style={styles.personaGroupSecondaryHead} />
+      <View style={styles.personaGroupPrimaryHead} />
+      <View style={styles.personaGroupSecondaryBody} />
+      <View style={styles.personaGroupPrimaryBody} />
+    </View>
+  );
+}
+
 function RankCard({
   persona,
   selected,
@@ -338,11 +385,11 @@ function RankCard({
 }) {
   const flexGrow = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: largeText ? [0.96, 1.08] : [0.9, 1.2],
+    outputRange: largeText ? [0.94, 1.12] : [0.82, 1.36],
   });
   const imageSize = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: largeText ? [spacing[14], spacing[16]] : [spacing[14], spacing[20]],
+    outputRange: largeText ? [spacing[14], spacing[16]] : [spacing[14], spacing[24]],
   });
   const lift = progress.interpolate({
     inputRange: [0, 1],
@@ -378,15 +425,6 @@ function RankCard({
           pressed && styles.pressed,
         ]}
       >
-        <View style={[styles.rankBadge, selected && styles.rankBadgeSelected]}>
-          <Text style={[styles.rankBadgeText, selected && styles.rankBadgeTextSelected]}>
-            {selected
-              ? largeText
-                ? `${persona.rank}위 선택`
-                : `${persona.rank}위 · 선택됨`
-              : `${persona.rank}위`}
-          </Text>
-        </View>
         <Animated.Image
           accessibilityIgnoresInvertColors
           accessibilityLabel={persona.imageAlt}
@@ -394,6 +432,15 @@ function RankCard({
           source={persona.image}
           style={[styles.rankImage, { width: imageSize, height: imageSize }]}
         />
+        {selected ? (
+          <View style={styles.rankTagRow}>
+            {persona.tags.map((tag) => (
+              <View key={tag} style={styles.rankTag}>
+                <Text style={styles.rankTagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
         <View style={[styles.rankCopy, largeText && styles.rankCopyLargeText]}>
           <Text style={[styles.rankName, largeText && styles.rankTextLarge]}>{persona.name}</Text>
           {selected ? (
@@ -664,25 +711,15 @@ export function ResultPrototype() {
             <View style={[styles.insightCopy, largeText && styles.insightCopyLargeText]}>
               <Text style={styles.insightEyebrow}>리뷰 분석 완료</Text>
               <Text accessibilityRole="header" style={styles.insightTitle}>
-                영등원조쌈밥의{`\n`}고객 분석이 완료되었어요.
+                영등원조쌈밥
               </Text>
-              <Text style={styles.insightBody}>
-                실제 리뷰를 바탕으로 우리 매장을 찾는 손님의 특징과 여정을 정리했어요.
-              </Text>
-              <View style={styles.metadataChips}>
-                <View style={styles.metadataChip}>
-                  <Text style={styles.metadataChipText}>리뷰 59개 분석</Text>
-                </View>
-                <View style={styles.metadataChip}>
-                  <Text style={styles.metadataChipText}>2026.09.18</Text>
-                </View>
+              <Text style={styles.insightBody}>리뷰 59개에서 손님 유형 3개를 찾았어요.</Text>
+              <View style={styles.heroDateRow}>
+                <CalendarIcon />
+                <Text style={styles.heroDateText}>2026.09.18</Text>
               </View>
             </View>
-            <View aria-hidden style={[styles.heroArt, largeText && styles.heroArtLargeText]}>
-              <View style={[styles.heroBar, styles.heroBarShort]} />
-              <View style={[styles.heroBar, styles.heroBarMedium]} />
-              <View style={[styles.heroBar, styles.heroBarTall]} />
-            </View>
+            <CompletionArt largeText={largeText} />
             <View accessibilityRole="text" style={styles.heroLimitNotice}>
               <View style={styles.infoMark}>
                 <Text style={styles.infoMarkText}>i</Text>
@@ -693,7 +730,10 @@ export function ResultPrototype() {
 
           <View accessibilityRole="tablist" style={[styles.sectionBlock, styles.rankSection]}>
             <View style={styles.rankHeadingRow}>
-              <SectionHeading eyebrow="리뷰에서 많이 반복된 순서" title="손님 유형 TOP 3" />
+              <View style={styles.rankTitleGroup}>
+                <PersonaGroupIcon />
+                <SectionHeading eyebrow="리뷰에서 많이 반복된 순서" title="손님 유형 TOP 3" />
+              </View>
               <Pressable
                 accessibilityHint="현재 선택한 손님 유형의 상세 영역으로 이동합니다."
                 accessibilityLabel={`${selectedPersona.name} 상세 더보기`}
@@ -718,6 +758,26 @@ export function ResultPrototype() {
                   selected={persona.id === selectedPersona.id}
                 />
               ))}
+            </View>
+            <View
+              accessibilityLabel={`${selectedPersona.rank} / ${personas.length}, ${selectedPersona.name} 선택됨`}
+              accessibilityRole="text"
+              style={styles.rankPager}
+            >
+              <View style={styles.rankPagerDots}>
+                {personas.map((persona) => (
+                  <View
+                    key={persona.id}
+                    style={[
+                      styles.rankPagerDot,
+                      persona.id === selectedPersona.id && styles.rankPagerDotSelected,
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text style={styles.rankPagerText}>
+                {selectedPersona.rank} / {personas.length}
+              </Text>
             </View>
           </View>
 
@@ -875,8 +935,8 @@ const styles = StyleSheet.create({
     ...shadows.soft,
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: colors.background.surface,
-    borderColor: colors.border.default,
+    backgroundColor: colors.brand.primary,
+    borderColor: colors.brand.primary,
     borderRadius: radii.panel,
     borderWidth: strokes.hairline,
     padding: spacing[5],
@@ -884,7 +944,7 @@ const styles = StyleSheet.create({
   },
   insightCopy: {
     zIndex: 1,
-    paddingRight: spacing[20],
+    paddingRight: spacing[24] + spacing[4],
     gap: spacing[2],
   },
   insightCopyLargeText: {
@@ -892,63 +952,152 @@ const styles = StyleSheet.create({
   },
   insightEyebrow: {
     ...typography.caption,
-    color: colors.text.brand,
+    color: colors.text.inverse,
+    opacity: 0.84,
   },
   insightTitle: {
-    ...typography.head4,
-    color: colors.text.strong,
+    ...typography.head3,
+    color: colors.text.inverse,
   },
   insightBody: {
-    ...typography.body7,
-    color: colors.text.secondary,
+    ...typography.body4,
+    color: colors.text.inverse,
+    opacity: 0.92,
   },
-  metadataChips: {
+  heroDateRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: spacing[2],
     marginTop: spacing[1],
   },
-  metadataChip: {
-    minHeight: layout.touchTargetMin,
-    justifyContent: 'center',
-    backgroundColor: colors.brand.stripe,
-    borderColor: colors.border.brand,
-    borderRadius: radii.pill,
-    borderWidth: strokes.hairline,
-    paddingHorizontal: spacing[3],
-  },
-  metadataChipText: {
+  heroDateText: {
     ...typography.body6,
-    color: colors.text.brand,
+    color: colors.text.inverse,
+  },
+  calendarIcon: {
+    width: spacing[5],
+    height: spacing[5],
+    justifyContent: 'center',
+    borderColor: colors.brand.onPrimary,
+    borderRadius: radii.small,
+    borderWidth: strokes.focus,
+  },
+  calendarBindingRow: {
+    position: 'absolute',
+    top: -strokes.focus,
+    right: spacing[1],
+    left: spacing[1],
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  calendarBinding: {
+    width: strokes.focus,
+    height: spacing[1],
+    backgroundColor: colors.brand.onPrimary,
+    borderRadius: radii.pill,
+  },
+  calendarDivider: {
+    height: strokes.hairline,
+    backgroundColor: colors.brand.onPrimary,
+    opacity: 0.8,
+  },
+  calendarDateDot: {
+    width: spacing[1],
+    height: spacing[1],
+    alignSelf: 'center',
+    marginTop: spacing[1],
+    backgroundColor: colors.brand.onPrimary,
+    borderRadius: radii.pill,
   },
   heroArt: {
     position: 'absolute',
-    top: spacing[8],
-    right: spacing[5],
-    width: spacing[16],
-    height: spacing[20],
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: spacing[2],
-    opacity: 0.72,
+    top: spacing[6],
+    right: spacing[4],
+    width: spacing[24] + spacing[4],
+    height: spacing[24] + spacing[5],
   },
   heroArtLargeText: {
     display: 'none',
   },
-  heroBar: {
-    width: spacing[3],
+  heroOrbLarge: {
+    position: 'absolute',
+    top: spacing[0],
+    right: spacing[0],
+    width: spacing[24] + spacing[4],
+    height: spacing[24] + spacing[4],
+    backgroundColor: colors.background.surface,
+    borderRadius: radii.pill,
+    opacity: 0.07,
+  },
+  heroOrbSmall: {
+    position: 'absolute',
+    right: -spacing[8],
+    bottom: -spacing[10],
+    width: spacing[20],
+    height: spacing[20],
+    backgroundColor: colors.background.surface,
+    borderRadius: radii.pill,
+    opacity: 0.08,
+  },
+  heroSparkleLeft: {
+    ...typography.head5,
+    position: 'absolute',
+    top: spacing[2],
+    left: spacing[0],
+    color: colors.text.inverse,
+    opacity: 0.86,
+  },
+  heroSparkleRight: {
+    ...typography.body1,
+    position: 'absolute',
+    right: spacing[0],
+    top: spacing[12],
+    color: colors.text.inverse,
+    opacity: 0.86,
+  },
+  heroDocument: {
+    position: 'absolute',
+    top: spacing[5],
+    left: spacing[8],
+    width: spacing[14],
+    height: spacing[20],
+    justifyContent: 'center',
+    backgroundColor: colors.background.surface,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing[3],
+    gap: spacing[2],
+  },
+  heroDocumentLine: {
+    height: spacing[2],
     backgroundColor: colors.brand.tint,
     borderRadius: radii.pill,
   },
-  heroBarShort: {
-    height: spacing[8],
+  heroDocumentLineWide: {
+    width: '100%',
   },
-  heroBarMedium: {
+  heroDocumentLineMedium: {
+    width: '78%',
+  },
+  heroDocumentLineShort: {
+    width: '56%',
+  },
+  heroCheckCircle: {
+    ...shadows.soft,
+    position: 'absolute',
+    right: spacing[1],
+    bottom: spacing[1],
+    width: spacing[12],
     height: spacing[12],
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.surface,
+    borderColor: colors.brand.tint,
+    borderRadius: radii.pill,
+    borderWidth: strokes.focus,
   },
-  heroBarTall: {
-    height: spacing[16],
+  heroCheck: {
+    ...typography.head4,
+    color: colors.text.brand,
   },
   heroLimitNotice: {
     zIndex: 1,
@@ -1015,6 +1164,60 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing[3],
   },
+  rankTitleGroup: {
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  personaGroupIcon: {
+    position: 'relative',
+    width: spacing[8],
+    height: spacing[8],
+  },
+  personaGroupPrimaryHead: {
+    position: 'absolute',
+    top: spacing[0],
+    left: spacing[1],
+    width: spacing[3],
+    height: spacing[3],
+    borderColor: colors.brand.primary,
+    borderRadius: radii.pill,
+    borderWidth: strokes.focus,
+  },
+  personaGroupSecondaryHead: {
+    position: 'absolute',
+    top: spacing[1],
+    right: spacing[1],
+    width: spacing[2],
+    height: spacing[2],
+    borderColor: colors.brand.primary,
+    borderRadius: radii.pill,
+    borderWidth: strokes.focus,
+  },
+  personaGroupPrimaryBody: {
+    position: 'absolute',
+    left: spacing[0],
+    bottom: spacing[0],
+    width: spacing[5],
+    height: spacing[3],
+    borderColor: colors.brand.primary,
+    borderTopLeftRadius: radii.control,
+    borderTopRightRadius: radii.control,
+    borderWidth: strokes.focus,
+  },
+  personaGroupSecondaryBody: {
+    position: 'absolute',
+    right: spacing[0],
+    bottom: spacing[0],
+    width: spacing[4],
+    height: spacing[3],
+    borderColor: colors.brand.primary,
+    borderTopLeftRadius: radii.control,
+    borderTopRightRadius: radii.control,
+    borderWidth: strokes.focus,
+  },
   moreButton: {
     minHeight: layout.touchTargetMin,
     flexDirection: 'row',
@@ -1072,33 +1275,33 @@ const styles = StyleSheet.create({
   },
   rankCardSelected: {
     ...shadows.soft,
-    backgroundColor: colors.brand.stripe,
+    backgroundColor: colors.background.surface,
     borderColor: colors.brand.primary,
     borderWidth: strokes.focus,
   },
   pressed: {
     opacity: 0.7,
   },
-  rankBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.background.emphasized,
+  rankImage: {
+    width: spacing[14],
+    height: spacing[14],
+  },
+  rankTagRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing[1],
+  },
+  rankTag: {
+    backgroundColor: colors.brand.tint,
     borderRadius: radii.pill,
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[1],
   },
-  rankBadgeSelected: {
-    backgroundColor: colors.brand.primary,
-  },
-  rankBadgeText: {
+  rankTagText: {
     ...typography.caption,
-    color: colors.text.secondary,
-  },
-  rankBadgeTextSelected: {
-    color: colors.text.inverse,
-  },
-  rankImage: {
-    width: spacing[14],
-    height: spacing[14],
+    color: colors.text.brand,
   },
   rankCopy: {
     width: '100%',
@@ -1109,7 +1312,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   rankName: {
-    ...typography.body6,
+    ...typography.body5,
     color: colors.text.primary,
     textAlign: 'center',
   },
@@ -1121,6 +1324,33 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.text.secondary,
     textAlign: 'center',
+  },
+  rankPager: {
+    minHeight: spacing[8],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+  },
+  rankPagerDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  rankPagerDot: {
+    width: spacing[2],
+    height: spacing[2],
+    backgroundColor: colors.border.strong,
+    borderRadius: radii.pill,
+  },
+  rankPagerDotSelected: {
+    width: spacing[3],
+    height: spacing[3],
+    backgroundColor: colors.brand.primary,
+  },
+  rankPagerText: {
+    ...typography.body6,
+    color: colors.text.brand,
   },
   personaCard: {
     ...shadows.soft,
