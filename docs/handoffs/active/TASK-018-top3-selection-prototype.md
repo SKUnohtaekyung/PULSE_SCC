@@ -1,7 +1,7 @@
 # TASK-018 — 웹 정렬 TOP3 선택 프로토타입
 
 ## Status
-코드 검증·Android Visual QA PASS · 사용자 실행 확인 대기
+사용자 피드백 반영·코드 검증·Android Visual QA PASS · 최종 사용자 확인 대기
 
 ## Owner
 role:design-system — Codex
@@ -24,6 +24,9 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 - 중단됐던 작업을 재검토해 큰 글자 대응 스타일 10개가 누락된 TypeScript 오류를 발견하고 보완했다.
 - 디자인 토큰, lint, typecheck, Android export와 API 37 Android 렌더링을 다시 검증했다.
 - 에뮬레이터 글자 크기를 200%로 바꿔 상단·TOP3·3위 선택·하단·AI 펼침을 확인한 뒤 100%로 복원했다.
+- 사용자 참고 이미지에 맞춰 완료 히어로를 딥 네이비로 바꾸고 달력·문서·체크·반짝임 장식을 추가했다.
+- TOP3의 화면상 순위 배지를 제거하고 선택 카드의 크기·브랜드 테두리·태그·설명·페이지 표시로 현재 선택을 전달하도록 수정했다. 순위와 선택 상태는 접근성 레이블에 유지했다.
+- 1·2·3위 전환과 200% 글자 크기를 다시 실행 검증하고 최종 화면을 Android 캡처로 남겼다.
 
 ## Changed
 
@@ -34,7 +37,8 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 ## Decisions
 
 - 제품 공용 컴포넌트를 확정하지 않고 TASK-016과 같은 프로토타입 파일 안에서만 변경한다.
-- 선택 상태는 크기·테두리·배경·배지·텍스트를 함께 사용하며 색만으로 전달하지 않는다.
+- 선택 상태는 크기·브랜드 테두리·태그·상세 문구·페이지 표시를 함께 사용하며 색만으로 전달하지 않는다. 화면상 `N위 선택됨` 배지는 사용자 피드백에 따라 제거한다.
+- 순위 정보는 화면 순서와 `N / 3` 페이지 표시, 접근성 레이블에 유지한다.
 - 200% 글자에서는 헤더를 줄바꿈하고 장식용 히어로 차트를 숨겨 핵심 텍스트 공간을 우선한다.
 - 고객 여정은 현재 정본 밖이므로 제품 기능으로 주장하지 않고 화면 안에서 탐색 기능임을 명시한다.
 - 앱 package와 scheme은 제품·플랫폼 결정 없이 임의로 추가하지 않는다.
@@ -49,9 +53,9 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 | lint | `npm --prefix frontend/mobile run lint` | PASS |
 | typecheck | `npm --prefix frontend/mobile run typecheck` | 최초 누락 스타일 10개로 FAIL, 수정 후 PASS |
 | test | 없음 — 프론트엔드 단위 테스트 미도입 | 없음 |
-| build | `npm --prefix frontend/mobile run export:android` | sandbox `spawn EPERM` 후 권한 확장 재실행 PASS |
-| Visual QA | API 37 Expo Go, 1080×2400·420dpi | 기본·2위·3위 선택·더보기·고객 여정·AI 펼침·200% 글자 PASS |
-| 접근성 | UIAutomator XML | TOP3 레이블·선택 상태, 더보기, 하단 내비게이션, AI 펼침·접힘 이름 PASS |
+| build | `npm --prefix frontend/mobile run export:android` | 사용자 피드백 반영 후 재실행 PASS |
+| Visual QA | API 37 Expo Go, 1080×2400·420dpi | 사용자 피드백 반영 후 기본·2위·3위 선택·200% 글자 재검증 PASS |
+| 접근성 | UIAutomator XML | 화면상 순위 배지 없이도 TOP3 순위 레이블·선택 상태, 더보기, 하단 내비게이션 이름 PASS |
 | TalkBack 발화 | 미실행 — 재검증 시 서비스 비활성 | 미확인 |
 | 실기기 | 미실행 — USB 기기 미연결 | 미확인 |
 
@@ -75,8 +79,8 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 
 ## Next Action
 
-사용자가 실행 중인 Android 프로토타입에서 세 TOP3 전환, `더보기`, 고객 여정을 직접 확인하고 조합을 승인하거나 구체적인 수정점을 남긴다.
+사용자가 실행 중인 Android 프로토타입에서 수정된 완료 히어로와 세 TOP3 전환, `더보기`, 고객 여정을 직접 확인하고 조합을 승인하거나 구체적인 수정점을 남긴다.
 
 ## Last Verified Commit
 
-`59be2ae` — `feat(mobile): refine TOP3 result prototype`
+`688e24a` — `fix(mobile): align result hero and TOP3 selection`

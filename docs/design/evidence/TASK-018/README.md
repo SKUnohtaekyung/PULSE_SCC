@@ -38,6 +38,11 @@ Start-Process -FilePath "$androidSdk\emulator\emulator.exe" -ArgumentList @('-av
 | [android-font-200-after-fix.png](android-font-200-after-fix.png) | 글자 200%에서 헤더가 줄바꿈되고 히어로 장식이 숨겨진 상단 |
 | [android-font-200-top3-after-fix.png](android-font-200-top3-after-fix.png) | 글자 200%에서 세 TOP3 탭과 선택 유형 문구가 잘리지 않는 상태 |
 | [android-font-200-lower-after-fix.png](android-font-200-lower-after-fix.png) | 글자 200%에서 고객 여정 하단, 행동 카드, 접힌 AI·참고 지식 |
+| [android-user-feedback-final.png](android-user-feedback-final.png) | 사용자 참고 이미지 반영 후 딥 네이비 완료 히어로와 화면상 순위 배지가 없는 1위 선택 상태 |
+| [android-user-feedback-rank2.png](android-user-feedback-rank2.png) | 2위 선택 시 확대·테두리·태그·상세 문구·`2 / 3` 표시가 함께 교체되는 상태 |
+| [android-user-feedback-rank3.png](android-user-feedback-rank3.png) | 3위 선택 시 같은 선택 규칙과 접근성 선택 상태가 유지되는 화면 |
+| [android-user-feedback-font200.png](android-user-feedback-font200.png) | 사용자 피드백 반영 후 글자 200% 상단과 TOP3 진입부 |
+| [android-user-feedback-font200-scrolled.png](android-user-feedback-font200-scrolled.png) | 글자 200%에서 선택 유형 상세와 4가지 관점까지 세로 스크롤 가능한 상태 |
 | `android-font-200-third.xml` | 글자 200%에서 3위 선택 상태가 접근성 트리에 반영됨 |
 | `android-font-200-ai-expanded.xml` | 글자 200%에서 `AI 해석 접기`와 펼친 본문이 접근성 트리에 반영됨 |
 
@@ -47,6 +52,7 @@ Start-Process -FilePath "$androidSdk\emulator\emulator.exe" -ArgumentList @('-av
 
 - 기본 렌더링: 완료 히어로, TOP3, 선택 유형 카드와 고정 하단 바가 겹침 없이 렌더링되어 PASS
 - TOP3 전환: 1·2·3위 선택 시 선택 카드가 확대되고 아래 유형·관점·근거·여정·행동 데이터가 교체되어 PASS
+- 사용자 피드백 반영: 완료 히어로의 달력·문서·체크·반짝임 장식과 선택 카드의 태그·페이지 표시를 추가하고 화면상 `N위 선택됨` 배지를 제거한 뒤 PASS
 - 모션: 시스템 `Reduce motion` 값을 읽고 선택 카드 전환 및 `더보기` 스크롤 애니메이션을 끌 수 있게 구현
 - `더보기`: 현재 선택한 유형의 상세 카드 시작점으로 이동하여 PASS
 - 고객 여정: 유형별 4단계를 렌더링하고 `AI 해석 기반 시안`, `제품 미확정`, MVP 계약 밖이라는 설명을 함께 표시하여 탐색 기능 경계 PASS
