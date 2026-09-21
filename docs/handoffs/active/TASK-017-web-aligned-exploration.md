@@ -1,7 +1,7 @@
 # TASK-017 — `pulse_FE` 정렬 결과 화면 탐색
 
 ## Status
-초회 독립 리뷰 수정 완료 · 재리뷰 대기
+독립 리뷰 PASS · 사용자 선택 대기
 
 ## Owner
 role:design-system — Codex
@@ -20,6 +20,7 @@ ui/TASK-017-web-aligned-exploration
 - 웹 정렬 모바일 시안 3개와 확정 IA를 반영한 최종 권장안 1개를 ImageGen으로 생성했다.
 - 고객 여정, 사람 아바타, 릴스 제작 등 웹에서 앱 MVP로 가져오면 안 되는 요소를 분리했다.
 - 독립 리뷰 초회 P1 2건·P2 2건·P3 1건을 반영해 네 PNG에 가상 데이터 고지를 넣고 최종안의 정본 밖 동작·중복 CTA·저대비 주황 텍스트를 제거했다.
+- 재리뷰에서 잔여 P0~P3 없음으로 디자인 탐색 PASS를 받았다.
 
 ## Changed
 - `docs/design/explorations/TASK-017/README.md` — 웹 검토, 재검토 결과, 시안 비교, 권장 방향과 생성 근거
@@ -44,7 +45,7 @@ ui/TASK-017-web-aligned-exploration
 | Web Visual QA | Vite 실제 렌더링, 데스크톱·390×844 | HEAD `d57e75470fbec25f8efc79a1b5c320d360b05696`, 데스크톱 확인, 모바일 2열 잘림 확인 |
 | Image QA | 네 PNG 육안 확인, `System.Drawing` 크기 확인, `Get-FileHash -Algorithm SHA256` | 수정본 4개 모두 841×1870, 화면 내부 가상 데이터 고지와 해시 기록 완료 |
 | 저장소 경계 | `git status --short --branch` in `pulse_FE` | 추적 파일 변경 없음 |
-| 독립 리뷰 | 초회 P1 2건·P2 2건·P3 1건 | 수정 완료, 재리뷰 대기 |
+| 독립 리뷰 | 초회 P1 2건·P2 2건·P3 1건 수정 후 재리뷰 | 잔여 P0~P3 없음, TASK-017 PASS |
 
 ## Unresolved
 - 사용자가 최종 권장안 또는 다른 시안의 조합을 선택해야 한다.
