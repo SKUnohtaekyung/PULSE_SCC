@@ -93,4 +93,4 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 
 ## Last Verified Commit
 
-`688e24a` — `fix(mobile): align result hero and TOP3 selection`
+`ee30a46` — `fix(mobile): restore result metadata and separate source link`. Codex 리뷰 반영분의 코드 검증·Android 100%·200% Visual QA·reviewer PASS가 유효하다

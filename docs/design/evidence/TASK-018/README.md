@@ -63,7 +63,7 @@ TOP3 선택 표현·1·2·3위 전환·200% 글자 상단과 상세의 판정 �
 
 `android-initial*`, `android-second-selected*`, `android-journey*`, `android-more-scroll*`, `android-font-200-top.*`, `android-font-200-top3.*`는 누락 스타일을 발견하기 전의 캡처다.
 
-### 4. Codex 리뷰 반영 후 — 히어로·참고 지식 최종 판정 증거
+### 4. Codex 리뷰 반영 후 (`ee30a46`) — 히어로·참고 지식 최종 판정 증거
 
 2026-09-21 Codex 리뷰 지적을 반영한 뒤 Expo Go를 완전히 재실행하고 글자 100%에서 캡처했다. Fast Refresh만으로는 제거한 `accessibilityLabel`이 네이티브 뷰에 남아 있었으므로 재실행 후 값을 판정에 쓴다.
 
