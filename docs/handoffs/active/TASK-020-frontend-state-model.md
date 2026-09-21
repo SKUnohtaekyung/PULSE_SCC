@@ -2,7 +2,7 @@
 
 ## Status
 
-진행중 — State Model 2차 자체 교차 검토·문서 검증 완료, 독립 제품·디자인 검토 전
+진행중 — State Model 3차(백엔드 계약 동기화, TASK-019) 완료, 전체 제품·디자인 독립 검토 전
 
 ## Owner
 
@@ -75,7 +75,7 @@
 
 ## Next Action
 
-제품·디자인 Reviewer가 State Model을 검토한다. 병행 가능한 다음 별도 Task에서는 Step 3 Design Foundation으로 이동해 프론트 기술 스택과 코드 토큰 정본 위치를 확정한다.
+제품·디자인 Reviewer가 3차 State Model 전체를 검토한다. 프론트 기술 스택(ADR-011)과 토큰 정본 위치는 이미 확정됐다.
 
 ## Last Verified Commit
 

@@ -11,7 +11,9 @@ role:product — 미배정. 이 브랜치가 고친 파일은 대부분 `docs/pr
 PR을 만들 때 라벨은 `type:spec`·`role:product`로 붙인다. 소유 영역 밖 수정이 있어 다음 역할의 리뷰가 필수다(`AGENTS.md` 5장 규칙 4·5).
 - `role:design-system` — `docs/design/DESIGN_SYSTEM.md` SC-012와 남은 결정
 - `role:feature` — `SCREEN_STATES` 불변식 9·10, 탈퇴·약관 상태가 백엔드 동작을 맞게 해석했는지
-- `role:platform` — `AGENTS.md`, `README.md`, `frontend/mobile/README.md`
+- `role:platform` — `AGENTS.md`, `README.md`, `CLAUDE.md`, `frontend/mobile/README.md`, `docs/architecture/ARCHITECTURE.md`, `.claude/skills/visual-qa/SKILL.md`
+
+TASK-020 소유인 `docs/handoffs/active/TASK-020-frontend-state-model.md`도 이 브랜치에서 고쳤다(해소 항목·상태 갱신). PR 본문의 소유 영역 밖 수정 표에 적는다.
 
 ## Branch
 docs/TASK-019-step0-rebaseline — `ui/TASK-018-top3-selection-prototype`(`dc84e82`) 위에서 분기
@@ -46,7 +48,7 @@ docs/TASK-019-step0-rebaseline — `ui/TASK-018-top3-selection-prototype`(`dc84e
 
 ### C1. 작업이 팀에 공유되지 않음
 
-TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, PR이 없다. TASK-014·015·016 handoff는 이슈를 만들지 못한 이유로 GitHub 인증 실패를 들었고, push·PR을 하지 않은 이유는 적지 않았다. 2026-09-21 `gh pr list`는 정상 동작했다. `AGENTS.md` 6.2(PR·라벨)와 13장(이슈 연결, Reviewer)을 충족하지 못한 상태다.
+TASK-012~018 일곱 TASK(감사 당시 번호. 현재는 TASK-013~018과 TASK-020)가 로컬 브랜치에만 있다. 원격 push, 이슈, PR이 없다. TASK-014·015·016 handoff는 이슈를 만들지 못한 이유로 GitHub 인증 실패를 들었고, push·PR을 하지 않은 이유는 적지 않았다. 2026-09-21 `gh pr list`는 정상 동작했다. `AGENTS.md` 6.2(PR·라벨)와 13장(이슈 연결, Reviewer)을 충족하지 못한 상태다.
 
 ### C2. 번호 충돌
 
@@ -169,6 +171,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | 번호 변경 범위 | 백업 대비 `git diff -M` | 16개 파일 31줄, 번호·해시만 변경. `frontend`·`backend`·`.claude`·`.github` 차이 0 |
 | 옛 번호 잔존 | `git grep "ADR-008-frontend\|TASK-012-frontend\|\[ADR-008\]"` (이 문서 제외) | 0건 |
 | 문서 속 해시 | 8개 브랜치 끝의 `` `[0-9a-f]{7}` `` 전부 `git cat-file -e` | 스택 해시는 모두 존재. 없는 7개는 `main`의 기존 handoff 기록(Unresolved) |
+| 독립 Reviewer — 번호 변경·재독 정정 | `reviewer` 서브에이전트 | PASS(P3 6). 29개 커밋 짝 비교에서 제목·작성자·날짜 보존, 코드 차이 0, 설명되지 않는 문서 차이 0, 옛→새 해시 14종 제목 일치. P3 6건 반영 |
 
 ## Unresolved
 - `팀에 물을 것` 3·5
