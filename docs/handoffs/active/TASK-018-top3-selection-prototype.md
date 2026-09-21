@@ -1,7 +1,7 @@
 # TASK-018 — 웹 정렬 TOP3 선택 프로토타입
 
 ## Status
-사용자 피드백·Codex 리뷰 반영, 코드 검증과 Android Visual QA(글자 100%·200%) PASS · Reviewer·최종 사용자 확인 대기
+사용자 피드백·Codex 리뷰 반영, 코드 검증과 Android Visual QA(글자 100%·200%) PASS · 리뷰 반영분 reviewer PASS · 최종 사용자 확인 대기
 
 ## Owner
 role:design-system — Codex
@@ -62,7 +62,7 @@ TASK-017의 웹 정렬 권장 시각 언어를 기존 Android 결과 프로토�
 | build | `npm --prefix frontend/mobile run export:android` | 사용자 피드백 반영 후 재실행 PASS |
 | Visual QA | API 37 Expo Go, 1080×2400·420dpi | 사용자 피드백 반영 후 기본·2위·3위 선택·200% 글자 재검증 PASS |
 | 접근성 | UIAutomator XML | 화면상 순위 배지 없이도 TOP3 순위 레이블·선택 상태, 더보기, 하단 내비게이션 이름 PASS |
-| Codex 리뷰 반영 후 코드 검증 | `verify:tokens`, `lint`, `typecheck`, `export:android` | 전부 PASS (2026-09-21, 커밋 전 작업 트리) |
+| Codex 리뷰 반영 후 코드 검증 | `verify:tokens`, `lint`, `typecheck`, `export:android` | 전부 PASS (2026-09-21, `ee30a46`) |
 | Codex 리뷰 반영 후 Visual QA | API 37 Expo Go 완전 재실행, 글자 100%·200% | 히어로 분석 기준 정보·참고 지식 펼침 PASS. 200%에서 출처 링크 여백 초과를 발견해 수정 후 재캡처 PASS |
 | Codex 리뷰 반영 후 접근성 | UIAutomator XML | TOP3 이미지 비포커스·빈 설명, 상세 이미지 포커스·대체 텍스트, 펼침 버튼과 출처 링크 분리 PASS |
 | TalkBack 발화 | 미실행 — 재검증 시 서비스 비활성 | 미확인 |
