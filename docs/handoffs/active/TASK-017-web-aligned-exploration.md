@@ -62,4 +62,4 @@ ui/TASK-017-web-aligned-exploration
 사용자가 권장 시안과 조합을 승인하면 현재 React Native 프로토타입의 시각 계층만 토큰 기반으로 수정하고 코드 검증, Android Visual QA, 큰 글자, TalkBack, 독립 리뷰를 다시 실행한다.
 
 ## Last Verified Commit
-`818bb60` — 초회 탐색 커밋. 독립 리뷰 수정본은 아직 커밋 전이다.
+`e6802c4` — `fix(design): 결과 탐색 시안 범위와 고지 보완`
