@@ -1,7 +1,7 @@
 # TASK-017 — `pulse_FE` 정렬 결과 화면 탐색
 
 ## Status
-디자인 탐색 완료 · 사용자 선택 대기
+초회 독립 리뷰 수정 완료 · 재리뷰 대기
 
 ## Owner
 role:design-system — Codex
@@ -19,6 +19,7 @@ ui/TASK-017-web-aligned-exploration
 - 기존 TASK-016 구현·문서·Android 증거를 PRD, 결과 IA, 디자인 시스템과 다시 대조했다.
 - 웹 정렬 모바일 시안 3개와 확정 IA를 반영한 최종 권장안 1개를 ImageGen으로 생성했다.
 - 고객 여정, 사람 아바타, 릴스 제작 등 웹에서 앱 MVP로 가져오면 안 되는 요소를 분리했다.
+- 독립 리뷰 초회 P1 2건·P2 2건·P3 1건을 반영해 네 PNG에 가상 데이터 고지를 넣고 최종안의 정본 밖 동작·중복 CTA·저대비 주황 텍스트를 제거했다.
 
 ## Changed
 - `docs/design/explorations/TASK-017/README.md` — 웹 검토, 재검토 결과, 시안 비교, 권장 방향과 생성 근거
@@ -29,6 +30,7 @@ ui/TASK-017-web-aligned-exploration
 - 웹의 브랜드 언어는 계승하되 데스크톱 2열 레이아웃은 모바일에 복사하지 않는다.
 - 최종 권장안은 `RESULT_IA`의 메타정보→TOP3→4관점→대표 근거→행동→접힌 AI/지식 순서를 유지한다.
 - 웹의 고객 여정은 현재 제품 계약 밖이므로 최종 권장안에서 제외하고 탐색안에만 남긴다.
+- 최종 권장안에서 검토할 행동을 기본 노출하고 유일한 오렌지 주요 행동은 중앙 `분석하기` 아이콘으로 제한한다.
 - 현재 React Native 프로토타입은 사용자 시안 선택 전까지 수정하지 않는다.
 
 ## Verification
@@ -39,9 +41,10 @@ ui/TASK-017-web-aligned-exploration
 | typecheck | 미실행 — 코드 변경 없음 | 해당 없음 |
 | test | 미실행 — 코드 변경 없음 | 해당 없음 |
 | build | 미실행 — 코드 변경 없음 | 해당 없음 |
-| Web Visual QA | Vite 실제 렌더링, 데스크톱·390×844 | 데스크톱 확인, 모바일 2열 잘림 확인 |
-| Image QA | 네 PNG 육안 확인, `System.Drawing` 크기 확인, `Get-FileHash -Algorithm SHA256` | 4개 모두 841×1870, 해시 기록 완료 |
+| Web Visual QA | Vite 실제 렌더링, 데스크톱·390×844 | HEAD `d57e75470fbec25f8efc79a1b5c320d360b05696`, 데스크톱 확인, 모바일 2열 잘림 확인 |
+| Image QA | 네 PNG 육안 확인, `System.Drawing` 크기 확인, `Get-FileHash -Algorithm SHA256` | 수정본 4개 모두 841×1870, 화면 내부 가상 데이터 고지와 해시 기록 완료 |
 | 저장소 경계 | `git status --short --branch` in `pulse_FE` | 추적 파일 변경 없음 |
+| 독립 리뷰 | 초회 P1 2건·P2 2건·P3 1건 | 수정 완료, 재리뷰 대기 |
 
 ## Unresolved
 - 사용자가 최종 권장안 또는 다른 시안의 조합을 선택해야 한다.
@@ -59,4 +62,4 @@ ui/TASK-017-web-aligned-exploration
 사용자가 권장 시안과 조합을 승인하면 현재 React Native 프로토타입의 시각 계층만 토큰 기반으로 수정하고 코드 검증, Android Visual QA, 큰 글자, TalkBack, 독립 리뷰를 다시 실행한다.
 
 ## Last Verified Commit
-`818bb60` — `docs(design): 웹 정렬 결과 화면 탐색 추가`
+`818bb60` — 초회 탐색 커밋. 독립 리뷰 수정본은 아직 커밋 전이다.
