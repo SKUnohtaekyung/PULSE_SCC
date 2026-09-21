@@ -74,7 +74,8 @@
 flowchart TD
     A[Android 앱 실행] --> A1{로그인 상태}
     A1 -- 미인증 --> A2[Google 또는 서비스 자체 로그인]
-    A1 -- 인증됨 --> B[가게 이름·업종·네이버 가게 URL 입력]
+    A1 -- 인증됨·저장본 없음 --> B[가게 이름·업종·네이버 가게 URL 입력]
+    A1 -- 인증됨·저장본 있음 --> Q
     A2 --> B
     B --> C{입력 유효성 검사}
     C -- 실패 --> D[사용자 언어로 거부 사유 표시]
@@ -345,7 +346,7 @@ PostgreSQL 단일 데이터베이스 기준의 논리 모델은 [DATA_MODEL.md](
 | GENERATING_IMAGE | 도출된 페르소나 이미지 생성 중 |
 | VALIDATING_RESULT | 스키마와 근거 연결 검증 중 |
 | COMPLETED | 분석 완료 |
-| FAILED | 복구 불가능한 실패 |
+| FAILED | 작업 실패. 다시 시도할 수 있는지는 작업의 `retryable`로 알린다 |
 
 ### 9.2 대표 오류 코드
 

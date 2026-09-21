@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |---|---|
 | 목적 | Android 프론트엔드가 화면별 정상·진행·빈 상태·오류·복구 상태를 빠뜨리지 않도록 구현 상태를 정의한다 |
-| 상태 | 4차 — 백엔드 계약 반영과 프론트엔드 구현 가능성 재검토 완료. 세부 카피·시각 디자인·오프라인 정책은 미정 |
+| 상태 | 5차 — 백엔드 계약 반영과 프론트엔드 구현 가능성 재검토. 세부 카피·시각 디자인·오프라인 정책은 미정 |
 | 기준일 | 2026-09-21 |
 | 백엔드 계약 출처 | 인증 정책·계정 연결·가입 응답: 원격 `feat/TASK-011-authentication`(PR #27, `74d6df8`)의 `docs/decisions/ADR-008-authentication-policy.md`, `docs/architecture/API.md`, `AuthService`·`AuthController`. 약관·법률 문서 동의와 계정 탈퇴: 원격 `feat/TASK-012-analysis-pipeline`(`a4ab15b`)의 `docs/architecture/API.md`, `docs/decisions/ADR-010-account-deletion.md`, `LegalController`, `MyPageService`. 두 브랜치는 2026-09-21 기준 `main`에 병합 전이며 병합 후 상대 링크로 바꾼다 |
 | 제품 요구사항 정본 | [PRD.md](../PRD.md) |
@@ -46,9 +46,11 @@
 6. 분석 작업은 실제 도출된 모든 페르소나 이미지와 근거 검증이 끝나기 전에는 `success`로 보이지 않는다.
 7. 오류가 발생해도 사용자가 다시 입력하지 않아도 되는 값은 보존한다.
 8. `offline`의 캐시·자동 재시도·백그라운드 처리 방식은 제품 결정 전까지 구현값으로 확정하지 않는다.
-9. 서버 오류 응답은 [API.md](../../architecture/API.md) §2.1 형식을 따른다. `error.message`는 사용자에게 보여줄 수 있는 문장이며, `fieldErrors`가 있으면 각 항목을 해당 필드의 `*-FIELD-ERROR` 상태로 연결한다. 상태 전이는 HTTP 상태가 아니라 `error.code`로 구분한다. 예를 들어 탈퇴의 `401 PASSWORD_CONFIRMATION_FAILED`는 세션 만료가 아니므로 토큰 갱신·로그아웃을 일으키지 않고 `ACCOUNT-DELETE-VERIFY-ERROR`로 간다. `traceId`를 화면에 노출할지는 §11에서 정한다.
+9. 서버 오류 응답은 `{ "error": { "code", "message", ... } }` 봉투로 온다. 앱은 `error.code`로 상태를 가르고 HTTP 상태만으로 가르지 않는다. §2.1 표에 있는 코드는 **앱이 정한 문구와 다음 행동**을 쓰고, 서버 `error.message`는 표에 없는 코드일 때만 보여준다. 서버 문구가 상태 의도와 다를 수 있기 때문이다. 예를 들어 작업의 `STORE_NOT_FOUND` 메시지는 "잠시 후 다시 시도해 주세요"이고, `ACCOUNT_LINK_REQUIRED` 메시지는 MVP에 없는 계정 연결을 안내한다. 봉투의 부가 필드는 API마다 다르다. 인증 API는 [API.md](../../architecture/API.md) §2.1의 `fieldErrors`·`traceId`를 주고, 분석 API는 현재 `retryable`·`fields`(빈 값)·`timestamp`를 준다(§11). 앱은 `fieldErrors`를 있을 수도 없을 수도 있는 필드로 다룬다. 탈퇴의 `401 PASSWORD_CONFIRMATION_FAILED`처럼 `error.code`가 있는 401은 세션 만료가 아니므로 불변식 12의 토큰 갱신을 일으키지 않는다. `traceId`를 화면에 노출할지는 §11에서 정한다.
 10. 백엔드 인증 정책(ADR-008 결정 6, API.md §4.2)은 이미 폐기된 Refresh Token이 다시 오면 해당 사용자의 활성 세션을 모두 폐기한다. 그러므로 앱은 토큰 갱신 요청을 한 번에 하나만 보내고, 동시에 필요한 요청은 진행 중인 갱신 결과를 기다린다. TASK-011 `74d6df8` 코드에는 회전으로 폐기된 토큰이 30초 안에 다시 오면 그 요청만 거부하는 유예가 있지만, ADR·API.md에는 없고 TASK-012 `a4ab15b` 코드에도 없다. 로그아웃으로 폐기된 토큰은 유예 없이 전체 세션을 폐기한다. 앱은 이 유예에 의존하지 않는다.
-11. 알 수 없는 `error.code`를 받으면 `error.message`를 보여주고, 분석 작업이면 작업의 `retryable` 값으로 `ANALYSIS-RETRYABLE-ERROR`와 `ANALYSIS-FATAL-ERROR`를 가른다. 코드별 문구를 앱에 임의로 추가하지 않는다.
+11. 알 수 없는 `error.code`를 받으면 `error.message`를 보여주고, 분석 작업이면 작업의 `retryable` 값으로 `ANALYSIS-RETRYABLE-ERROR`와 `ANALYSIS-FATAL-ERROR`를 가른다. 봉투가 없는 오류 응답(서버 기본 400·500, 작업 대기열 초과 등)은 원인을 단정하지 않는 일반 오류 문구와 재시도 행동을 보여준다. §2.1에 없는 코드에 대해 코드별 문구를 앱에 임의로 추가하지 않는다.
+12. 인증이 필요한 요청이 **`error` 봉투 없는 401**(또는 `WWW-Authenticate: Bearer`)을 받으면 액세스 토큰 만료로 보고, 불변식 10에 따라 토큰 갱신을 한 번 한 뒤 원래 요청을 다시 보낸다. 갱신이 §2.1의 `AUTH-EXPIRED` 코드로 실패하거나 다시 보낸 요청이 또 401이면 `AUTH-EXPIRED`로 간다. 이 규칙은 페르소나 이미지 요청(§6.4)에도 적용한다. 근거: 원격 백엔드의 `SecurityConfig`에 인증 실패 응답이 따로 정의되지 않아 Spring Security 기본 401을 쓴다. 코드 판독 근거이며 실제 응답은 확인하지 않았다(§11).
+13. `Idempotency-Key`는 **응답을 받지 못한 같은 제출을 다시 보낼 때만** 재사용한다(네트워크 끊김·시간 초과). 작업이 `FAILED`로 끝난 뒤 다시 분석하거나 입력을 고친 뒤 요청할 때는 새 키를 만든다. 같은 키를 다시 쓰면 서버가 이전 작업(`FAILED` 포함)을 그대로 돌려주거나, 입력이 다르면 `IDEMPOTENCY_KEY_REUSED`로 거부한다.
 
 ### 2.1 서버 오류 코드와 상태 연결
 
@@ -56,27 +58,31 @@
 
 | 코드 | 발생 시점 | 상태 | 구현 |
 |---|---|---|---|
-| `INVALID_INPUT`, `INVALID_REQUEST`, `INVALID_VALUE`, `INVALID_PASSWORD`, `INVALID_PHONE_NUMBER` | 요청 검증(`400`) | 화면에 따라 `AUTH-FIELD-ERROR` 또는 `STORE-FIELD-ERROR`. `fieldErrors`가 있으면 필드별로 연결 | 있음 |
+| `INVALID_INPUT`, `INVALID_REQUEST` | 요청 검증(`400`) | 화면에 따라 `AUTH-FIELD-ERROR` 또는 `STORE-FIELD-ERROR`. `fieldErrors`가 있으면 필드별로 연결(`fieldErrors[].code`에는 `INVALID_VALUE` 등이 온다) | 있음 |
+| `INVALID_PASSWORD`, `INVALID_PHONE_NUMBER` | 가입 검증(`422`) | `AUTH-FIELD-ERROR` — 비밀번호·전화번호 필드 | 있음 |
 | `EMAIL_ALREADY_EXISTS`, `ACCOUNT_ALREADY_EXISTS` | 가입 | `AUTH-SIGNUP-ERROR` | 있음 |
 | `CURRENT_LEGAL_CONSENT_REQUIRED` | 가입 | `AUTH-CONSENT-OUTDATED` | 있음 |
 | `INVALID_CREDENTIALS` | 자체 로그인 | `AUTH-INVALID-CREDENTIALS` | 있음 |
 | `INVALID_GOOGLE_ID_TOKEN`, `GOOGLE_AUTH_NOT_CONFIGURED` | Google 로그인 | `AUTH-GOOGLE-ERROR` | 있음 |
 | `ACCOUNT_LINK_REQUIRED` | Google 로그인(`409`) | `AUTH-ACCOUNT-LINK-REQUIRED` | 있음 |
 | `INVALID_REFRESH_TOKEN`, `SESSION_REVOKED`, `ACCOUNT_NOT_ACTIVE`, `ACCOUNT_NOT_FOUND` | 세션 복원·토큰 갱신·계정 확인 | `AUTH-EXPIRED` | 있음 |
+| `ACCOUNT_NOT_ACTIVE` | 로그인 요청 자체 | 로그인 화면에 머물며 이 계정은 지금 사용할 수 없다고 안내(`AUTH-INVALID-CREDENTIALS` 또는 `AUTH-GOOGLE-ERROR` 화면 안). `AUTH-EXPIRED`로 보내 로그인을 반복시키지 않음 | 있음 |
+| 봉투 없는 `401` | 인증이 필요한 모든 요청 | 불변식 12 — 토큰 갱신 후 원래 요청 재전송, 실패하면 `AUTH-EXPIRED` | 서버 기본 동작(코드 판독) |
 | `PASSWORD_CONFIRMATION_FAILED` | 탈퇴(`401`) | `ACCOUNT-DELETE-VERIFY-ERROR`. 세션 오류로 처리하지 않음 | 있음 |
-| `INVALID_NAVER_PLACE_URL` | 분석 작업 생성(`400`) | `STORE-UNSUPPORTED-URL` | 있음 |
-| `IDEMPOTENCY_KEY_REUSED` | 분석 작업 생성(`409`) | `STORE-JOB-ERROR`. 같은 제출의 재시도는 같은 `Idempotency-Key`를 다시 쓴다 | 있음 |
+| `INVALID_NAVER_PLACE_URL` | 분석 작업 생성(`400`), 또는 작업 실패(리다이렉트 결과가 허용 밖 주소) | `STORE-UNSUPPORTED-URL` | 있음 |
+| `IDEMPOTENCY_KEY_REUSED` | 분석 작업 생성(`409`) | `STORE-JOB-ERROR`. 불변식 13에 따라 새 키로 다시 요청 | 있음 |
 | `STORE_NOT_FOUND` | 작업 실패(`FAILED`) | `STORE-NOT-FOUND` — 가게 입력으로 돌아가 입력값을 보존 | 있음 |
 | `INSUFFICIENT_VALID_REVIEWS` | 작업 실패 | `ANALYSIS-INSUFFICIENT` | 있음 |
-| `REVIEW_COLLECTION_BLOCKED`, `ANALYSIS_OUTPUT_INVALID`, `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE`, `ANALYSIS_SERVICE_REJECTED`, `ANALYSIS_CONFIGURATION_MISSING` | 작업 실패 | 작업 `retryable`이 `true`면 `ANALYSIS-RETRYABLE-ERROR`, `false`면 `ANALYSIS-FATAL-ERROR` | 있음 |
-| `IMAGE_GENERATION_FAILED` | 작업 실패 | `IMAGE-GENERATION-FAILED` | API.md에만 있음 |
-| `ANALYSIS_TIMEOUT` | 작업 실패 | `ANALYSIS-RETRYABLE-ERROR` | API.md에만 있음 |
-| `ANALYSIS_NOT_COMPLETED` | 결과 조회 | 결과 대신 작업 상태 조회로 돌아간다 | 있음 |
-| `ANALYSIS_NOT_FOUND` | 결과 조회(`404`, 요청 사용자 범위) | `RESULT-ERROR` | 있음 |
-| `SAVED_ANALYSIS_NOT_FOUND` | 저장 결과 조회(`404`) | `HOME-NO-SAVED-RESULT` | 있음 |
+| `REVIEW_COLLECTION_BLOCKED`, `ANALYSIS_OUTPUT_INVALID`, `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE`, `ANALYSIS_SERVICE_REJECTED` | 작업 실패, `retryable=true` | `ANALYSIS-RETRYABLE-ERROR` | 있음 |
+| `ANALYSIS_CONFIGURATION_MISSING`, 그 밖의 작업 실패 | 작업 실패, `retryable=false` | `ANALYSIS-FATAL-ERROR` — 서비스 쪽 문제로 지금은 완료할 수 없음 | 있음 |
+| `IMAGE_GENERATION_FAILED` | 작업 실패 | `IMAGE-GENERATION-FAILED`. 현재 이미지 생성 실패는 `ANALYSIS_SERVICE_REJECTED`로 온다 | API.md에만 있음 |
+| `ANALYSIS_TIMEOUT` | 작업 실패 | `ANALYSIS-RETRYABLE-ERROR`. 현재 시간 초과는 `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE`로 온다 | API.md에만 있음 |
+| `ANALYSIS_NOT_COMPLETED` | 결과 조회(`409`) | 결과 대신 작업 상태 조회로 돌아간다 | 있음 |
+| `ANALYSIS_NOT_FOUND` | 작업 상태·결과 조회, 저장본 교체(`404`, 요청 사용자 범위) | 조회면 `RESULT-ERROR`, 저장본 교체면 `SAVE-REPLACE-ERROR` | 있음 |
+| `SAVED_ANALYSIS_NOT_FOUND` | 저장 결과 조회(`404`) | 홈 진입 조회면 `HOME-NO-SAVED-RESULT`, 작업 완료 직후 조회면 `SAVE-FIRST-ERROR`(§7) | 있음 |
 | `IMAGE_NOT_FOUND` | 이미지 조회 | `IMAGE-LOAD-ERROR` | 있음 |
 
-결과 안의 빈 포디움 슬롯 사유 `INSUFFICIENT_TOPIC_EVIDENCE`는 오류가 아니라 결과 데이터다(§6.1).
+결과 안의 빈 포디움 슬롯 사유 `INSUFFICIENT_TOPIC_EVIDENCE`는 오류가 아니라 결과 데이터다(§6.1). `SAVE-CONFLICT`를 일으키는 코드는 현재 없다. 저장본 교체가 충돌 없이 덮어쓰는 방식이기 때문이다. 상태는 이후 계약 변경에 대비해 남긴다.
 
 ---
 
@@ -87,7 +93,7 @@
 | 상태 ID | 조건·이벤트 | 사용자에게 보이는 것 | 시스템 처리 | 다음 전이 |
 |---|---|---|---|---|
 | `APP-BOOTING` | 앱 실행 직후 | 서비스 시작 상태. 홈이나 로그인 화면을 잠깐 잘못 보여주지 않는다 | 안전 저장소의 인증 정보 확인 | `AUTH-RESTORING` 또는 `AUTH-INITIAL` |
-| `AUTH-RESTORING` | 저장된 인증 정보가 있음 | 로그인 상태 확인 중이라는 안내 | 세션 복원 요청과 저장 결과 존재 여부 확인 | `APP-READY`, `APP-FIRST-ANALYSIS-REQUIRED`, `AUTH-EXPIRED` |
+| `AUTH-RESTORING` | 저장된 인증 정보가 있음 | 로그인 상태 확인 중이라는 안내 | 세션 확인(`GET /api/v1/auth/session`)으로 세션과 `user.hasSavedAnalysis` 확인. 액세스 토큰이 만료돼 봉투 없는 401이 오면 불변식 12로 갱신한 뒤 한 번 더 확인 | `APP-READY`, `APP-FIRST-ANALYSIS-REQUIRED`, `AUTH-EXPIRED` |
 | `APP-FIRST-ANALYSIS-REQUIRED` | 인증 성공, 저장 결과 없음 | 가게 정보 입력 흐름 | 홈·하단 내비게이션 접근 차단 | `STORE-INITIAL` |
 | `APP-READY` | 인증 성공, 저장 결과 있음 | 저장된 분석 결과가 있는 홈 | 하단 내비게이션 활성화 | `HOME-LOADING` |
 | `AUTH-EXPIRED` | 세션 만료·폐기·복원 실패 | 다시 로그인해야 하는 이유와 로그인 행동 | 로컬 인증 정보 제거 또는 무효 처리 | `AUTH-INITIAL` |
@@ -121,7 +127,7 @@
 
 ## 4. 가게 지정 상태
 
-현재 API 계약에는 분석 작업을 만들기 전에 가게를 식별하는 endpoint가 없다. 서버는 `POST /api/v1/analysis-jobs`에서 URL 허용 목록을 동기로 검증하고, 가게 식별은 작업 안의 `RESOLVING_STORE` 단계에서 수행한다. 따라서 현재 구현 가능한 흐름은 `SC-001 입력 → 작업 생성 → SC-003 진행`이며, 작업 생성 전 가게 확인(`SC-002`)은 §4.3에 보류로 둔다.
+현재 API 계약에는 분석 작업을 만들기 전에 가게를 식별하는 endpoint가 없다. 서버는 `POST /api/v1/analysis-jobs`에서 가게 이름·업종과 URL 허용 목록을 동기로 검증하고, 가게 접근·식별은 작업 실행 중에 수행한다. API 계약상 이 단계는 `RESOLVING_STORE`이지만 원격 백엔드 코드는 이 단계를 기록하지 않는다. 따라서 현재 구현 가능한 흐름은 `SC-001 입력 → 작업 생성 → SC-003 진행`이며, 작업 생성 전 가게 확인(`SC-002`)은 §4.3에 보류로 둔다.
 
 ### 4.1 `SC-001` 가게 정보 입력과 분석 요청
 
@@ -129,12 +135,12 @@
 |---|---|---|---|---|
 | `STORE-INITIAL` | 첫 분석 또는 분석하기 진입 | 가게 이름·업종·네이버 가게 URL 필수 입력 | 새 요청 초깃값 준비 | 입력 시작 |
 | `STORE-EDITING` | 하나 이상의 필드 변경 | 입력값과 제출 가능 여부 | 업종 허용값·URL 형식 등 로컬 검증 | 계속 입력 또는 분석 시작 |
-| `STORE-FIELD-ERROR` | 누락·허용 업종 밖·URL 형식 오류, 또는 작업 생성 응답의 `fieldErrors` | 필드별 원인과 수정 방법 | 오류 필드에 접근 가능한 연결 제공 | 입력 수정 |
-| `STORE-CREATING-JOB` | 세 필드가 유효하고 분석 시작 선택 | 분석 요청을 보내는 중이라는 안내 | `Idempotency-Key`를 붙여 작업 생성. 같은 제출을 재시도할 때는 같은 키를 쓴다 | `ANALYSIS-QUEUED` 또는 오류 |
+| `STORE-FIELD-ERROR` | 누락·허용 업종 밖·URL 형식 오류(로컬 검증), 또는 작업 생성의 `INVALID_INPUT` | 필드별 원인과 수정 방법. 분석 API는 현재 필드별 정보를 주지 않으므로 `INVALID_INPUT`은 가게 이름과 업종을 함께 확인하라고 안내 | 오류 필드에 접근 가능한 연결 제공 | 입력 수정 |
+| `STORE-CREATING-JOB` | 세 필드가 유효하고 분석 시작 선택 | 분석 요청을 보내는 중이라는 안내 | `Idempotency-Key`를 붙여 작업 생성(불변식 13) | `ANALYSIS-QUEUED` 또는 오류 |
 | `STORE-UNSUPPORTED-URL` | 작업 생성이 `INVALID_NAVER_PLACE_URL`로 거부됨 | 지원하는 네이버 가게 주소 안내 | 서버가 수집 브라우저를 실행하지 않음 | URL 수정 |
-| `STORE-NOT-FOUND` | 작업이 `STORE_NOT_FOUND`로 실패(`RESOLVING_STORE` 단계) | 가게를 찾지 못했으니 이름과 URL을 확인하라는 안내 | 분석 진행 화면에서 입력 화면으로 돌아오며 입력값 유지 | 수정 후 다시 분석 요청 |
+| `STORE-NOT-FOUND` | 작업이 `STORE_NOT_FOUND`로 실패 | 가게를 찾지 못했으니 이름과 URL을 확인하라는 안내 | 분석 진행 화면에서 입력 화면으로 돌아오며 입력값 유지. 원격 백엔드는 허용 주소의 DNS 조회 실패에만 이 코드를 쓰고, 존재하지 않는 가게는 `REVIEW_COLLECTION_BLOCKED`·`INSUFFICIENT_VALID_REVIEWS`로 올 수 있다(§11) | 수정 후 새 키로 다시 분석 요청 |
 | `STORE-JOB-ERROR` | 작업 생성 실패(`IDEMPOTENCY_KEY_REUSED`, 서버 오류 등) | 원인·현재 입력 보존·재시도 가능 여부 | 중복 작업 생성 방지 | 재시도 또는 수정 |
-| `STORE-OFFLINE` | 작업 생성 시 네트워크 없음 | 연결 후 다시 시도 안내 | 입력값 유지. 재시도는 같은 `Idempotency-Key` 사용 | 재시도 |
+| `STORE-OFFLINE` | 작업 생성 요청의 응답을 받지 못함 | 연결 후 다시 시도 안내 | 입력값 유지. 응답을 받지 못한 같은 제출이므로 같은 `Idempotency-Key`로 재전송(불변식 13) | 재시도 |
 
 ### 4.2 입력 오류의 위치
 
@@ -175,9 +181,11 @@
 
 | 상태 ID | 조건 | 사용자에게 보이는 것 | 다음 행동 |
 |---|---|---|---|
-| `ANALYSIS-INSUFFICIENT` | 유효 리뷰 50건 미만 | 현재 유효 리뷰 수와 50건 기준 | 다른 가게 입력 또는 종료 |
-| `ANALYSIS-RETRYABLE-ERROR` | 일시적 수집 실패·모델 오류·시간 초과 등 | 실패 단계·현재 상태·재시도 가능 안내 | 같은 작업 확인 또는 안전한 재시도 |
-| `ANALYSIS-FATAL-ERROR` | 사용자 수정 없이는 복구 불가 | 실패 원인과 수정해야 할 입력 | 가게 정보 수정 |
+| `ANALYSIS-INSUFFICIENT` | 유효 리뷰 50건 미만 | 분석에 필요한 50건 기준. 현재 유효 리뷰 수는 API가 주지 않으므로 표시하지 않고, 메시지 문자열을 파싱해 만들지 않는다(§11) | 다른 가게 입력 또는 종료 |
+| `ANALYSIS-RETRYABLE-ERROR` | 작업 실패, `retryable=true` | 실패했지만 다시 시도할 수 있다는 안내와 현재 상태 | 새 `Idempotency-Key`로 다시 분석 요청(불변식 13) |
+| `ANALYSIS-FATAL-ERROR` | 작업 실패, `retryable=false`이고 입력 수정 대상이 아닌 코드 | 서비스 쪽 문제로 지금은 분석을 완료할 수 없다는 안내. 입력을 고치라고 안내하지 않음 | 나중에 다시 시도 또는 입력 화면으로 돌아가기 |
+
+입력을 고쳐야 하는 작업 실패(`STORE_NOT_FOUND`, 작업 실패로 온 `INVALID_NAVER_PLACE_URL`)는 `ANALYSIS-FATAL-ERROR`가 아니라 §4.1의 `STORE-NOT-FOUND`·`STORE-UNSUPPORTED-URL`로 돌아간다.
 | `ANALYSIS-UNAUTHORIZED` | 진행 중 세션 만료·폐기 | 로그인 만료 안내 | 로그인 후 작업 접근 정책은 미정 |
 | `ANALYSIS-OFFLINE` | 상태 조회 중 네트워크 단절 | 마지막으로 확인한 단계와 연결 복구 안내 | 자동 polling·백오프 정책은 미정 |
 
@@ -205,7 +213,7 @@
 | 상태 ID | 조건 | 사용자에게 보이는 것 | 다음 행동 |
 |---|---|---|---|
 | `RESULT-SAVED-CONTEXT` | 홈에서 계정의 저장 결과 조회 | 현재 저장된 결과라는 문맥 | 유형·근거·제안 탐색 또는 새 분석 |
-| `RESULT-UNSAVED-PREVIEW` | 저장본이 있는 계정의 새 분석 완료 | 새 결과이며 아직 기존 저장본을 교체하지 않았다는 안내 | 결과 탐색 후 새 결과로 교체 또는 기존 결과 유지 |
+| `RESULT-UNSAVED-PREVIEW` | 새 분석이 완료됐지만 저장본의 `analysisId`가 이 작업과 다름(§7 판정) | 새 결과이며 아직 기존 저장본을 교체하지 않았다는 안내 | 결과 탐색 후 새 결과로 교체 또는 기존 결과 유지 |
 
 | 상태 ID | 조건 | 사용자에게 보이는 것 | 다음 행동 |
 |---|---|---|---|
@@ -224,11 +232,13 @@
 | 상태 | 판정 근거 |
 |---|---|
 | `RESULT-NORMAL` / `RESULT-PARTIAL` / `RESULT-NO-PERSONA` | `podium` 세 슬롯 중 `status=FILLED` 개수가 3 / 1~2 / 0 |
-| 빈 슬롯의 사유 | `status=EMPTY` 슬롯의 `reason.message` |
+| 빈 슬롯의 사유 | `status=EMPTY` 슬롯의 `reason.message`. 빈 슬롯에는 `persona` 키가 없을 수 있다 |
 | 최초 선택 | `FILLED` 슬롯 중 가장 낮은 `rank` |
-| `RESULT-OLD-REVIEWS` | `metadata.containsReviewsOlderThanTwoYears=true` 또는 `limitations`의 해당 코드 |
-| `RESULT-LIMITS` | 항상 표시. 서버 `limitations` 문구가 있으면 함께 표시 |
-| 분석 기준 정보 | `metadata`의 `platform`, `validReviewCount`, `collectedAt`, `analyzedAt` |
+| `RESULT-OLD-REVIEWS` | `metadata.containsReviewsOlderThanTwoYears=true`. 원격 백엔드의 `limitations[].code`는 항상 `ANALYSIS_LIMITATION`이라 코드로 판정하지 않는다 |
+| `RESULT-LIMITS` | 항상 표시. 서버 `limitations[].message`가 있으면 함께 표시 |
+| 분석 기준 정보 | `store.name`, `metadata`의 `platform`, `collectedReviewCount`(수집 건수), `validReviewCount`(분석 사용 건수), `collectedAt`, `analyzedAt` |
+
+`RESULT-NO-PERSONA`는 계약상 상태지만 원격 백엔드에서는 현재 나올 수 없다. Python 분석 결과가 페르소나를 최소 1개 요구해, 근거를 충족한 토픽이 0개면 결과 대신 재시도 가능한 작업 실패(`ANALYSIS_SERVICE_REJECTED`)가 된다(§11). 앱은 이 상태를 구현하되 검증은 fixture로 한다.
 
 `RESULT-LIMITS`와 `RESULT-OLD-REVIEWS`는 별도의 결과 유형이 아니라 `NORMAL`, `PARTIAL`, `NO-PERSONA`와 함께 표시되는 한계·경고 상태다. `RESULT-UNSAVED-PREVIEW`를 닫거나 앱을 종료했을 때 다시 접근할 수 있는 범위는 보관 정책 확정 전까지 보장하지 않는다.
 
@@ -256,6 +266,8 @@
 
 ### 6.4 `SC-007` 페르소나 이미지
 
+결과의 `image.url`은 `/api/v1/persona-images/{imageId}` 형태의 상대 경로이며, 요청 사용자의 소유권을 확인하므로 `Authorization` 헤더가 필요하다. 앱은 API 기본 주소와 결합하고 인증 헤더를 붙여 요청한다. 401이면 불변식 12에 따라 토큰을 갱신한 뒤 한 번 다시 요청하고, 그래도 실패할 때만 `IMAGE-LOAD-ERROR`로 간다. 마이페이지의 `STORED-IMAGES-*`도 같은 규칙을 따른다.
+
 | 상태 ID | 조건 | 사용자에게 보이는 것 | 시스템 규칙 |
 |---|---|---|---|
 | `IMAGE-READY` | 이미지 생성·검증 완료 | AI 생성 이미지 고지와 대체 텍스트 | 실제 고객 사진처럼 표현하지 않음 |
@@ -279,15 +291,22 @@
 
 첫 결과 자동 저장은 앱이 따로 요청하지 않는다. 서버가 작업을 `COMPLETED`로 바꾸는 같은 트랜잭션에서 저장본이 없는 계정에 첫 결과를 저장한다([API.md](../../architecture/API.md) §3.2). 그래서 앱이 보는 첫 저장은 "작업 완료"와 같은 사건이며, 저장 실패는 작업이 `COMPLETED`가 되지 않는 것으로 나타난다. 아래 `SAVE-FIRST-*`는 이 사건을 화면 문구로 옮긴 것이지 별도 요청 상태가 아니다.
 
+작업이 `COMPLETED`가 되면 앱은 로그인 시점의 `hasSavedAnalysis` 값에 기대지 않고 다음 순서로 판정한다. 같은 계정의 다른 작업이 먼저 끝나 첫 저장본이 된 경우에도 올바르게 갈라진다.
+
+1. `GET /api/v1/me/saved-analysis`로 현재 저장본을 조회한다.
+2. 저장본의 `analysisId`가 이 작업 상태의 `analysisId`와 같으면 이 결과가 저장된 것이다 → `SAVE-FIRST-SUCCESS` → 홈의 `RESULT-SAVED-CONTEXT`.
+3. 다르면 이 결과는 저장되지 않은 것이다 → `GET /api/v1/analysis-jobs/{jobId}/result`로 결과를 받아 `RESULT-UNSAVED-PREVIEW` → `SAVE-CHOICE-REQUIRED`.
+4. 저장본이 없으면(`SAVED_ANALYSIS_NOT_FOUND`) → `SAVE-FIRST-ERROR`.
+
 | 상태 ID | 조건·이벤트 | 사용자에게 보이는 것 | 시스템 처리 | 다음 전이 |
 |---|---|---|---|---|
 | `SAVE-FIRST-PENDING` | 저장본이 없는 계정의 작업이 아직 `RUNNING` | 분석 진행 화면의 마지막 단계 문구. 별도 저장 화면을 만들지 않음 | 작업 상태 조회 계속 | `SAVE-FIRST-SUCCESS` 또는 분석 실패 상태 |
-| `SAVE-FIRST-SUCCESS` | 저장본이 없던 계정의 작업이 `COMPLETED` | 결과가 저장돼 홈에서 볼 수 있다는 완료 상태 | 저장 결과 조회 | `HOME-LOADING` |
-| `SAVE-CHOICE-REQUIRED` | 기존 저장본이 있고 `RESULT-UNSAVED-PREVIEW` 확인을 마침 | 새 결과로 교체 / 기존 결과 유지 | 선택 전 기존 저장본 유지 | 사용자 선택 |
+| `SAVE-FIRST-SUCCESS` | 작업이 `COMPLETED`이고 저장본의 `analysisId`가 이 작업의 `analysisId`와 같음 | 결과가 저장돼 홈에서 볼 수 있다는 완료 상태 | 홈으로 이동 | `HOME-LOADING` |
+| `SAVE-CHOICE-REQUIRED` | 저장본의 `analysisId`가 이 작업과 다르고 `RESULT-UNSAVED-PREVIEW` 확인을 마침 | 새 결과로 교체 / 기존 결과 유지 | 선택 전 기존 저장본 유지 | 사용자 선택 |
 | `SAVE-REPLACING` | 새 결과로 교체 선택 | 교체 중 안내, 중복 선택 차단 | 소유권·완료 상태 확인 후 트랜잭션 update | 홈의 새 결과 |
 | `SAVE-KEEPING` | 기존 결과 유지 선택 | 기존 결과로 돌아가는 중 안내 | 기존 저장본 변경 없음 | 홈의 기존 결과 |
 | `SAVE-CONFLICT` | 동시 변경·저장 충돌 | 저장 상태가 바뀌었다는 안내 | 최신 저장본 재조회 | 다시 선택 또는 홈 |
-| `SAVE-FIRST-ERROR` | 저장본이 없던 계정의 작업이 `COMPLETED`됐는데 저장 결과 조회가 `SAVED_ANALYSIS_NOT_FOUND` | 아직 홈에 저장된 결과가 없다는 안내와 재조회 | 첫 분석 결과를 완료로 가장하지 않음. 서버 계약상 발생하면 안 되는 불일치이므로 결과 무결성 오류로 다룬다 | 저장 결과 재조회 |
+| `SAVE-FIRST-ERROR` | 작업이 `COMPLETED`됐는데 저장 결과 조회가 `SAVED_ANALYSIS_NOT_FOUND` | 아직 홈에 저장된 결과가 없다는 안내와 재조회 | 첫 분석 결과를 완료로 가장하지 않음. 서버 계약상 발생하면 안 되는 불일치이므로 결과 무결성 오류로 다룬다 | 저장 결과 재조회 |
 | `SAVE-REPLACE-ERROR` | 기존 저장본 교체 실패 | 기존 저장본이 그대로 유지됐다는 안내 | 기존 저장본을 손상시키지 않음 | 교체 재시도 또는 기존 결과 유지 |
 
 기존 결과 유지 후 미저장 새 결과를 얼마나 다시 볼 수 있는지는 미정이다. 이 정책이 확정되기 전에는 프론트가 임의의 영구 보관·히스토리 화면을 만들지 않는다.
@@ -348,7 +367,7 @@ APP-BOOTING
 → HOME-LOADING / RESULT-NORMAL / RESULT-PARTIAL / RESULT-NO-PERSONA
 ```
 
-같은 Slice에서 `STORE-UNSUPPORTED-URL`, `STORE-NOT-FOUND`, `ANALYSIS-INSUFFICIENT`, `ANALYSIS-RETRYABLE-ERROR`, `ANALYSIS-FATAL-ERROR`, `IMAGE-GENERATION-FAILED` fixture도 각각 재현해 실패 경계를 검증한다. `SC-002` 가게 확인(§4.3)은 API가 생기기 전까지 Slice에 넣지 않는다. 저장본이 있는 사용자의 `RESULT-UNSAVED-PREVIEW → SAVE-CHOICE-REQUIRED → SAVE-REPLACING | SAVE-KEEPING` 흐름은 다음 Slice에서 연결한다.
+같은 Slice에서 `STORE-UNSUPPORTED-URL`, `STORE-NOT-FOUND`, `ANALYSIS-INSUFFICIENT`, `ANALYSIS-RETRYABLE-ERROR`, `ANALYSIS-FATAL-ERROR`, `IMAGE-GENERATION-FAILED` fixture도 각각 재현해 실패 경계를 검증한다. 봉투 없는 401 뒤의 토큰 갱신·재전송(불변식 12)과 실패 후 새 `Idempotency-Key` 재요청(불변식 13)도 Slice에서 확인한다. `RESULT-NO-PERSONA`는 현재 백엔드에서 나올 수 없으므로 fixture로만 검증한다(§6.1). `SC-002` 가게 확인(§4.3)은 API가 생기기 전까지 Slice에 넣지 않는다. 저장본이 있는 사용자의 `RESULT-UNSAVED-PREVIEW → SAVE-CHOICE-REQUIRED → SAVE-REPLACING | SAVE-KEEPING` 흐름은 다음 Slice에서 연결한다.
 
 Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정된 비식별 fixture를 사용한다. fixture 상태와 실제 API 상태의 타입을 다르게 만들지 않으며, 화면 안에 데모 데이터를 운영 데이터처럼 표시하지 않는다.
 
@@ -375,6 +394,12 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 전체 근거 조회 endpoint 구현 (`role:feature`) | `SC-005` `EVIDENCE-*`, `근거 리뷰 전체 보기` | 근거 상세 화면 구현 전 |
 | `IMAGE_GENERATION_FAILED`·`ANALYSIS_TIMEOUT` 코드와 세부 `progressStep` 기록 (`role:feature`) | `IMAGE-GENERATION-FAILED`, §5 단계 표시 | 분석 진행 화면 구현 전 |
 | RAG 지식 참고 구현 (`role:feature`) — 현재 `knowledgeReferences`가 비어서 온다 | `ADVICE-EXPANDED`의 전문 지식, PRD FR-005 | 제안 상세 화면 구현 전 |
+| 분석 API 오류 봉투를 API.md §2.1(`fieldErrors`·`traceId`)에 맞출지 (`role:feature`·`role:platform`) — 현재 `retryable`·`fields`(빈 값)·`timestamp` | `STORE-FIELD-ERROR`의 필드별 안내, 불변식 9 | 가게 입력 화면 구현 전 |
+| 인증 실패 401의 응답 형식 명시 (`role:feature`) — 현재 서버 기본 동작이며 실제 응답은 미확인 | 불변식 12 | 인증 API 연동 전 |
+| 유효 리뷰 부족 실패에 현재 유효 리뷰 수 필드 제공 (`role:feature`) — PRD §10 공통·AC-04가 요구 | `ANALYSIS-INSUFFICIENT` | 분석 진행 화면 구현 전 |
+| 유효 토픽 0개 결과 처리 (`role:feature`) — 현재 Python이 페르소나 최소 1개를 요구해 재시도 가능 실패가 된다 | `RESULT-NO-PERSONA`, PRD FR-003 | 결과 화면 구현 전 |
+| `STORE_NOT_FOUND` 판정 범위 (`role:feature`) — 현재 DNS 조회 실패에만 쓰고, 없는 가게는 다른 코드로 온다 | `STORE-NOT-FOUND` | 가게 입력 화면 구현 전 |
+| 같은 `Idempotency-Key`로 `FAILED` 작업을 다시 요청하면 서버가 분석을 다시 실행하지만 작업 상태는 `FAILED`로 남는 동작 (`role:feature`) | 불변식 13 | 분석 API 연동 전 |
 
 미정 항목은 상태를 삭제하는 근거가 아니다. 프론트 코드는 확정된 상태 경계를 수용할 수 있게 만들되, 미정 정책을 숫자·시간·route 구조로 임의 고정하지 않는다.
 
@@ -406,6 +431,19 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 공백·충돌 표식 | PASS | `git diff --check` 이상 없음 |
 | 앱 렌더링·Visual QA | 미실행 | 프론트엔드 코드가 아직 없으므로 Design Foundation과 Vertical Slice 이후 수행 |
 | 독립 Reviewer | 미실행 | 제품·디자인 담당자 배정과 검토 필요 |
+
+### 5차 독립 재검토 반영
+
+검토일: 2026-09-21. 4차 반영본을 독립 reviewer가 원격 백엔드 코드와 대조해 FAIL(P1 2·P2 6·P3 다수) 판정했다.
+
+| 발견 사항 | 조치 |
+|---|---|
+| 액세스 토큰 만료는 `error.code` 없는 401로 와서, 코드 기준 규칙만으로는 토큰 갱신이 시작되지 않는다 | 불변식 12, `AUTH-RESTORING`·§6.4 갱신 규칙 추가 |
+| `Idempotency-Key` 재사용 범위가 없어 실패 후 재시도가 이전 `FAILED` 작업을 돌려받는다 | 불변식 13, `STORE-*`·`ANALYSIS-RETRYABLE-ERROR` 재요청 규칙 |
+| 작업 완료 뒤 첫 저장·미저장 미리보기 분기 규칙이 없다 | §7에 `analysisId` 비교 판정 추가 |
+| 유효 리뷰 수·토픽 0개 결과·`ANALYSIS-FATAL-ERROR` 정의·서버 문구 사용 범위·이미지 인증이 코드와 맞지 않는다 | 상태 정의 수정, 불변식 9·11, §6.1·§6.4, §11 항목 추가 |
+| 코드 표의 HTTP 상태·발생 시점·문맥별 연결, `RESOLVING_STORE` 서술, `limitations` 코드, 수집 건수 필드 | §2.1·§4·§6.1 정정 |
+| 기능명세 `SC-*` 13개 추적 재확인 | `SC-002`는 §4.3 보류 상태에, 나머지 12개는 기존 상태에 연결됨 |
 
 ### 4차 프론트엔드 구현 가능성 재검토
 
