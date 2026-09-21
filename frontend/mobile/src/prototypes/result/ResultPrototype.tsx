@@ -1,7 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Alert,
+  Animated,
+  Easing,
   Image,
   type ImageSourcePropType,
   Pressable,
@@ -13,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, layout, radii, shadows, spacing, strokes, typography } from '@/design/tokens';
+import { colors, layout, motion, radii, shadows, spacing, strokes, typography } from '@/design/tokens';
 
 type PerspectiveTone = 'priority' | 'positive' | 'negative' | 'perception';
 
@@ -30,6 +33,12 @@ type ReviewEvidence = {
   date: string;
 };
 
+type JourneyStage = {
+  label: '탐색' | '방문' | '식사' | '공유';
+  title: string;
+  description: string;
+};
+
 type Persona = {
   id: string;
   rank: number;
@@ -40,6 +49,7 @@ type Persona = {
   imageAlt: string;
   perspectives: Perspective[];
   reviews: ReviewEvidence[];
+  journey: JourneyStage[];
   adviceFact: string;
   adviceTitle: string;
   adviceBody: string;
@@ -104,6 +114,28 @@ const personas: Persona[] = [
         date: '2026.07.03',
       },
     ],
+    journey: [
+      {
+        label: '탐색',
+        title: '예전부터 알던 맛을 다시 확인해요',
+        description: '리뷰와 매장 정보를 보며 변함없는 맛인지 살펴봐요.',
+      },
+      {
+        label: '방문',
+        title: '익숙한 간판과 위치가 방문을 도와요',
+        description: '오래 본 매장이라는 익숙함이 다시 찾는 신호가 돼요.',
+      },
+      {
+        label: '식사',
+        title: '맛과 상차림에서 추억을 확인해요',
+        description: '변함없는 쌈밥 맛과 정갈한 반찬을 중요하게 봐요.',
+      },
+      {
+        label: '공유',
+        title: '여전한 맛이라는 경험을 남겨요',
+        description: '오래 다닌 곳이라는 기억과 재방문 경험을 리뷰로 공유해요.',
+      },
+    ],
     adviceFact: '주말 등 혼잡 시간대에 대기가 길다는 언급이 반복돼요.',
     adviceTitle: '혼잡 시간과 예상 대기 안내를 먼저 정리해 보세요',
     adviceBody: '반복된 리뷰 사실을 바탕으로 방문 전에 예상 대기 정보를 확인할 수 있게 안내해 보세요.',
@@ -159,6 +191,28 @@ const personas: Persona[] = [
       {
         quote: '같이 간 사람은 조금 맵다고 했지만 저는 개운하게 먹었어요.',
         date: '2026.07.21',
+      },
+    ],
+    journey: [
+      {
+        label: '탐색',
+        title: '내가 먹을 수 있는 맵기인지 확인해요',
+        description: '리뷰에서 맵기 체감과 조절 가능 여부를 찾아봐요.',
+      },
+      {
+        label: '방문',
+        title: '함께 먹는 사람의 취향을 떠올려요',
+        description: '각자 원하는 맵기를 고를 수 있는지 방문 전에 판단해요.',
+      },
+      {
+        label: '식사',
+        title: '개운한 매운맛과 단계 차이를 경험해요',
+        description: '주문한 맵기가 기대와 맞는지 가장 중요하게 느껴요.',
+      },
+      {
+        label: '공유',
+        title: '다음 손님을 위해 맵기 팁을 남겨요',
+        description: '자신이 느낀 맵기와 조절 경험을 리뷰로 알려줘요.',
       },
     ],
     adviceFact: '맵기 체감과 조절 가능 여부를 묻는 리뷰가 반복돼요.',
@@ -218,6 +272,28 @@ const personas: Persona[] = [
         date: '2026.07.18',
       },
     ],
+    journey: [
+      {
+        label: '탐색',
+        title: '혼자 주문할 수 있는지 먼저 살펴봐요',
+        description: '1인 메뉴와 혼잡 시간 이용 후기를 중심으로 확인해요.',
+      },
+      {
+        label: '방문',
+        title: '눈치 보지 않을 시간과 자리를 찾아요',
+        description: '혼자 방문해도 편안한 시간대인지 판단해요.',
+      },
+      {
+        label: '식사',
+        title: '빠르고 정갈한 한 끼를 기대해요',
+        description: '1인 상차림의 구성과 식사 속도를 중요하게 봐요.',
+      },
+      {
+        label: '공유',
+        title: '혼밥하기 편한 경험을 알려줘요',
+        description: '다른 혼밥 손님에게 좌석과 주문 경험을 공유해요.',
+      },
+    ],
     adviceFact: '1인 주문 가능 여부와 혼잡 시간 좌석을 묻는 표현이 반복돼요.',
     adviceTitle: '1인 주문 가능 시간과 구성을 먼저 안내해 보세요',
     adviceBody: '실제 운영 기준에 맞춰 혼자 방문하기 편한 시간과 주문 가능한 구성을 짧게 안내해 보세요.',
@@ -251,37 +327,114 @@ function RankCard({
   persona,
   selected,
   onPress,
+  progress,
+  largeText,
 }: {
   persona: Persona;
   selected: boolean;
   onPress: () => void;
+  progress: Animated.Value;
+  largeText: boolean;
 }) {
+  const flexGrow = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: largeText ? [0.96, 1.08] : [0.9, 1.2],
+  });
+  const imageSize = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: largeText ? [spacing[14], spacing[16]] : [spacing[14], spacing[20]],
+  });
+  const lift = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: largeText ? [0, 0] : [0, -spacing[2]],
+  });
+  const opacity = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.82, 1],
+  });
+
   return (
-    <Pressable
-      accessibilityHint="선택하면 아래 분석 내용이 이 손님 유형으로 바뀝니다."
-      accessibilityLabel={`${persona.rank}위 ${persona.name}, ${persona.shortSignal}`}
-      accessibilityRole="tab"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.rankCard,
-        selected && styles.rankCardSelected,
-        pressed && styles.pressed,
+    <Animated.View
+      style={[
+        styles.rankCardSlot,
+        largeText && styles.rankCardSlotLargeText,
+        {
+          flexGrow,
+          opacity,
+          transform: [{ translateY: lift }],
+        },
       ]}
     >
-      <View style={[styles.rankBadge, selected && styles.rankBadgeSelected]}>
-        <Text style={[styles.rankBadgeText, selected && styles.rankBadgeTextSelected]}>{persona.rank}위</Text>
+      <Pressable
+        accessibilityHint="선택하면 이 카드가 커지고 아래 상세 내용이 이 손님 유형으로 바뀝니다."
+        accessibilityLabel={`${persona.rank}위 ${persona.name}, ${persona.shortSignal}`}
+        accessibilityRole="tab"
+        accessibilityState={{ selected }}
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.rankCard,
+          largeText && styles.rankCardLargeText,
+          selected && styles.rankCardSelected,
+          pressed && styles.pressed,
+        ]}
+      >
+        <View style={[styles.rankBadge, selected && styles.rankBadgeSelected]}>
+          <Text style={[styles.rankBadgeText, selected && styles.rankBadgeTextSelected]}>
+            {selected
+              ? largeText
+                ? `${persona.rank}위 선택`
+                : `${persona.rank}위 · 선택됨`
+              : `${persona.rank}위`}
+          </Text>
+        </View>
+        <Animated.Image
+          accessibilityIgnoresInvertColors
+          accessibilityLabel={persona.imageAlt}
+          resizeMode="contain"
+          source={persona.image}
+          style={[styles.rankImage, { width: imageSize, height: imageSize }]}
+        />
+        <View style={[styles.rankCopy, largeText && styles.rankCopyLargeText]}>
+          <Text style={[styles.rankName, largeText && styles.rankTextLarge]}>{persona.name}</Text>
+          {selected ? (
+            <Text style={[styles.rankSignal, largeText && styles.rankTextLarge]}>{persona.shortSignal}</Text>
+          ) : null}
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function JourneyMap({ stages }: { stages: JourneyStage[] }) {
+  return (
+    <View style={styles.journeyPanel}>
+      <View style={styles.journeyHeadingRow}>
+        <SectionHeading eyebrow="AI 해석 기반 시안" title="고객 여정 지도" />
+        <View style={styles.unconfirmedBadge}>
+          <Text style={styles.unconfirmedBadgeText}>제품 미확정</Text>
+        </View>
       </View>
-      <Image
-        accessibilityIgnoresInvertColors
-        accessibilityLabel={persona.imageAlt}
-        resizeMode="contain"
-        source={persona.image}
-        style={styles.rankImage}
-      />
-      <Text style={styles.rankName}>{persona.name}</Text>
-      <Text style={styles.rankSignal}>{persona.shortSignal}</Text>
-    </Pressable>
+      <Text style={styles.journeyIntro}>
+        첫 번째 디자인의 흐름을 직접 비교하기 위한 탐색 기능이며, 현재 MVP 결과 계약에는 포함되지 않았어요.
+      </Text>
+      <View style={styles.journeyList}>
+        {stages.map((stage, index) => (
+          <View key={stage.label} style={styles.journeyRow}>
+            <View style={styles.journeyRail}>
+              <View style={styles.journeyDot}>
+                <Text style={styles.journeyDotText}>{index + 1}</Text>
+              </View>
+              {index < stages.length - 1 ? <View style={styles.journeyLine} /> : null}
+            </View>
+            <View style={styles.journeyCard}>
+              <Text style={styles.journeyStage}>{stage.label}</Text>
+              <Text style={styles.journeyTitle}>{stage.title}</Text>
+              <Text style={styles.journeyDescription}>{stage.description}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -441,19 +594,51 @@ function BottomNavigation({ bottomInset }: { bottomInset: number }) {
 }
 
 export function ResultPrototype() {
-  const { width } = useWindowDimensions();
+  const { fontScale, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const horizontalPadding = width >= layout.breakpoint.medium ? spacing[6] : spacing[4];
+  const largeText = fontScale >= 1.5;
   const [selectedId, setSelectedId] = useState(personas[0].id);
   const [expanded, setExpanded] = useState<'ai' | 'knowledge' | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [cardAnimations] = useState(() =>
+    personas.map((persona) => new Animated.Value(persona.id === personas[0].id ? 1 : 0)),
+  );
+  const scrollRef = useRef<ScrollView>(null);
+  const detailOffset = useRef(0);
   const selectedPersona = useMemo(
     () => personas.find((persona) => persona.id === selectedId) ?? personas[0],
     [selectedId],
   );
 
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => subscription.remove();
+  }, []);
+
   const selectPersona = (id: string) => {
+    if (id === selectedId) return;
+
     setSelectedId(id);
     setExpanded(null);
+    Animated.parallel(
+      cardAnimations.map((animation, index) =>
+        Animated.timing(animation, {
+          toValue: personas[index].id === id ? 1 : 0,
+          duration: reduceMotion ? motion.duration.instant : motion.duration.emphasized,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+      ),
+    ).start();
+  };
+
+  const scrollToSelectedDetails = () => {
+    scrollRef.current?.scrollTo({
+      animated: !reduceMotion,
+      y: Math.max(detailOffset.current - spacing[3], 0),
+    });
   };
 
   return (
@@ -461,49 +646,87 @@ export function ResultPrototype() {
       <StatusBar style="dark" />
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={[styles.content, { paddingHorizontal: horizontalPadding }]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.appHeader}>
+          <View style={[styles.appHeader, largeText && styles.appHeaderLargeText]}>
             <Text accessibilityRole="header" style={styles.wordmark}>
               PULSE
             </Text>
-            <View style={styles.prototypeBadge}>
+            <Text style={styles.headerTitle}>손님 분석</Text>
+            <View style={[styles.prototypeBadge, largeText && styles.prototypeBadgeLargeText]}>
               <Text style={styles.prototypeBadgeText}>실행 프로토타입 · 가상 데이터</Text>
             </View>
           </View>
 
-          <View style={styles.metadataSection}>
-            <Text accessibilityRole="header" style={styles.storeName}>
-              영등원조쌈밥
-            </Text>
-            <Text style={styles.metadata}>네이버 공개 리뷰 59건 · 2026.09.18 분석</Text>
-          </View>
-
-          <View accessibilityRole="text" style={styles.limitNotice}>
-            <View style={styles.infoMark}>
-              <Text style={styles.infoMarkText}>i</Text>
+          <View style={styles.insightHero}>
+            <View style={[styles.insightCopy, largeText && styles.insightCopyLargeText]}>
+              <Text style={styles.insightEyebrow}>리뷰 분석 완료</Text>
+              <Text accessibilityRole="header" style={styles.insightTitle}>
+                영등원조쌈밥의{`\n`}고객 분석이 완료되었어요.
+              </Text>
+              <Text style={styles.insightBody}>
+                실제 리뷰를 바탕으로 우리 매장을 찾는 손님의 특징과 여정을 정리했어요.
+              </Text>
+              <View style={styles.metadataChips}>
+                <View style={styles.metadataChip}>
+                  <Text style={styles.metadataChipText}>리뷰 59개 분석</Text>
+                </View>
+                <View style={styles.metadataChip}>
+                  <Text style={styles.metadataChipText}>2026.09.18</Text>
+                </View>
+              </View>
             </View>
-            <Text style={styles.limitText}>
-              분석 한계 · 공개 리뷰 작성자가 전체 손님을 대표하지 않을 수 있어요.
-            </Text>
+            <View aria-hidden style={[styles.heroArt, largeText && styles.heroArtLargeText]}>
+              <View style={[styles.heroBar, styles.heroBarShort]} />
+              <View style={[styles.heroBar, styles.heroBarMedium]} />
+              <View style={[styles.heroBar, styles.heroBarTall]} />
+            </View>
+            <View accessibilityRole="text" style={styles.heroLimitNotice}>
+              <View style={styles.infoMark}>
+                <Text style={styles.infoMarkText}>i</Text>
+              </View>
+              <Text style={styles.limitText}>공개 리뷰 작성자가 전체 손님을 대표하지 않을 수 있어요.</Text>
+            </View>
           </View>
 
-          <View style={styles.sectionBlock}>
-            <SectionHeading eyebrow="리뷰에서 많이 반복된 순서" title="손님 유형 TOP 3" />
-            <View style={styles.rankGrid}>
-              {personas.map((persona) => (
+          <View accessibilityRole="tablist" style={[styles.sectionBlock, styles.rankSection]}>
+            <View style={styles.rankHeadingRow}>
+              <SectionHeading eyebrow="리뷰에서 많이 반복된 순서" title="손님 유형 TOP 3" />
+              <Pressable
+                accessibilityHint="현재 선택한 손님 유형의 상세 영역으로 이동합니다."
+                accessibilityLabel={`${selectedPersona.name} 상세 더보기`}
+                accessibilityRole="button"
+                onPress={scrollToSelectedDetails}
+                style={({ pressed }) => [styles.moreButton, pressed && styles.pressed]}
+              >
+                <Text style={styles.moreButtonText}>더보기</Text>
+                <Text aria-hidden style={styles.chevron}>
+                  ›
+                </Text>
+              </Pressable>
+            </View>
+            <View style={[styles.rankGrid, largeText && styles.rankGridLargeText]}>
+              {personas.map((persona, index) => (
                 <RankCard
                   key={persona.id}
+                  largeText={largeText}
                   onPress={() => selectPersona(persona.id)}
                   persona={persona}
+                  progress={cardAnimations[index]}
                   selected={persona.id === selectedPersona.id}
                 />
               ))}
             </View>
           </View>
 
-          <View style={styles.personaCard}>
+          <View
+            onLayout={(event) => {
+              detailOffset.current = event.nativeEvent.layout.y;
+            }}
+            style={styles.personaCard}
+          >
             <View style={styles.personaCopy}>
               <Text style={styles.selectedRank}>{selectedPersona.rank}위 손님 유형</Text>
               <Text accessibilityRole="header" style={styles.personaName}>
@@ -555,6 +778,8 @@ export function ResultPrototype() {
               ))}
             </View>
           </View>
+
+          <JourneyMap stages={selectedPersona.journey} />
 
           <View style={styles.adviceCard}>
             <SectionHeading eyebrow="검토해 볼 행동" title={selectedPersona.adviceTitle} />
@@ -610,24 +835,131 @@ const styles = StyleSheet.create({
     minHeight: spacing[16],
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[3],
+    gap: spacing[2],
+  },
+  appHeaderLargeText: {
+    flexWrap: 'wrap',
+    paddingVertical: spacing[2],
   },
   wordmark: {
-    ...typography.head3,
+    ...typography.head4,
     color: colors.brand.primary,
   },
+  headerTitle: {
+    ...typography.body7,
+    flexShrink: 1,
+    color: colors.text.secondary,
+    borderLeftColor: colors.border.strong,
+    borderLeftWidth: strokes.hairline,
+    paddingLeft: spacing[2],
+  },
   prototypeBadge: {
-    maxWidth: '65%',
+    maxWidth: '52%',
+    marginLeft: 'auto',
     backgroundColor: colors.brand.tint,
     borderRadius: radii.pill,
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[1],
   },
+  prototypeBadgeLargeText: {
+    width: '100%',
+    maxWidth: '100%',
+    marginLeft: spacing[0],
+  },
   prototypeBadgeText: {
     ...typography.caption,
     color: colors.text.brand,
     textAlign: 'center',
+  },
+  insightHero: {
+    ...shadows.soft,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.default,
+    borderRadius: radii.panel,
+    borderWidth: strokes.hairline,
+    padding: spacing[5],
+    gap: spacing[4],
+  },
+  insightCopy: {
+    zIndex: 1,
+    paddingRight: spacing[20],
+    gap: spacing[2],
+  },
+  insightCopyLargeText: {
+    paddingRight: spacing[0],
+  },
+  insightEyebrow: {
+    ...typography.caption,
+    color: colors.text.brand,
+  },
+  insightTitle: {
+    ...typography.head4,
+    color: colors.text.strong,
+  },
+  insightBody: {
+    ...typography.body7,
+    color: colors.text.secondary,
+  },
+  metadataChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+    marginTop: spacing[1],
+  },
+  metadataChip: {
+    minHeight: layout.touchTargetMin,
+    justifyContent: 'center',
+    backgroundColor: colors.brand.stripe,
+    borderColor: colors.border.brand,
+    borderRadius: radii.pill,
+    borderWidth: strokes.hairline,
+    paddingHorizontal: spacing[3],
+  },
+  metadataChipText: {
+    ...typography.body6,
+    color: colors.text.brand,
+  },
+  heroArt: {
+    position: 'absolute',
+    top: spacing[8],
+    right: spacing[5],
+    width: spacing[16],
+    height: spacing[20],
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: spacing[2],
+    opacity: 0.72,
+  },
+  heroArtLargeText: {
+    display: 'none',
+  },
+  heroBar: {
+    width: spacing[3],
+    backgroundColor: colors.brand.tint,
+    borderRadius: radii.pill,
+  },
+  heroBarShort: {
+    height: spacing[8],
+  },
+  heroBarMedium: {
+    height: spacing[12],
+  },
+  heroBarTall: {
+    height: spacing[16],
+  },
+  heroLimitNotice: {
+    zIndex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.background.subtle,
+    borderColor: colors.border.default,
+    borderRadius: radii.control,
+    borderWidth: strokes.hairline,
+    padding: spacing[3],
+    gap: spacing[2],
   },
   metadataSection: {
     gap: spacing[1],
@@ -670,6 +1002,30 @@ const styles = StyleSheet.create({
   sectionBlock: {
     gap: spacing[3],
   },
+  rankSection: {
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.default,
+    borderRadius: radii.panel,
+    borderWidth: strokes.hairline,
+    padding: spacing[4],
+  },
+  rankHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing[3],
+  },
+  moreButton: {
+    minHeight: layout.touchTargetMin,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing[2],
+  },
+  moreButtonText: {
+    ...typography.body6,
+    color: colors.text.brand,
+  },
   sectionHeading: {
     flex: 1,
     gap: spacing[1],
@@ -684,10 +1040,22 @@ const styles = StyleSheet.create({
   },
   rankGrid: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing[2],
+    paddingTop: spacing[2],
+  },
+  rankGridLargeText: {
+    gap: spacing[1],
+  },
+  rankCardSlot: {
+    flexBasis: 0,
+    minWidth: 0,
+  },
+  rankCardSlotLargeText: {
+    alignSelf: 'stretch',
   },
   rankCard: {
-    flex: 1,
+    width: '100%',
     minWidth: 0,
     minHeight: spacing[32] + spacing[14],
     alignItems: 'center',
@@ -698,7 +1066,12 @@ const styles = StyleSheet.create({
     padding: spacing[2],
     gap: spacing[1],
   },
+  rankCardLargeText: {
+    minHeight: spacing[32] + spacing[20],
+    paddingHorizontal: spacing[1],
+  },
   rankCardSelected: {
+    ...shadows.soft,
     backgroundColor: colors.brand.stripe,
     borderColor: colors.brand.primary,
     borderWidth: strokes.focus,
@@ -724,13 +1097,25 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
   },
   rankImage: {
-    width: spacing[16] + spacing[2],
-    height: spacing[16] + spacing[2],
+    width: spacing[14],
+    height: spacing[14],
+  },
+  rankCopy: {
+    width: '100%',
+    alignItems: 'center',
+    gap: spacing[1],
+  },
+  rankCopyLargeText: {
+    minWidth: 0,
   },
   rankName: {
     ...typography.body6,
     color: colors.text.primary,
     textAlign: 'center',
+  },
+  rankTextLarge: {
+    width: '100%',
+    flexShrink: 1,
   },
   rankSignal: {
     ...typography.caption,
@@ -860,6 +1245,90 @@ const styles = StyleSheet.create({
   },
   reviewMeta: {
     ...typography.caption,
+    color: colors.text.secondary,
+  },
+  journeyPanel: {
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.default,
+    borderRadius: radii.panel,
+    borderWidth: strokes.hairline,
+    padding: spacing[4],
+    gap: spacing[3],
+  },
+  journeyHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+  },
+  unconfirmedBadge: {
+    minHeight: spacing[8],
+    justifyContent: 'center',
+    backgroundColor: colors.background.emphasized,
+    borderColor: colors.border.default,
+    borderRadius: radii.pill,
+    borderWidth: strokes.hairline,
+    paddingHorizontal: spacing[3],
+  },
+  unconfirmedBadgeText: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  journeyIntro: {
+    ...typography.body7,
+    color: colors.text.secondary,
+  },
+  journeyList: {
+    gap: spacing[1],
+  },
+  journeyRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing[3],
+  },
+  journeyRail: {
+    width: spacing[8],
+    alignItems: 'center',
+  },
+  journeyDot: {
+    width: spacing[8],
+    height: spacing[8],
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.brand.tint,
+    borderColor: colors.border.brand,
+    borderRadius: radii.pill,
+    borderWidth: strokes.hairline,
+  },
+  journeyDotText: {
+    ...typography.body6,
+    color: colors.text.brand,
+  },
+  journeyLine: {
+    width: strokes.focus,
+    minHeight: spacing[8],
+    flex: 1,
+    backgroundColor: colors.border.brand,
+  },
+  journeyCard: {
+    flex: 1,
+    marginBottom: spacing[2],
+    backgroundColor: colors.background.subtle,
+    borderColor: colors.border.default,
+    borderRadius: radii.control,
+    borderWidth: strokes.hairline,
+    padding: spacing[3],
+    gap: spacing[1],
+  },
+  journeyStage: {
+    ...typography.caption,
+    color: colors.text.brand,
+  },
+  journeyTitle: {
+    ...typography.body5,
+    color: colors.text.primary,
+  },
+  journeyDescription: {
+    ...typography.body7,
     color: colors.text.secondary,
   },
   adviceCard: {
