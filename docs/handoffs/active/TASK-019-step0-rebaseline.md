@@ -194,4 +194,4 @@ TASK-012~018 일곱 TASK(감사 당시 번호. 현재는 TASK-013~018과 TASK-02
 사용자가 팀원과 `팀에 물을 것` 3·5를 합의하고, 스택 push를 승인한다.
 
 ## Last Verified Commit
-`8dba53d` — 정본 재정렬과 리뷰 반영까지 위 Verification이 유효하다. 로컬 스택 감사 기준은 `dc84e82`, 원격은 조회일의 `main` `b30bada`, TASK-011 `74d6df8`, TASK-012 `a4ab15b`
+`4432a9d` — 정본 재정렬, 번호 변경, 전체 재독 정정과 각 리뷰 반영까지 위 Verification이 유효하다. 로컬 스택 감사 기준은 `dc84e82`, 원격은 조회일의 `main` `b30bada`, TASK-011 `74d6df8`, TASK-012 `a4ab15b`
