@@ -3,7 +3,7 @@
 > `TASK-019`는 임시 번호다. 로컬·원격 어디에도 쓰이지 않은 다음 번호를 골랐을 뿐이며, 팀이 번호 체계를 합의하면 바꾼다.
 
 ## Status
-진행중 — Step 0~2 정본 재정렬 완료, 번호 변경은 히스토리 재작성 권한 대기, 공유 순서는 팀 합의 대기. 로컬 브랜치에 커밋만 하며 push·이슈·PR을 만들지 않았다.
+진행중 — Step 0~2 정본 재정렬과 번호 변경 완료, 공유 순서는 팀 합의 대기. 로컬 브랜치에 커밋만 하며 push·이슈·PR을 만들지 않았다.
 
 ## Owner
 role:product — 미배정. 이 브랜치가 고친 파일은 대부분 `docs/product/**`다.
@@ -26,7 +26,7 @@ docs/TASK-019-step0-rebaseline — `ui/TASK-018-top3-selection-prototype`(`dc84e
 | 대상 | 기준 |
 |---|---|
 | 원격 `main` | `b30bada` — `feat(database): add initial PostgreSQL schema (#23)` |
-| 로컬 스택 | `docs/TASK-012-frontend-state-model` → `chore/TASK-013-frontend-bootstrap` → `ui/TASK-014-design-tokens` → `ui/TASK-015-design-exploration` → `ui/TASK-016-result-prototype` → `ui/TASK-017-web-aligned-exploration` → `ui/TASK-018-top3-selection-prototype`(`dc84e82`). `main` 대비 25개 커밋, 125개 파일 |
+| 로컬 스택 | `docs/TASK-020-frontend-state-model`(감사 당시 이름 `docs/TASK-012-frontend-state-model`) → `chore/TASK-013-frontend-bootstrap` → `ui/TASK-014-design-tokens` → `ui/TASK-015-design-exploration` → `ui/TASK-016-result-prototype` → `ui/TASK-017-web-aligned-exploration` → `ui/TASK-018-top3-selection-prototype`(`dc84e82`). `main` 대비 25개 커밋, 125개 파일 |
 | 원격 팀원 브랜치 | `feat/TASK-011-authentication`(`74d6df8`, PR #27 OPEN), `feat/TASK-012-analysis-pipeline`(`a4ab15b`, PR 없음), `docs/TASK-010-archive-handoffs`(`fd6c6e7`, PR #25 OPEN) |
 | 조회일 | 2026-09-21, `git fetch origin` 후 |
 
@@ -55,7 +55,17 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | TASK-012 | `docs/TASK-012-frontend-state-model` — 화면 상태 모델 | `feat/TASK-012-analysis-pipeline` — 수집·분석 API (오해서) |
 | ADR-008 | `ADR-008-frontend-bootstrap.md` — Expo 실행 스택 | `ADR-008-authentication-policy.md` — 토큰·비밀번호 정책 (TASK-011·012 양쪽) |
 
-원격 브랜치가 먼저 공개됐으므로 로컬 쪽 번호를 바꾸는 것을 제안한다. 후보는 ADR-011(원격이 ADR-008~010 사용)과 비어 있는 TASK 번호다. **확정 전 임의로 파일명을 바꾸지 않았다.** 커밋된 Markdown 7개 파일(AGENTS, README, ARCHITECTURE, DESIGN_SYSTEM, PRD, 기능명세, TASK-013 handoff)이 `ADR-008-frontend-bootstrap.md`를 참조하므로 변경 시 링크 전수 검사가 필요하다.
+원격 브랜치가 먼저 공개됐으므로 로컬 쪽 번호를 바꿨다(2026-09-21 사용자 승인). 위 표는 감사 당시 이름이다.
+
+| 옛 번호 | 새 번호 |
+|---|---|
+| 브랜치 `docs/TASK-012-frontend-state-model`, `docs/handoffs/active/TASK-012-frontend-state-model.md` | `docs/TASK-020-frontend-state-model`, `docs/handoffs/active/TASK-020-frontend-state-model.md` |
+| `docs/decisions/ADR-008-frontend-bootstrap.md` | `docs/decisions/ADR-011-frontend-bootstrap.md` |
+
+- 스택이 push 전이라 `git filter-branch --tree-filter`로 로컬 스택 29개 커밋 전체를 다시 써서, 모든 커밋에 처음부터 새 번호가 들어가게 했다. 이 파일은 충돌을 기록하는 문서라 치환하지 않았다.
+- 치환은 `ADR-008-frontend-bootstrap` 경로, 그 경로를 가리키는 링크의 `[ADR-008]` 라벨, ADR 제목, `TASK-012-frontend-state-model`, 상태 모델 handoff 제목으로 한정했다. `SCREEN_STATES`가 참조하는 원격 `ADR-008-authentication-policy`와 원격 `TASK-012`는 그대로다.
+- 재작성으로 스택 커밋 해시가 모두 바뀌어, 문서 속 옛 해시 14종을 두 번째 `filter-branch` 패스의 `map` 함수로 각 커밋의 최종 해시로 바꿨다. 이 문서 안의 해시도 이 패스로 갱신됐다.
+- 재작성 전 상태는 `backup/pre-renumber/*`(8개)와 `backup/pre-renumber-2/docs/TASK-019-step0-rebaseline`에 남아 있다.
 
 ### C3. 프론트엔드 이중 구현
 
@@ -109,7 +119,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | # | 질문 | 상태 |
 |---|---|---|
 | 1 | 프론트엔드 정본 | **해소** — `frontend/mobile` (C3) |
-| 2 | TASK-012·ADR-008 충돌에서 어느 쪽이 번호를 바꾸는가 | 로컬이 바꾼다(원격이 먼저 공개). 로컬 상태 모델 → `TASK-020`, 로컬 프론트 ADR → `ADR-011`. 실행은 아래 Unresolved의 권한 대기 |
+| 2 | TASK-012·ADR-008 충돌에서 어느 쪽이 번호를 바꾸는가 | 로컬이 바꾼다(원격이 먼저 공개). 로컬 상태 모델 → `TASK-020`, 로컬 프론트 ADR → `ADR-011`. **완료** (C2) |
 | 3 | 로컬 스택 일곱 TASK를 어떤 단위·순서로 PR로 올리는가 | 팀 합의 필요 |
 | 4 | 계정 탈퇴를 MVP 마이페이지 범위에 넣는가 | **해소** — 넣는다. [Google Play 계정 삭제 정책](https://support.google.com/googleplay/android-developer/answer/13327111)은 계정 생성이 가능한 앱에 앱 안 삭제 경로와 웹 삭제 요청 링크를 모두 요구한다. 백엔드는 구현했으나 실제 PostgreSQL 검증 전이다(원격 TASK-012 handoff) |
 | 5 | 페르소나 이미지를 사람 대신 음식·공간 상징으로 확정하는가 (PRD §13-9) | 팀 합의 필요 |
@@ -136,7 +146,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 
 ## Decisions
 - 사용자 결정(2026-09-21): 오해서는 백엔드만 진행하므로 프론트엔드 정본은 `frontend/mobile`이다. 반드시 바꿔야 하는 부분은 이 세션이 판단해 바꾼다.
-- 번호는 로컬이 바꾼다. 스택이 push 전이므로 모든 커밋에 새 번호가 들어가도록 히스토리를 다시 쓰려 했으나(`filter-branch`, 이후 `git mv`) 권한 규칙에 막혀 실행하지 않았다. 사용자 승인 후 진행한다.
+- 번호는 로컬이 바꾼다. 처음 시도한 히스토리 재작성은 권한 규칙에 막혔고, 사용자 승인(2026-09-21) 후 C2의 방법으로 실행했다.
 - push, rebase, 이슈 생성은 하지 않았다.
 - 팀원 브랜치의 파일은 읽기만 했다. 소유 영역 밖이므로 수정하지 않았다.
 
@@ -154,11 +164,15 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | 독립 Reviewer — 정본 재정렬 `034c786` | `reviewer` 서브에이전트 | FAIL(P2 6·P3 8) → `8dba53d`에서 P2 전부·P3 7건 반영 → 재검토 PASS |
 | Android 도구 | `adb devices`, `emulator -list-avds`, `getprop` (reviewer 실행) | `emulator-5554`, `Medium_Phone`, API 37 — `AGENTS.md` 서술과 일치 |
 | Google Play 정책 원문 | WebFetch·`curl` | 앱 안 삭제 경로와 웹 삭제 요청 링크를 모두 요구하는 문장 확인 |
+| 번호 변경 범위 | 백업 대비 `git diff -M` | 16개 파일 31줄, 번호·해시만 변경. `frontend`·`backend`·`.claude`·`.github` 차이 0 |
+| 옛 번호 잔존 | `git grep "ADR-008-frontend\|TASK-012-frontend\|\[ADR-008\]"` (이 문서 제외) | 0건 |
+| 문서 속 해시 | 8개 브랜치 끝의 `` `[0-9a-f]{7}` `` 전부 `git cat-file -e` | 스택 해시는 모두 존재. 없는 7개는 `main`의 기존 handoff 기록(Unresolved) |
 
 ## Unresolved
 - `팀에 물을 것` 3·5
-- 번호 변경(로컬 `TASK-012`→`TASK-020`, `ADR-008-frontend-bootstrap`→`ADR-011-frontend-bootstrap`) — 히스토리 재작성 권한 대기. 변경 전 브랜치는 `backup/pre-renumber/*`로 보존해 두었다
 - 번호를 확정하려면 스택을 push해야 한다. 그 전까지 팀원이 `TASK-013`~`TASK-020`, `ADR-011`을 새로 쓰면 다시 충돌한다
+- `backup/pre-renumber*` 브랜치는 push하지 않는다. 스택을 공유하고 문제가 없음을 확인한 뒤 지운다
+- `main`의 TASK-003·004·006·008·009·010 handoff에 적힌 해시 7개(`05f8c94`, `0db8a05`, `227b048`, `26b8fe3`, `282b9c7`, `5749b4b`, `a000d2d`)는 squash merge 뒤 원래 브랜치가 지워져 현재 저장소에 객체가 없다. 이번 작업과 무관한 기존 기록이라 고치지 않았다
 - 원격 브랜치 병합 전까지 `SCREEN_STATES`의 백엔드 계약 출처는 원격 브랜치 경로로만 적었다. 병합 후 상대 링크로 바꾼다
 - 원격과 같은 줄이라 일부러 남긴 탈퇴 관련 옛 문구를 병합 때 정리해야 한다: PRD §13-11 "탈퇴 정책", 기능명세 §12 "탈퇴 정책", 로컬 `docs/architecture/API.md`의 "탈퇴 API는 계약에 추가하지 않는다"(원격 API.md는 `DELETE /api/v1/me/account`를 이미 담고 있다)
 - Refresh 회전 유예: TASK-011(`74d6df8`)과 TASK-012(`a4ab15b`)의 `AuthService` 동작이 다르다. 병합 시 어느 쪽을 남길지와 ADR·API.md 반영은 `role:feature`·`role:platform` 결정이다
@@ -172,7 +186,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 - 원격 TASK-012 handoff는 "원격 push와 PR 생성은 수행하지 않았다"고 적었지만 해당 브랜치는 현재 원격에 있다. PR은 여전히 없다.
 
 ## Next Action
-사용자가 번호 변경을 위한 히스토리 재작성을 승인하면 `TASK-020`·`ADR-011`로 바꾸고 링크를 전수 검사한다. 이어서 팀원과 `팀에 물을 것` 3·5를 합의한다.
+사용자가 팀원과 `팀에 물을 것` 3·5를 합의하고, 스택 push를 승인한다.
 
 ## Last Verified Commit
 `8dba53d` — 정본 재정렬과 리뷰 반영까지 위 Verification이 유효하다. 로컬 스택 감사 기준은 `dc84e82`, 원격은 조회일의 `main` `b30bada`, TASK-011 `74d6df8`, TASK-012 `a4ab15b`
