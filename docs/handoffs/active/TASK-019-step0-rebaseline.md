@@ -129,7 +129,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 - `docs/product/requirements/RESULT_IA.md` — 앱 IA·계층·화면표에 탈퇴, 새 결과 확인, SC-005
 - `docs/product/requirements/USER_FLOW.md` — 탈퇴 흐름
 - `docs/product/requirements/SCREEN_STATES.md` — 백엔드 계약 동기화 (3차)
-- `docs/design/DESIGN_SYSTEM.md` — SC-012 탈퇴 표현 원칙
+- `docs/design/DESIGN_SYSTEM.md` — SC-012 탈퇴 표현 원칙, §13에 되돌릴 수 없는 행동의 색 토큰 추가
 - `AGENTS.md`, `frontend/mobile/README.md`, `README.md` — 로컬 도구·훅 상태 정정
 
 원격 팀원 브랜치와 겹치지 않도록 원격이 고친 줄(PRD §8 인증 행, §13-11·18, 기능명세 AUTH-008~011·§10.1·§12)은 건드리지 않았다.
@@ -151,7 +151,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | TASK-019 미사용 | `git ls-remote`, `git branch -a`, `docs/**` 검색 | 사용처 없음 |
 | lint·typecheck·test·build | 미실행 — 문서만 추가 | 해당 없음 |
 | 독립 Reviewer — 감사 문서 | `reviewer` 서브에이전트 | 초회 FAIL(P1 1·P2 2·P3 8) 전부 반영 → 2차 FAIL(P2 1, `traceId` 행 분류 오류) 반영 → 3차 PASS(P3 2건 반영) |
-| 독립 Reviewer — 정본 재정렬 `034c786` | `reviewer` 서브에이전트 | FAIL(P2 6·P3 8). P2 전부와 P3 중 7건 반영 후 재검토 필요 |
+| 독립 Reviewer — 정본 재정렬 `034c786` | `reviewer` 서브에이전트 | FAIL(P2 6·P3 8) → `8dba53d`에서 P2 전부·P3 7건 반영 → 재검토 PASS |
 | Android 도구 | `adb devices`, `emulator -list-avds`, `getprop` (reviewer 실행) | `emulator-5554`, `Medium_Phone`, API 37 — `AGENTS.md` 서술과 일치 |
 | Google Play 정책 원문 | WebFetch·`curl` | 앱 안 삭제 경로와 웹 삭제 요청 링크를 모두 요구하는 문장 확인 |
 
@@ -175,4 +175,4 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 사용자가 번호 변경을 위한 히스토리 재작성을 승인하면 `TASK-020`·`ADR-011`로 바꾸고 링크를 전수 검사한다. 이어서 팀원과 `팀에 물을 것` 3·5를 합의한다.
 
 ## Last Verified Commit
-`dc84e82` — 로컬 스택 끝(TASK-018) 기준으로 위 감사가 유효하다. 원격은 조회일의 `main` `b30bada`, TASK-011 `74d6df8`, TASK-012 `a4ab15b` 기준
+`8dba53d` — 정본 재정렬과 리뷰 반영까지 위 Verification이 유효하다. 로컬 스택 감사 기준은 `dc84e82`, 원격은 조회일의 `main` `b30bada`, TASK-011 `74d6df8`, TASK-012 `a4ab15b`
