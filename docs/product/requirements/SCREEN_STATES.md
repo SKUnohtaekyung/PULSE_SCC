@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |---|---|
 | 목적 | Android 프론트엔드가 화면별 정상·진행·빈 상태·오류·복구 상태를 빠뜨리지 않도록 구현 상태를 정의한다 |
-| 상태 | 3차 — 백엔드 인증·약관·탈퇴·오류 계약 반영. 제품·디자인 검토 전, 세부 카피·시각 디자인·오프라인 정책은 미정 |
+| 상태 | 4차 — 백엔드 계약 반영과 프론트엔드 구현 가능성 재검토 완료. 세부 카피·시각 디자인·오프라인 정책은 미정 |
 | 기준일 | 2026-09-21 |
 | 백엔드 계약 출처 | 인증 정책·계정 연결·가입 응답: 원격 `feat/TASK-011-authentication`(PR #27, `74d6df8`)의 `docs/decisions/ADR-008-authentication-policy.md`, `docs/architecture/API.md`, `AuthService`·`AuthController`. 약관·법률 문서 동의와 계정 탈퇴: 원격 `feat/TASK-012-analysis-pipeline`(`a4ab15b`)의 `docs/architecture/API.md`, `docs/decisions/ADR-010-account-deletion.md`, `LegalController`, `MyPageService`. 두 브랜치는 2026-09-21 기준 `main`에 병합 전이며 병합 후 상대 링크로 바꾼다 |
 | 제품 요구사항 정본 | [PRD.md](../PRD.md) |
@@ -48,6 +48,35 @@
 8. `offline`의 캐시·자동 재시도·백그라운드 처리 방식은 제품 결정 전까지 구현값으로 확정하지 않는다.
 9. 서버 오류 응답은 [API.md](../../architecture/API.md) §2.1 형식을 따른다. `error.message`는 사용자에게 보여줄 수 있는 문장이며, `fieldErrors`가 있으면 각 항목을 해당 필드의 `*-FIELD-ERROR` 상태로 연결한다. 상태 전이는 HTTP 상태가 아니라 `error.code`로 구분한다. 예를 들어 탈퇴의 `401 PASSWORD_CONFIRMATION_FAILED`는 세션 만료가 아니므로 토큰 갱신·로그아웃을 일으키지 않고 `ACCOUNT-DELETE-VERIFY-ERROR`로 간다. `traceId`를 화면에 노출할지는 §11에서 정한다.
 10. 백엔드 인증 정책(ADR-008 결정 6, API.md §4.2)은 이미 폐기된 Refresh Token이 다시 오면 해당 사용자의 활성 세션을 모두 폐기한다. 그러므로 앱은 토큰 갱신 요청을 한 번에 하나만 보내고, 동시에 필요한 요청은 진행 중인 갱신 결과를 기다린다. TASK-011 `74d6df8` 코드에는 회전으로 폐기된 토큰이 30초 안에 다시 오면 그 요청만 거부하는 유예가 있지만, ADR·API.md에는 없고 TASK-012 `a4ab15b` 코드에도 없다. 로그아웃으로 폐기된 토큰은 유예 없이 전체 세션을 폐기한다. 앱은 이 유예에 의존하지 않는다.
+11. 알 수 없는 `error.code`를 받으면 `error.message`를 보여주고, 분석 작업이면 작업의 `retryable` 값으로 `ANALYSIS-RETRYABLE-ERROR`와 `ANALYSIS-FATAL-ERROR`를 가른다. 코드별 문구를 앱에 임의로 추가하지 않는다.
+
+### 2.1 서버 오류 코드와 상태 연결
+
+코드 이름의 정본은 [API.md](../../architecture/API.md)와 실제 controller·DTO다. 아래 "구현" 열은 2026-09-21 기준 원격 백엔드 코드(`feat/TASK-011-authentication` `74d6df8`, `feat/TASK-012-analysis-pipeline` `a4ab15b`)에 해당 코드가 있는지를 뜻한다. 병합 전이므로 병합 후 다시 대조한다.
+
+| 코드 | 발생 시점 | 상태 | 구현 |
+|---|---|---|---|
+| `INVALID_INPUT`, `INVALID_REQUEST`, `INVALID_VALUE`, `INVALID_PASSWORD`, `INVALID_PHONE_NUMBER` | 요청 검증(`400`) | 화면에 따라 `AUTH-FIELD-ERROR` 또는 `STORE-FIELD-ERROR`. `fieldErrors`가 있으면 필드별로 연결 | 있음 |
+| `EMAIL_ALREADY_EXISTS`, `ACCOUNT_ALREADY_EXISTS` | 가입 | `AUTH-SIGNUP-ERROR` | 있음 |
+| `CURRENT_LEGAL_CONSENT_REQUIRED` | 가입 | `AUTH-CONSENT-OUTDATED` | 있음 |
+| `INVALID_CREDENTIALS` | 자체 로그인 | `AUTH-INVALID-CREDENTIALS` | 있음 |
+| `INVALID_GOOGLE_ID_TOKEN`, `GOOGLE_AUTH_NOT_CONFIGURED` | Google 로그인 | `AUTH-GOOGLE-ERROR` | 있음 |
+| `ACCOUNT_LINK_REQUIRED` | Google 로그인(`409`) | `AUTH-ACCOUNT-LINK-REQUIRED` | 있음 |
+| `INVALID_REFRESH_TOKEN`, `SESSION_REVOKED`, `ACCOUNT_NOT_ACTIVE`, `ACCOUNT_NOT_FOUND` | 세션 복원·토큰 갱신·계정 확인 | `AUTH-EXPIRED` | 있음 |
+| `PASSWORD_CONFIRMATION_FAILED` | 탈퇴(`401`) | `ACCOUNT-DELETE-VERIFY-ERROR`. 세션 오류로 처리하지 않음 | 있음 |
+| `INVALID_NAVER_PLACE_URL` | 분석 작업 생성(`400`) | `STORE-UNSUPPORTED-URL` | 있음 |
+| `IDEMPOTENCY_KEY_REUSED` | 분석 작업 생성(`409`) | `STORE-JOB-ERROR`. 같은 제출의 재시도는 같은 `Idempotency-Key`를 다시 쓴다 | 있음 |
+| `STORE_NOT_FOUND` | 작업 실패(`FAILED`) | `STORE-NOT-FOUND` — 가게 입력으로 돌아가 입력값을 보존 | 있음 |
+| `INSUFFICIENT_VALID_REVIEWS` | 작업 실패 | `ANALYSIS-INSUFFICIENT` | 있음 |
+| `REVIEW_COLLECTION_BLOCKED`, `ANALYSIS_OUTPUT_INVALID`, `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE`, `ANALYSIS_SERVICE_REJECTED`, `ANALYSIS_CONFIGURATION_MISSING` | 작업 실패 | 작업 `retryable`이 `true`면 `ANALYSIS-RETRYABLE-ERROR`, `false`면 `ANALYSIS-FATAL-ERROR` | 있음 |
+| `IMAGE_GENERATION_FAILED` | 작업 실패 | `IMAGE-GENERATION-FAILED` | API.md에만 있음 |
+| `ANALYSIS_TIMEOUT` | 작업 실패 | `ANALYSIS-RETRYABLE-ERROR` | API.md에만 있음 |
+| `ANALYSIS_NOT_COMPLETED` | 결과 조회 | 결과 대신 작업 상태 조회로 돌아간다 | 있음 |
+| `ANALYSIS_NOT_FOUND` | 결과 조회(`404`, 요청 사용자 범위) | `RESULT-ERROR` | 있음 |
+| `SAVED_ANALYSIS_NOT_FOUND` | 저장 결과 조회(`404`) | `HOME-NO-SAVED-RESULT` | 있음 |
+| `IMAGE_NOT_FOUND` | 이미지 조회 | `IMAGE-LOAD-ERROR` | 있음 |
+
+결과 안의 빈 포디움 슬롯 사유 `INSUFFICIENT_TOPIC_EVIDENCE`는 오류가 아니라 결과 데이터다(§6.1).
 
 ---
 
@@ -92,32 +121,42 @@
 
 ## 4. 가게 지정 상태
 
-### 4.1 `SC-001` 가게 정보 입력
+현재 API 계약에는 분석 작업을 만들기 전에 가게를 식별하는 endpoint가 없다. 서버는 `POST /api/v1/analysis-jobs`에서 URL 허용 목록을 동기로 검증하고, 가게 식별은 작업 안의 `RESOLVING_STORE` 단계에서 수행한다. 따라서 현재 구현 가능한 흐름은 `SC-001 입력 → 작업 생성 → SC-003 진행`이며, 작업 생성 전 가게 확인(`SC-002`)은 §4.3에 보류로 둔다.
+
+### 4.1 `SC-001` 가게 정보 입력과 분석 요청
 
 | 상태 ID | 조건·이벤트 | 사용자에게 보이는 것 | 시스템 처리 | 다음 행동 |
 |---|---|---|---|---|
 | `STORE-INITIAL` | 첫 분석 또는 분석하기 진입 | 가게 이름·업종·네이버 가게 URL 필수 입력 | 새 요청 초깃값 준비 | 입력 시작 |
-| `STORE-EDITING` | 하나 이상의 필드 변경 | 입력값과 제출 가능 여부 | 업종 허용값·URL 형식 등 로컬 검증 | 계속 입력 또는 확인 요청 |
-| `STORE-FIELD-ERROR` | 누락·허용 업종 밖·URL 형식 오류 | 필드별 원인과 수정 방법 | 오류 필드에 접근 가능한 연결 제공 | 입력 수정 |
-| `STORE-RESOLVING` | 세 필드가 유효하고 가게 확인 요청 | 가게 정보를 확인 중이라는 안내 | 서버에서 URL 허용 목록·리다이렉트·가게 식별 검증 | 확인 또는 실패 |
-| `STORE-UNSUPPORTED-URL` | 허용되지 않은 호스트·스킴·주소 | 지원하는 네이버 가게 주소 안내 | 수집 브라우저를 실행하지 않음 | URL 수정 |
-| `STORE-NOT-FOUND` | 가게 식별 실패 | 이름과 URL 확인 안내 | 입력값 유지 | 수정 후 재시도 |
-| `STORE-OFFLINE` | 확인 요청 시 네트워크 없음 | 연결 후 다시 시도 안내 | 입력값 유지 | 재시도 |
+| `STORE-EDITING` | 하나 이상의 필드 변경 | 입력값과 제출 가능 여부 | 업종 허용값·URL 형식 등 로컬 검증 | 계속 입력 또는 분석 시작 |
+| `STORE-FIELD-ERROR` | 누락·허용 업종 밖·URL 형식 오류, 또는 작업 생성 응답의 `fieldErrors` | 필드별 원인과 수정 방법 | 오류 필드에 접근 가능한 연결 제공 | 입력 수정 |
+| `STORE-CREATING-JOB` | 세 필드가 유효하고 분석 시작 선택 | 분석 요청을 보내는 중이라는 안내 | `Idempotency-Key`를 붙여 작업 생성. 같은 제출을 재시도할 때는 같은 키를 쓴다 | `ANALYSIS-QUEUED` 또는 오류 |
+| `STORE-UNSUPPORTED-URL` | 작업 생성이 `INVALID_NAVER_PLACE_URL`로 거부됨 | 지원하는 네이버 가게 주소 안내 | 서버가 수집 브라우저를 실행하지 않음 | URL 수정 |
+| `STORE-NOT-FOUND` | 작업이 `STORE_NOT_FOUND`로 실패(`RESOLVING_STORE` 단계) | 가게를 찾지 못했으니 이름과 URL을 확인하라는 안내 | 분석 진행 화면에서 입력 화면으로 돌아오며 입력값 유지 | 수정 후 다시 분석 요청 |
+| `STORE-JOB-ERROR` | 작업 생성 실패(`IDEMPOTENCY_KEY_REUSED`, 서버 오류 등) | 원인·현재 입력 보존·재시도 가능 여부 | 중복 작업 생성 방지 | 재시도 또는 수정 |
+| `STORE-OFFLINE` | 작업 생성 시 네트워크 없음 | 연결 후 다시 시도 안내 | 입력값 유지. 재시도는 같은 `Idempotency-Key` 사용 | 재시도 |
 
-### 4.2 `SC-002` 가게 확인
+### 4.2 입력 오류의 위치
+
+`STORE-FIELD-ERROR`와 `STORE-UNSUPPORTED-URL`은 해당 필드 가까이에 표시한다. `STORE-NOT-FOUND`는 작업 실패로 알게 되지만, 고칠 대상이 입력값이므로 입력 화면으로 돌아가 이름·URL 필드 가까이에 표시한다(기능명세 RESULT-015).
+
+### 4.3 `SC-002` 가게 확인 — 보류
+
+기능명세 SC-002와 INPUT-007(P1)은 URL에서 확인한 가게 정보를 입력값과 대조한 뒤 분석을 시작하는 단계를 둔다. 현재 API에는 이를 위한 endpoint가 없어 구현할 수 없다. 백엔드가 작업 생성 전 가게 식별 API를 제공하면 아래 상태를 `STORE-EDITING`과 `STORE-CREATING-JOB` 사이에 넣는다(§11).
 
 | 상태 ID | 조건·이벤트 | 사용자에게 보이는 것 | 시스템 처리 | 다음 행동 |
 |---|---|---|---|---|
+| `STORE-RESOLVING` | 가게 확인 요청 | 가게 정보를 확인 중이라는 안내 | 서버에서 URL 허용 목록·리다이렉트·가게 식별 검증 | 확인 또는 실패 |
 | `STORE-CONFIRM-READY` | 가게 식별 성공 | 입력한 정보와 확인된 가게 정보 | 아직 분석 작업을 생성하지 않음 | 분석 시작 또는 입력 수정 |
 | `STORE-MISMATCH` | 입력 이름·업종과 확인 정보가 크게 다름 | 불일치 항목과 확인 요청 | 자동으로 값을 덮어쓰지 않음 | 계속 진행 또는 수정 |
-| `STORE-CREATING-JOB` | 분석 시작 선택 | 분석 작업을 만드는 중이라는 안내 | 멱등성 키로 작업 생성 | `ANALYSIS-QUEUED` 또는 오류 |
-| `STORE-JOB-ERROR` | 작업 생성 실패 | 원인·현재 입력 보존·재시도 가능 여부 | 중복 작업 생성 방지 | 재시도 또는 수정 |
 
 ---
 
 ## 5. `SC-003` 분석 진행 상태
 
 공개 작업 상태는 `QUEUED → RUNNING → COMPLETED | FAILED`이며, 화면은 근거 없는 퍼센트 대신 `progressStep`과 사용자용 문장을 표시한다.
+
+아래 표는 API 계약의 `progressStep` 전체다. 서버가 모든 단계를 보내는 것은 보장되지 않는다. 2026-09-21 원격 백엔드 코드는 `QUEUED → COLLECTING_REVIEWS → COMPLETED | FAILED`만 기록한다. 앱은 받은 단계만 표시하고, 오지 않은 단계를 시간에 맞춰 흉내 내거나 순서대로 채워 넣지 않는다. 앱이 모르는 단계 값은 "분석 중"으로 표시한다.
 
 | 상태 ID / `progressStep` | 사용자에게 보이는 처리 단계 | 완료 조건 | 실패 시 |
 |---|---|---|---|
@@ -180,6 +219,17 @@
 | `RESULT-ERROR` | 저장 결과 조회 실패·결과 불완전 | 원인·현재 저장본 상태·재시도 | 재조회 |
 | `RESULT-UNAUTHORIZED` | 다른 사용자 결과·세션 만료 | 접근 불가 또는 로그인 만료 안내 | 로그인 |
 
+결과 형태와 경고는 결과 응답(API.md §6)에서 다음처럼 판정한다.
+
+| 상태 | 판정 근거 |
+|---|---|
+| `RESULT-NORMAL` / `RESULT-PARTIAL` / `RESULT-NO-PERSONA` | `podium` 세 슬롯 중 `status=FILLED` 개수가 3 / 1~2 / 0 |
+| 빈 슬롯의 사유 | `status=EMPTY` 슬롯의 `reason.message` |
+| 최초 선택 | `FILLED` 슬롯 중 가장 낮은 `rank` |
+| `RESULT-OLD-REVIEWS` | `metadata.containsReviewsOlderThanTwoYears=true` 또는 `limitations`의 해당 코드 |
+| `RESULT-LIMITS` | 항상 표시. 서버 `limitations` 문구가 있으면 함께 표시 |
+| 분석 기준 정보 | `metadata`의 `platform`, `validReviewCount`, `collectedAt`, `analyzedAt` |
+
 `RESULT-LIMITS`와 `RESULT-OLD-REVIEWS`는 별도의 결과 유형이 아니라 `NORMAL`, `PARTIAL`, `NO-PERSONA`와 함께 표시되는 한계·경고 상태다. `RESULT-UNSAVED-PREVIEW`를 닫거나 앱을 종료했을 때 다시 접근할 수 있는 범위는 보관 정책 확정 전까지 보장하지 않는다.
 
 ### 6.2 `SC-004` 페르소나별 4관점
@@ -192,6 +242,8 @@
 | `INSIGHT-ERROR` | 선택 콘텐츠 조회 실패 | 포디움은 유지하고 해당 콘텐츠 재시도 | 다른 저장 결과로 바꾸지 않음 |
 
 ### 6.3 `SC-005` 근거 상세
+
+대표 근거는 결과 응답의 `evidencePreview`(최대 2개)와 `evidenceCount`로 표시한다. 전체 근거 조회 `GET /api/v1/analyses/{analysisId}/evidence`는 API 계약에만 있고 2026-09-21 원격 백엔드에는 구현되지 않았다. endpoint가 생기기 전에는 아래 상태를 실제 데이터로 구현할 수 없다(§11).
 
 | 상태 ID | 조건 | 사용자에게 보이는 것 | 다음 행동 |
 |---|---|---|---|
@@ -217,6 +269,7 @@
 |---|---|---|---|
 | `ADVICE-COLLAPSED` | 기본 상태 | 리뷰 사실 + 검토할 행동 | AI 해석·전문 지식은 숨김 |
 | `ADVICE-EXPANDED` | 사용자가 상세 펼침 | AI 해석과 전문 지식 출처 | 사실과 다른 영역으로 구분 |
+| `ADVICE-NO-KNOWLEDGE` | 펼친 제안의 `knowledgeReferences`가 비어 있음 | AI 해석만 표시하고, 참고한 전문 지식이 없다는 사실을 표시 | 출처·자료명을 지어내지 않음. 참고 지식 영역을 빈 칸으로 두지 않음 |
 | `ADVICE-EMPTY` | 근거를 충족한 제안 없음 | 억지 제안을 만들지 않았다는 한계 | 임의 fallback 제안 금지 |
 | `ADVICE-ERROR` | 상세 지식 조회 실패 | 기본 리뷰 사실·행동은 보존 | 상세만 재시도 |
 
@@ -224,15 +277,17 @@
 
 ## 7. `SC-010` 저장 결과 상태
 
+첫 결과 자동 저장은 앱이 따로 요청하지 않는다. 서버가 작업을 `COMPLETED`로 바꾸는 같은 트랜잭션에서 저장본이 없는 계정에 첫 결과를 저장한다([API.md](../../architecture/API.md) §3.2). 그래서 앱이 보는 첫 저장은 "작업 완료"와 같은 사건이며, 저장 실패는 작업이 `COMPLETED`가 되지 않는 것으로 나타난다. 아래 `SAVE-FIRST-*`는 이 사건을 화면 문구로 옮긴 것이지 별도 요청 상태가 아니다.
+
 | 상태 ID | 조건·이벤트 | 사용자에게 보이는 것 | 시스템 처리 | 다음 전이 |
 |---|---|---|---|---|
-| `SAVE-FIRST-PENDING` | 첫 분석 완료, 저장본 없음 | 첫 결과를 저장 중이라는 안내 | 완료 트랜잭션에서 자동 저장 | `SAVE-FIRST-SUCCESS` 또는 오류 |
-| `SAVE-FIRST-SUCCESS` | 자동 저장 성공 | 홈에서 결과를 볼 수 있다는 완료 상태 | 저장 결과 1개 확인 | `HOME-LOADING` |
+| `SAVE-FIRST-PENDING` | 저장본이 없는 계정의 작업이 아직 `RUNNING` | 분석 진행 화면의 마지막 단계 문구. 별도 저장 화면을 만들지 않음 | 작업 상태 조회 계속 | `SAVE-FIRST-SUCCESS` 또는 분석 실패 상태 |
+| `SAVE-FIRST-SUCCESS` | 저장본이 없던 계정의 작업이 `COMPLETED` | 결과가 저장돼 홈에서 볼 수 있다는 완료 상태 | 저장 결과 조회 | `HOME-LOADING` |
 | `SAVE-CHOICE-REQUIRED` | 기존 저장본이 있고 `RESULT-UNSAVED-PREVIEW` 확인을 마침 | 새 결과로 교체 / 기존 결과 유지 | 선택 전 기존 저장본 유지 | 사용자 선택 |
 | `SAVE-REPLACING` | 새 결과로 교체 선택 | 교체 중 안내, 중복 선택 차단 | 소유권·완료 상태 확인 후 트랜잭션 update | 홈의 새 결과 |
 | `SAVE-KEEPING` | 기존 결과 유지 선택 | 기존 결과로 돌아가는 중 안내 | 기존 저장본 변경 없음 | 홈의 기존 결과 |
 | `SAVE-CONFLICT` | 동시 변경·저장 충돌 | 저장 상태가 바뀌었다는 안내 | 최신 저장본 재조회 | 다시 선택 또는 홈 |
-| `SAVE-FIRST-ERROR` | 첫 결과 자동 저장 실패 | 아직 홈에 저장된 결과가 없다는 안내와 재시도 | 첫 분석 결과를 완료로 가장하지 않음 | 저장 재시도 |
+| `SAVE-FIRST-ERROR` | 저장본이 없던 계정의 작업이 `COMPLETED`됐는데 저장 결과 조회가 `SAVED_ANALYSIS_NOT_FOUND` | 아직 홈에 저장된 결과가 없다는 안내와 재조회 | 첫 분석 결과를 완료로 가장하지 않음. 서버 계약상 발생하면 안 되는 불일치이므로 결과 무결성 오류로 다룬다 | 저장 결과 재조회 |
 | `SAVE-REPLACE-ERROR` | 기존 저장본 교체 실패 | 기존 저장본이 그대로 유지됐다는 안내 | 기존 저장본을 손상시키지 않음 | 교체 재시도 또는 기존 결과 유지 |
 
 기존 결과 유지 후 미저장 새 결과를 얼마나 다시 볼 수 있는지는 미정이다. 이 정책이 확정되기 전에는 프론트가 임의의 영구 보관·히스토리 화면을 만들지 않는다.
@@ -287,14 +342,13 @@
 ```text
 APP-BOOTING
 → AUTH-INITIAL / AUTH-SUBMITTING / AUTH-FIELD-ERROR / AUTH-SUCCESS
-→ STORE-INITIAL / STORE-EDITING / STORE-FIELD-ERROR
-→ STORE-RESOLVING / STORE-CONFIRM-READY / STORE-CREATING-JOB
-→ ANALYSIS-QUEUED / ANALYSIS-COLLECTING / ANALYSIS-ANALYZING / ANALYSIS-IMAGE / ANALYSIS-VALIDATING
-→ SAVE-FIRST-PENDING / SAVE-FIRST-SUCCESS
+→ STORE-INITIAL / STORE-EDITING / STORE-FIELD-ERROR / STORE-CREATING-JOB
+→ ANALYSIS-QUEUED / ANALYSIS-COLLECTING / (서버가 보내는 나머지 progressStep)
+→ SAVE-FIRST-SUCCESS (작업 COMPLETED)
 → HOME-LOADING / RESULT-NORMAL / RESULT-PARTIAL / RESULT-NO-PERSONA
 ```
 
-같은 Slice에서 `ANALYSIS-INSUFFICIENT`, `ANALYSIS-RETRYABLE-ERROR`, `IMAGE-GENERATION-FAILED`, `SAVE-FIRST-ERROR` fixture도 각각 재현해 실패 경계를 검증한다. 저장본이 있는 사용자의 `RESULT-UNSAVED-PREVIEW → SAVE-CHOICE-REQUIRED → SAVE-REPLACING | SAVE-KEEPING` 흐름은 다음 Slice에서 연결한다.
+같은 Slice에서 `STORE-UNSUPPORTED-URL`, `STORE-NOT-FOUND`, `ANALYSIS-INSUFFICIENT`, `ANALYSIS-RETRYABLE-ERROR`, `ANALYSIS-FATAL-ERROR`, `IMAGE-GENERATION-FAILED` fixture도 각각 재현해 실패 경계를 검증한다. `SC-002` 가게 확인(§4.3)은 API가 생기기 전까지 Slice에 넣지 않는다. 저장본이 있는 사용자의 `RESULT-UNSAVED-PREVIEW → SAVE-CHOICE-REQUIRED → SAVE-REPLACING | SAVE-KEEPING` 흐름은 다음 Slice에서 연결한다.
 
 Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정된 비식별 fixture를 사용한다. fixture 상태와 실제 API 상태의 타입을 다르게 만들지 않으며, 화면 안에 데모 데이터를 운영 데이터처럼 표시하지 않는다.
 
@@ -317,6 +371,10 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 최소 Android OS·지원 기기·접근성 목표 | 전체 Visual QA | 첫 UI 구현 전 |
 | 오류 화면에 `traceId`를 문의용 코드로 보여줄지 | 모든 `*-ERROR` | 오류 화면 구현 전 |
 | 웹 계정 삭제 요청 링크 제공 방식 (PRD §13-24) | `ACCOUNT-DELETE-*` 밖의 스토어 요구 | Play Console 데이터 보안 양식 작성 전 |
+| 작업 생성 전 가게 식별 API 제공 여부 (`role:feature`·`role:product`) | `SC-002`, INPUT-007 (§4.3) | 가게 확인 화면 구현 전 |
+| 전체 근거 조회 endpoint 구현 (`role:feature`) | `SC-005` `EVIDENCE-*`, `근거 리뷰 전체 보기` | 근거 상세 화면 구현 전 |
+| `IMAGE_GENERATION_FAILED`·`ANALYSIS_TIMEOUT` 코드와 세부 `progressStep` 기록 (`role:feature`) | `IMAGE-GENERATION-FAILED`, §5 단계 표시 | 분석 진행 화면 구현 전 |
+| RAG 지식 참고 구현 (`role:feature`) — 현재 `knowledgeReferences`가 비어서 온다 | `ADVICE-EXPANDED`의 전문 지식, PRD FR-005 | 제안 상세 화면 구현 전 |
 
 미정 항목은 상태를 삭제하는 근거가 아니다. 프론트 코드는 확정된 상태 경계를 수용할 수 있게 만들되, 미정 정책을 숫자·시간·route 구조로 임의 고정하지 않는다.
 
@@ -348,6 +406,20 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 공백·충돌 표식 | PASS | `git diff --check` 이상 없음 |
 | 앱 렌더링·Visual QA | 미실행 | 프론트엔드 코드가 아직 없으므로 Design Foundation과 Vertical Slice 이후 수행 |
 | 독립 Reviewer | 미실행 | 제품·디자인 담당자 배정과 검토 필요 |
+
+### 4차 프론트엔드 구현 가능성 재검토
+
+검토일: 2026-09-21. 기준: 프론트엔드가 이 문서와 실제 백엔드 코드만으로 구현할 수 있는가.
+
+| 발견 사항 | 조치 |
+|---|---|
+| `SC-002` 가게 확인과 `STORE-RESOLVING`을 호출할 API가 없다. 가게 식별은 작업 안의 `RESOLVING_STORE`에서 일어나며 `STORE_NOT_FOUND`는 작업 실패로 온다 | §4를 `입력 → 작업 생성 → 진행` 흐름으로 다시 쓰고 `SC-002`를 §4.3 보류로 분리, §11에 API 결정 추가 |
+| 서버 오류 코드와 화면 상태의 연결이 없다 | §2.1 코드 표와 불변식 11 추가. 원격 코드에 없는 코드를 표시 |
+| 첫 자동 저장은 서버 완료 트랜잭션 안에서 일어나 앱이 별도로 관찰할 수 없다 | §7 `SAVE-FIRST-*`를 작업 완료 사건 기준으로 재정의 |
+| 서버가 `progressStep` 일부만 보낸다 | §5에 받은 단계만 표시하는 규칙 추가 |
+| `knowledgeReferences`가 비어 올 때의 상태가 없다 | `ADVICE-NO-KNOWLEDGE` 추가 |
+| 전체 근거 조회 endpoint가 없다 | §6.3 설명과 §11 항목 추가 |
+| 결과 형태·경고의 판정 근거 필드가 없다 | §6.1 판정 표 추가 |
 
 ### 3차 백엔드 계약 동기화
 
