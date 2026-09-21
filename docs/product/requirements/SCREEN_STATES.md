@@ -46,7 +46,7 @@
 6. 분석 작업은 실제 도출된 모든 페르소나 이미지와 근거 검증이 끝나기 전에는 `success`로 보이지 않는다.
 7. 오류가 발생해도 사용자가 다시 입력하지 않아도 되는 값은 보존한다.
 8. `offline`의 캐시·자동 재시도·백그라운드 처리 방식은 제품 결정 전까지 구현값으로 확정하지 않는다.
-9. 서버 오류 응답은 `{ "error": { "code", "message", ... } }` 봉투로 온다. 앱은 `error.code`로 상태를 가르고 HTTP 상태만으로 가르지 않는다. §2.1 표에 있는 코드는 **앱이 정한 문구와 다음 행동**을 쓰고, 서버 `error.message`는 표에 없는 코드일 때만 보여준다. 서버 문구가 상태 의도와 다를 수 있기 때문이다. 예를 들어 작업의 `STORE_NOT_FOUND` 메시지는 "잠시 후 다시 시도해 주세요"이고, `ACCOUNT_LINK_REQUIRED` 메시지는 MVP에 없는 계정 연결을 안내한다. 봉투의 부가 필드는 API마다 다르다. 인증 API는 [API.md](../../architecture/API.md) §2.1의 `fieldErrors`·`traceId`를 주고, 분석 API는 현재 `retryable`·`fields`(빈 값)·`timestamp`를 준다(§11). 앱은 `fieldErrors`를 있을 수도 없을 수도 있는 필드로 다룬다. 탈퇴의 `401 PASSWORD_CONFIRMATION_FAILED`처럼 `error.code`가 있는 401은 세션 만료가 아니므로 불변식 12의 토큰 갱신을 일으키지 않는다. `traceId`를 화면에 노출할지는 §11에서 정한다.
+9. 서버 오류 응답은 `{ "error": { "code", "message", ... } }` 봉투로 온다. 앱은 `error.code`로 상태를 가르고 HTTP 상태만으로 가르지 않는다. §2.1 표에 있는 코드는 **앱이 정한 문구와 다음 행동**을 쓰고, 서버 `error.message`는 표에 없는 코드일 때만 보여준다. 서버 문구가 상태 의도와 다를 수 있기 때문이다. 예를 들어 작업의 `STORE_NOT_FOUND` 메시지는 "잠시 후 다시 시도해 주세요"이고, `ACCOUNT_LINK_REQUIRED` 메시지는 MVP에 없는 계정 연결을 안내한다. 봉투의 부가 필드는 API와 브랜치마다 다르다. 인증 API는 TASK-011 `74d6df8`에서 [API.md](../../architecture/API.md) §2.1의 `fieldErrors`·`traceId`를 주지만 TASK-012 `a4ab15b`에는 `traceId`가 없고 `fieldErrors`가 항상 비어 있다. 분석 API는 현재 `retryable`·`fields`(빈 값)·`timestamp`를 준다(§11). 앱은 `fieldErrors`를 있을 수도 없을 수도 있는 필드로 다룬다. 탈퇴의 `401 PASSWORD_CONFIRMATION_FAILED`처럼 `error.code`가 있는 401은 세션 만료가 아니므로 불변식 12의 토큰 갱신을 일으키지 않는다. `traceId`를 화면에 노출할지는 §11에서 정한다.
 10. 백엔드 인증 정책(ADR-008 결정 6, API.md §4.2)은 이미 폐기된 Refresh Token이 다시 오면 해당 사용자의 활성 세션을 모두 폐기한다. 그러므로 앱은 토큰 갱신 요청을 한 번에 하나만 보내고, 동시에 필요한 요청은 진행 중인 갱신 결과를 기다린다. TASK-011 `74d6df8` 코드에는 회전으로 폐기된 토큰이 30초 안에 다시 오면 그 요청만 거부하는 유예가 있지만, ADR·API.md에는 없고 TASK-012 `a4ab15b` 코드에도 없다. 로그아웃으로 폐기된 토큰은 유예 없이 전체 세션을 폐기한다. 앱은 이 유예에 의존하지 않는다.
 11. 알 수 없는 `error.code`를 받으면 `error.message`를 보여주고, 분석 작업이면 작업의 `retryable` 값으로 `ANALYSIS-RETRYABLE-ERROR`와 `ANALYSIS-FATAL-ERROR`를 가른다. 봉투가 없는 오류 응답(서버 기본 400·500, 작업 대기열 초과 등)은 원인을 단정하지 않는 일반 오류 문구와 재시도 행동을 보여준다. §2.1에 없는 코드에 대해 코드별 문구를 앱에 임의로 추가하지 않는다.
 12. 인증이 필요한 요청이 **`error` 봉투 없는 401**(또는 `WWW-Authenticate: Bearer`)을 받으면 액세스 토큰 만료로 보고, 불변식 10에 따라 토큰 갱신을 한 번 한 뒤 원래 요청을 다시 보낸다. 갱신이 §2.1의 `AUTH-EXPIRED` 코드로 실패하거나 다시 보낸 요청이 또 401이면 `AUTH-EXPIRED`로 간다. 이 규칙은 페르소나 이미지 요청(§6.4)에도 적용한다. 근거: 원격 백엔드의 `SecurityConfig`에 인증 실패 응답이 따로 정의되지 않아 Spring Security 기본 401을 쓴다. 코드 판독 근거이며 실제 응답은 확인하지 않았다(§11).
@@ -73,8 +73,8 @@
 | `IDEMPOTENCY_KEY_REUSED` | 분석 작업 생성(`409`) | `STORE-JOB-ERROR`. 불변식 13에 따라 새 키로 다시 요청 | 있음 |
 | `STORE_NOT_FOUND` | 작업 실패(`FAILED`) | `STORE-NOT-FOUND` — 가게 입력으로 돌아가 입력값을 보존 | 있음 |
 | `INSUFFICIENT_VALID_REVIEWS` | 작업 실패 | `ANALYSIS-INSUFFICIENT` | 있음 |
-| `REVIEW_COLLECTION_BLOCKED`, `ANALYSIS_OUTPUT_INVALID`, `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE`, `ANALYSIS_SERVICE_REJECTED` | 작업 실패, `retryable=true` | `ANALYSIS-RETRYABLE-ERROR` | 있음 |
-| `ANALYSIS_CONFIGURATION_MISSING`, 그 밖의 작업 실패 | 작업 실패, `retryable=false` | `ANALYSIS-FATAL-ERROR` — 서비스 쪽 문제로 지금은 완료할 수 없음 | 있음 |
+| `REVIEW_COLLECTION_BLOCKED`, `ANALYSIS_OUTPUT_INVALID`, `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE`, `ANALYSIS_SERVICE_REJECTED`, `ANALYSIS_CONFIGURATION_MISSING` | 작업 실패 | 작업의 `retryable` 값이 우선한다. `true`면 `ANALYSIS-RETRYABLE-ERROR`, `false`면 `ANALYSIS-FATAL-ERROR`. 같은 코드가 두 값으로 올 수 있다(예: `ANALYSIS_SERVICE_REJECTED`는 Python 4xx면 `false`) | 있음 |
+| 표에 없는 작업 실패 코드 | 작업 실패 | 위와 같이 `retryable`로 상태를 고르고, 문구는 불변식 11에 따라 서버 `error.message`를 쓴다 | — |
 | `IMAGE_GENERATION_FAILED` | 작업 실패 | `IMAGE-GENERATION-FAILED`. 현재 이미지 생성 실패는 `ANALYSIS_SERVICE_REJECTED`로 온다 | API.md에만 있음 |
 | `ANALYSIS_TIMEOUT` | 작업 실패 | `ANALYSIS-RETRYABLE-ERROR`. 현재 시간 초과는 `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE`로 온다 | API.md에만 있음 |
 | `ANALYSIS_NOT_COMPLETED` | 결과 조회(`409`) | 결과 대신 작업 상태 조회로 돌아간다 | 있음 |
@@ -137,7 +137,7 @@
 | `STORE-EDITING` | 하나 이상의 필드 변경 | 입력값과 제출 가능 여부 | 업종 허용값·URL 형식 등 로컬 검증 | 계속 입력 또는 분석 시작 |
 | `STORE-FIELD-ERROR` | 누락·허용 업종 밖·URL 형식 오류(로컬 검증), 또는 작업 생성의 `INVALID_INPUT` | 필드별 원인과 수정 방법. 분석 API는 현재 필드별 정보를 주지 않으므로 `INVALID_INPUT`은 가게 이름과 업종을 함께 확인하라고 안내 | 오류 필드에 접근 가능한 연결 제공 | 입력 수정 |
 | `STORE-CREATING-JOB` | 세 필드가 유효하고 분석 시작 선택 | 분석 요청을 보내는 중이라는 안내 | `Idempotency-Key`를 붙여 작업 생성(불변식 13) | `ANALYSIS-QUEUED` 또는 오류 |
-| `STORE-UNSUPPORTED-URL` | 작업 생성이 `INVALID_NAVER_PLACE_URL`로 거부됨 | 지원하는 네이버 가게 주소 안내 | 서버가 수집 브라우저를 실행하지 않음 | URL 수정 |
+| `STORE-UNSUPPORTED-URL` | 작업 생성이 `INVALID_NAVER_PLACE_URL`로 거부되거나, 작업이 같은 코드로 실패(리다이렉트 결과가 허용 밖 주소) | 지원하는 네이버 가게 주소 안내 | 작업 생성 거부면 서버가 수집을 시작하지 않는다. 작업 실패면 분석 진행 화면에서 입력 화면으로 돌아오며 입력값 유지 | URL 수정 후 새 키로 분석 요청 |
 | `STORE-NOT-FOUND` | 작업이 `STORE_NOT_FOUND`로 실패 | 가게를 찾지 못했으니 이름과 URL을 확인하라는 안내 | 분석 진행 화면에서 입력 화면으로 돌아오며 입력값 유지. 원격 백엔드는 허용 주소의 DNS 조회 실패에만 이 코드를 쓰고, 존재하지 않는 가게는 `REVIEW_COLLECTION_BLOCKED`·`INSUFFICIENT_VALID_REVIEWS`로 올 수 있다(§11) | 수정 후 새 키로 다시 분석 요청 |
 | `STORE-JOB-ERROR` | 작업 생성 실패(`IDEMPOTENCY_KEY_REUSED`, 서버 오류 등) | 원인·현재 입력 보존·재시도 가능 여부 | 중복 작업 생성 방지 | 재시도 또는 수정 |
 | `STORE-OFFLINE` | 작업 생성 요청의 응답을 받지 못함 | 연결 후 다시 시도 안내 | 입력값 유지. 응답을 받지 못한 같은 제출이므로 같은 `Idempotency-Key`로 재전송(불변식 13) | 재시도 |
@@ -184,10 +184,10 @@
 | `ANALYSIS-INSUFFICIENT` | 유효 리뷰 50건 미만 | 분석에 필요한 50건 기준. 현재 유효 리뷰 수는 API가 주지 않으므로 표시하지 않고, 메시지 문자열을 파싱해 만들지 않는다(§11) | 다른 가게 입력 또는 종료 |
 | `ANALYSIS-RETRYABLE-ERROR` | 작업 실패, `retryable=true` | 실패했지만 다시 시도할 수 있다는 안내와 현재 상태 | 새 `Idempotency-Key`로 다시 분석 요청(불변식 13) |
 | `ANALYSIS-FATAL-ERROR` | 작업 실패, `retryable=false`이고 입력 수정 대상이 아닌 코드 | 서비스 쪽 문제로 지금은 분석을 완료할 수 없다는 안내. 입력을 고치라고 안내하지 않음 | 나중에 다시 시도 또는 입력 화면으로 돌아가기 |
-
-입력을 고쳐야 하는 작업 실패(`STORE_NOT_FOUND`, 작업 실패로 온 `INVALID_NAVER_PLACE_URL`)는 `ANALYSIS-FATAL-ERROR`가 아니라 §4.1의 `STORE-NOT-FOUND`·`STORE-UNSUPPORTED-URL`로 돌아간다.
 | `ANALYSIS-UNAUTHORIZED` | 진행 중 세션 만료·폐기 | 로그인 만료 안내 | 로그인 후 작업 접근 정책은 미정 |
 | `ANALYSIS-OFFLINE` | 상태 조회 중 네트워크 단절 | 마지막으로 확인한 단계와 연결 복구 안내 | 자동 polling·백오프 정책은 미정 |
+
+입력을 고쳐야 하는 작업 실패(`STORE_NOT_FOUND`, 작업 실패로 온 `INVALID_NAVER_PLACE_URL`)는 `ANALYSIS-FATAL-ERROR`가 아니라 §4.1의 `STORE-NOT-FOUND`·`STORE-UNSUPPORTED-URL`로 돌아간다.
 
 ### 5.2 `SC-009` 오류·한계 배치
 
@@ -266,7 +266,7 @@
 
 ### 6.4 `SC-007` 페르소나 이미지
 
-결과의 `image.url`은 `/api/v1/persona-images/{imageId}` 형태의 상대 경로이며, 요청 사용자의 소유권을 확인하므로 `Authorization` 헤더가 필요하다. 앱은 API 기본 주소와 결합하고 인증 헤더를 붙여 요청한다. 401이면 불변식 12에 따라 토큰을 갱신한 뒤 한 번 다시 요청하고, 그래도 실패할 때만 `IMAGE-LOAD-ERROR`로 간다. 마이페이지의 `STORED-IMAGES-*`도 같은 규칙을 따른다.
+결과의 `image.url`은 `/api/v1/persona-images/{imageId}` 형태의 상대 경로이며, 요청 사용자의 소유권을 확인하므로 `Authorization` 헤더가 필요하다. 앱은 API 기본 주소와 결합하고 인증 헤더를 붙여 요청한다. 401이면 불변식 12에 따라 토큰을 갱신한 뒤 한 번 다시 요청하고, 그래도 실패할 때만 `IMAGE-LOAD-ERROR`로 간다. 이미지 컴포넌트의 오류 콜백으로는 HTTP 상태를 알기 어려우므로, 세션 응답의 `accessTokenExpiresAt`을 보고 만료 전에 미리 갱신하거나 이미지를 앱의 요청 계층으로 받아 표시한다. 마이페이지의 `STORED-IMAGES-*`도 같은 규칙을 따른다.
 
 | 상태 ID | 조건 | 사용자에게 보이는 것 | 시스템 규칙 |
 |---|---|---|---|
@@ -297,6 +297,7 @@
 2. 저장본의 `analysisId`가 이 작업 상태의 `analysisId`와 같으면 이 결과가 저장된 것이다 → `SAVE-FIRST-SUCCESS` → 홈의 `RESULT-SAVED-CONTEXT`.
 3. 다르면 이 결과는 저장되지 않은 것이다 → `GET /api/v1/analysis-jobs/{jobId}/result`로 결과를 받아 `RESULT-UNSAVED-PREVIEW` → `SAVE-CHOICE-REQUIRED`.
 4. 저장본이 없으면(`SAVED_ANALYSIS_NOT_FOUND`) → `SAVE-FIRST-ERROR`.
+5. 조회 자체가 실패하면(네트워크·5xx) 불변식 11의 일반 오류와 재조회 행동을 보여준다. 결과가 저장됐는지 단정하지 않는다.
 
 | 상태 ID | 조건·이벤트 | 사용자에게 보이는 것 | 시스템 처리 | 다음 전이 |
 |---|---|---|---|---|
@@ -399,7 +400,7 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 유효 리뷰 부족 실패에 현재 유효 리뷰 수 필드 제공 (`role:feature`) — PRD §10 공통·AC-04가 요구 | `ANALYSIS-INSUFFICIENT` | 분석 진행 화면 구현 전 |
 | 유효 토픽 0개 결과 처리 (`role:feature`) — 현재 Python이 페르소나 최소 1개를 요구해 재시도 가능 실패가 된다 | `RESULT-NO-PERSONA`, PRD FR-003 | 결과 화면 구현 전 |
 | `STORE_NOT_FOUND` 판정 범위 (`role:feature`) — 현재 DNS 조회 실패에만 쓰고, 없는 가게는 다른 코드로 온다 | `STORE-NOT-FOUND` | 가게 입력 화면 구현 전 |
-| 같은 `Idempotency-Key`로 `FAILED` 작업을 다시 요청하면 서버가 분석을 다시 실행하지만 작업 상태는 `FAILED`로 남는 동작 (`role:feature`) | 불변식 13 | 분석 API 연동 전 |
+| 같은 `Idempotency-Key`로 `FAILED` 작업을 다시 요청하면 서버가 분석을 다시 실행하지만 작업 상태는 `FAILED`로 남는 동작, 그리고 작업 행 저장 뒤 실행 요청이 실패해 500을 받은 경우 새 키 재시도가 중복 작업을 만드는 동작 (`role:feature`) | 불변식 13, `STORE-JOB-ERROR` | 분석 API 연동 전 |
 
 미정 항목은 상태를 삭제하는 근거가 아니다. 프론트 코드는 확정된 상태 경계를 수용할 수 있게 만들되, 미정 정책을 숫자·시간·route 구조로 임의 고정하지 않는다.
 
