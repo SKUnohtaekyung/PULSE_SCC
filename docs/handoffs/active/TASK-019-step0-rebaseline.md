@@ -142,6 +142,8 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 - `docs/design/DESIGN_SYSTEM.md` — SC-012 탈퇴 표현 원칙, §13에 되돌릴 수 없는 행동의 색 토큰 추가
 - `AGENTS.md`, `frontend/mobile/README.md`, `README.md` — 로컬 도구·훅 상태 정정
 
+- 전체 파일 재독(2026-09-21)에서 찾은 옛 서술 정정: `docs/architecture/ARCHITECTURE.md` §2의 존재하지 않는 `.claude/rules/`→`hooks/`, `.claude/skills/visual-qa/SKILL.md` §0의 "스택 미확정"→Android 에뮬레이터 절차, `frontend/mobile/README.md`의 첫 화면 설명, `TASK-020` handoff의 해소된 Expo 미정 항목
+
 원격 팀원 브랜치와 겹치지 않도록 원격이 고친 줄(PRD §8 인증 행, §13-11·18, 기능명세 AUTH-008~011·§10.1·§12)은 건드리지 않았다.
 
 ## Decisions

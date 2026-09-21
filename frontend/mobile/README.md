@@ -45,4 +45,4 @@ npm run android:device
 - `src/design/tokens/foundation.ts`의 readonly semantic theme
 - Pretendard v1.3.9 정적 굵기 4종과 토큰 대비 자동 검증
 
-앱 패키지 ID, 서명, EAS 프로젝트, 최종 아이콘·스플래시 자산은 아직 확정하지 않았다. 현재 첫 화면은 Design Foundation을 렌더링하는 개발용 견본이고 기본 이미지 자산은 임시값이므로 제품 UI 완료 증거가 아니다.
+앱 패키지 ID, 서명, EAS 프로젝트, 최종 아이콘·스플래시 자산은 아직 확정하지 않았다. 현재 첫 화면(`/`)은 가상 데이터로 만든 결과 화면 프로토타입(`src/prototypes/result`)이고, Design Foundation 견본은 `/foundation` 경로에 있다. 둘 다 개발용이며 기본 이미지 자산은 임시값이므로 제품 UI 완료 증거가 아니다.

@@ -137,7 +137,7 @@ SCC/
 │
 ├─ .claude/             Claude Code 설정 (팀 공용)
 │  ├─ settings.json
-│  ├─ rules/
+│  ├─ hooks/
 │  ├─ agents/
 │  └─ skills/
 │

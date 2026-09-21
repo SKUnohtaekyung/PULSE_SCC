@@ -62,7 +62,8 @@
 4. 저장 선택 UI와 미저장 결과 보관 정책
 5. 알림 읽음 처리
 6. 최소 Android OS·지원 기기·접근성 목표
-7. Expo SDK·React Native 버전과 workflow
+7. ~~Expo SDK·React Native 버전과 workflow~~ — 2026-09-18 [ADR-011](../../decisions/ADR-011-frontend-bootstrap.md)로 해소
+8. 백엔드 인증·탈퇴·오류 계약 반영(3차)은 [TASK-019](TASK-019-step0-rebaseline.md)에서 수행했다. 독립 Reviewer PASS는 그 변경분에 대한 것이며, 이 State Model 전체의 제품·디자인 검토는 아직이다
 
 ## Do Not Assume
 
