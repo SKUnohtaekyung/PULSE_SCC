@@ -54,7 +54,7 @@ java 21.0.8   python 3.13.2 (2026-09-16)
 Gradle 9.7.1 → backend/spring-api/gradlew.bat으로 실행 확인
 Docker → 미설치, Testcontainers PostgreSQL 테스트는 컴파일 확인·실행 건너뜀
 node 24.19.0   npm 11.17.0 → frontend/mobile install·lint·typecheck·Android export 확인 (2026-09-18)
-Android SDK·adb·emulator → 미설치, 네이티브 development build·실기기 검증 미실행
+Android SDK·adb·emulator → `%LOCALAPPDATA%\Android\Sdk`, `Medium_Phone` AVD(Android 17/API 37)에서 Expo Go 실행 확인 (2026-09-21). 네이티브 development build·실기기 검증 미실행
 ```
 
 ### 스택 확정 시 반드시 함께 갱신할 것

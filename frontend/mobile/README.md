@@ -8,7 +8,7 @@ Expo 기반 React Native·TypeScript Android 클라이언트다. 제품 요구�
 - npm과 `package-lock.json`
 - 실제 Android development build: Android Studio·Android SDK 또는 EAS Build 환경
 
-현재 로컬 PC에는 Android SDK·`adb`·에뮬레이터가 확인되지 않았다. 따라서 네이티브 실행 검증은 환경 설치 후 수행해야 한다.
+2026-09-21 기준 로컬 PC에는 Android SDK·`adb`와 `Medium_Phone` 에뮬레이터(Android 17/API 37)가 있고 Expo Go 실행을 확인했다. `android.package`·scheme이 정해지지 않아 development build와 실기기 검증은 아직 수행하지 않았다.
 
 ## 명령
 

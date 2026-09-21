@@ -80,7 +80,7 @@ frontend/                 프론트엔드 실행 프로젝트
 | `.github/workflows/` (CI) | 로컬 검증 명령은 생겼지만 배포 환경과 CI 정책은 아직 미정 |
 | `.claude/rules/` | 규칙을 여기에 두면 `AGENTS.md` 와 중복된다. Claude는 `CLAUDE.md` 의 `@AGENTS.md` import로 이미 전부 읽는다 |
 | `.codex/`, `.agents/skills/` | Codex 0.147.0이 프로젝트 레벨에서 읽지 않음 ([ADR-001](docs/decisions/ADR-001-agent-config-strategy.md)) |
-| `.claude/commands`, `hooks`, `output-styles`, `workflows` | 반복 자동화 필요성이 아직 확인되지 않음 |
+| `.claude/commands`, `output-styles`, `workflows` | 반복 자동화 필요성이 아직 확인되지 않음. `.claude/hooks/`는 문서 동기화 알림 훅 1개가 있다 ([CLAUDE.md](CLAUDE.md)) |
 
 각 항목은 필요성이 생긴 시점에 추가한다.
 

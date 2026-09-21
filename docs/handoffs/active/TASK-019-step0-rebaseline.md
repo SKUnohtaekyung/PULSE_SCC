@@ -3,7 +3,7 @@
 > `TASK-019`는 임시 번호다. 로컬·원격 어디에도 쓰이지 않은 다음 번호를 골랐을 뿐이며, 팀이 번호 체계를 합의하면 바꾼다.
 
 ## Status
-블로킹 — 팀 합의 대기. 이 문서는 로컬 브랜치에 커밋만 하며 push·이슈·PR을 만들지 않는다.
+진행중 — Step 0~2 정본 재정렬 완료, 번호 변경은 히스토리 재작성 권한 대기, 공유 순서는 팀 합의 대기. 로컬 브랜치에 커밋만 하며 push·이슈·PR을 만들지 않았다.
 
 ## Owner
 role:platform — 미배정 (정본 통합은 `role:product`, `role:design-system`, `role:feature` 교차 합의 필요)
@@ -62,6 +62,8 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 
 팀원 브랜치의 README는 여전히 `프론트엔드: Expo 세부 버전과 workflow를 프론트 담당자가 확정한 뒤 생성`이라고 적고 있어, 두 작업은 서로의 존재를 반영하지 않았다. `AGENTS.md` 5장 동시 편집 회피 규칙 1·2에 해당한다.
 
+**해소(2026-09-21 사용자 확인):** 오해서는 현재 프론트엔드를 따로 진행하지 않고 백엔드만 진행한다. 프론트엔드 정본은 `frontend/mobile`이다. `C:\PULSE_SCC_FE`의 포디움 불변식 테스트·fixture·API client는 이후 `frontend/mobile`로 옮길 때 참고 자료로 쓴다. 원격 브랜치 병합 시 README의 프론트엔드 행은 `frontend/mobile` 쪽으로 해소한다.
+
 ### C4. 정본 불일치 — 팀원이 정했으나 로컬 정본에 없는 것
 
 | 결정 | 원격 근거 | 로컬 영향 |
@@ -72,7 +74,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | 비밀번호 UTF-8 72바이트 이하 | 기능명세 §10.1, ADR-008(인증) — PRD에는 없음 | `AUTH-FIELD-ERROR` |
 | 약관·개인정보 버전 동의(`termsVersion`, `privacyVersion`) | API.md §4.1, `docs/legal/**` | `AUTH-SIGNUP-EDITING`에 동의 상태 없음 |
 | 동일 이메일 자동 연결 금지 `409 ACCOUNT_LINK_REQUIRED` | 기능명세 AUTH-011, API.md | 대응 상태 없음 |
-| 계정 탈퇴 `DELETE /api/v1/me/account` | ADR-010, API.md §3.3 | **PRD FR-012·기능명세 NAV-004는 마이페이지를 4개 항목으로 제한**한다. 원격도 PRD를 갱신하지 않아 정본 내부 모순 |
+| 계정 탈퇴 `DELETE /api/v1/me/account` | ADR-010, API.md §3.3 | **PRD FR-012·기능명세 NAV-004는 마이페이지를 4개 항목으로 제한**한다. 원격도 PRD를 갱신하지 않아 정본 내부 모순. → 2026-09-21 이 브랜치에서 해소(아래 Completed) |
 | 전체 근거 조회 endpoint 미구현 | API.md §3.2 | 프로토타입 `근거 리뷰 N건` 진입점은 안내 Alert만 제공 |
 
 ### C5. 실제 병합 충돌
@@ -99,22 +101,38 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 
 ## 팀에 물을 것
 
-1. 프론트엔드 정본은 `frontend/mobile`인가, `C:\PULSE_SCC_FE`인가, 통합인가
-2. TASK-012·ADR-008 충돌에서 어느 쪽이 번호를 바꾸는가
-3. 로컬 스택 일곱 TASK를 어떤 단위·순서로 PR로 올리는가
-4. 계정 탈퇴를 MVP 마이페이지 범위에 넣는가 (PRD FR-012 변경 여부)
-5. 페르소나 이미지를 사람 대신 음식·공간 상징으로 확정하는가 (PRD §13-9)
+| # | 질문 | 상태 |
+|---|---|---|
+| 1 | 프론트엔드 정본 | **해소** — `frontend/mobile` (C3) |
+| 2 | TASK-012·ADR-008 충돌에서 어느 쪽이 번호를 바꾸는가 | 로컬이 바꾼다(원격이 먼저 공개). 로컬 상태 모델 → `TASK-020`, 로컬 프론트 ADR → `ADR-011`. 실행은 아래 Unresolved의 권한 대기 |
+| 3 | 로컬 스택 일곱 TASK를 어떤 단위·순서로 PR로 올리는가 | 팀 합의 필요 |
+| 4 | 계정 탈퇴를 MVP 마이페이지 범위에 넣는가 | **해소** — 넣는다. [Google Play 계정 삭제 정책](https://support.google.com/googleplay/android-developer/answer/13327111)은 계정 생성이 가능한 앱에 앱 안 삭제 경로와 웹 삭제 요청 링크를 모두 요구한다. 백엔드는 이미 구현했다 |
+| 5 | 페르소나 이미지를 사람 대신 음식·공간 상징으로 확정하는가 (PRD §13-9) | 팀 합의 필요 |
 
 ## Completed
 - Step 0~4 산출물과 원격 팀원 브랜치를 대조해 C1~C5를 기록했다.
 - 실제 병합 충돌을 `git merge-tree`로 시뮬레이션했다.
 - Step 0 재시작 순서와 팀 합의 질문을 정리했다.
+- Step 0: PRD FR-012·Acceptance Criteria에 계정 탈퇴를 넣고 §13-24(웹 삭제 요청 링크)를 추가했다. `AGENTS.md`·`frontend/mobile/README.md`의 `Android SDK 미설치` 서술과 `README.md`의 `hooks 미생성` 서술을 실제에 맞췄다.
+- Step 1: `RESULT_IA`에 새 결과 확인(미저장), 근거 리뷰 전체 목록(`SC-005`), 계정 탈퇴를 넣고, `USER_FLOW`에 탈퇴 흐름을 넣었다. 기능명세 SC-012·NAV-004·NAV-008·AC-13·추적표, `DESIGN_SYSTEM` SC-012를 동기화했다.
+- Step 2: `SCREEN_STATES`에 백엔드 인증 정책·오류 계약·Refresh 회전 유예와 `AUTH-SIGNUP-UNAVAILABLE`, `AUTH-ACCOUNT-LINK-REQUIRED`, `ACCOUNT-DELETE-*` 5개를 추가했다.
 
 ## Changed
 - `docs/handoffs/active/TASK-019-step0-rebaseline.md` — 신설
+- `docs/product/PRD.md` — FR-012·AC에 계정 탈퇴, §13-24
+- `docs/product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` — SC-012, NAV-004, NAV-008, §8 API 범위, AC-13, 추적표
+- `docs/product/requirements/RESULT_IA.md` — 앱 IA·계층·화면표에 탈퇴, 새 결과 확인, SC-005
+- `docs/product/requirements/USER_FLOW.md` — 탈퇴 흐름
+- `docs/product/requirements/SCREEN_STATES.md` — 백엔드 계약 동기화 (3차)
+- `docs/design/DESIGN_SYSTEM.md` — SC-012 탈퇴 표현 원칙
+- `AGENTS.md`, `frontend/mobile/README.md`, `README.md` — 로컬 도구·훅 상태 정정
+
+원격 팀원 브랜치와 겹치지 않도록 원격이 고친 줄(PRD §8 인증 행, §13-11·18, 기능명세 AUTH-008~011·§10.1·§12)은 건드리지 않았다.
 
 ## Decisions
-- 사용자 결정(2026-09-21): 프론트엔드 정본은 팀과 합의한 뒤 정한다. 그 전까지 번호 변경, rebase, push, 이슈 생성을 하지 않는다.
+- 사용자 결정(2026-09-21): 오해서는 백엔드만 진행하므로 프론트엔드 정본은 `frontend/mobile`이다. 반드시 바꿔야 하는 부분은 이 세션이 판단해 바꾼다.
+- 번호는 로컬이 바꾼다. 스택이 push 전이므로 모든 커밋에 새 번호가 들어가도록 히스토리를 다시 쓰려 했으나(`filter-branch`, 이후 `git mv`) 권한 규칙에 막혀 실행하지 않았다. 사용자 승인 후 진행한다.
+- push, rebase, 이슈 생성은 하지 않았다.
 - 팀원 브랜치의 파일은 읽기만 했다. 소유 영역 밖이므로 수정하지 않았다.
 
 ## Verification
@@ -130,7 +148,10 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 | 독립 Reviewer | `reviewer` 서브에이전트 | 초회 FAIL(P1 1·P2 2·P3 8) 전부 반영 → 2차 FAIL(P2 1, `traceId` 행 분류 오류) 반영 → 3차 PASS(P3 2건 반영) |
 
 ## Unresolved
-- `팀에 물을 것` 5개 전부
+- `팀에 물을 것` 3·5
+- 번호 변경(로컬 `TASK-012`→`TASK-020`, `ADR-008-frontend-bootstrap`→`ADR-011-frontend-bootstrap`) — 히스토리 재작성 권한 대기. 변경 전 브랜치는 `backup/pre-renumber/*`로 보존해 두었다
+- 번호를 확정하려면 스택을 push해야 한다. 그 전까지 팀원이 `TASK-013`~`TASK-020`, `ADR-011`을 새로 쓰면 다시 충돌한다
+- 원격 브랜치 병합 전까지 `SCREEN_STATES`의 백엔드 계약 출처는 원격 브랜치 경로로만 적었다. 병합 후 상대 링크로 바꾼다
 - `C:\PULSE_SCC_FE`의 실제 코드는 이 PC에 없어 원격 handoff 기술로만 확인했다. 코드 대조는 미확인이다.
 - 원격 TASK-012 handoff가 적은 "채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다"가 처리됐는지 미확인이다.
 
@@ -140,7 +161,7 @@ TASK-012~018 일곱 TASK가 로컬 브랜치에만 있다. 원격 push, 이슈, 
 - 원격 TASK-012 handoff는 "원격 push와 PR 생성은 수행하지 않았다"고 적었지만 해당 브랜치는 현재 원격에 있다. PR은 여전히 없다.
 
 ## Next Action
-사용자가 이 문서로 팀원과 `팀에 물을 것` 5개를 합의한다.
+사용자가 번호 변경을 위한 히스토리 재작성을 승인하면 `TASK-020`·`ADR-011`로 바꾸고 링크를 전수 검사한다. 이어서 팀원과 `팀에 물을 것` 3·5를 합의한다.
 
 ## Last Verified Commit
 `dc84e82` — 로컬 스택 끝(TASK-018) 기준으로 위 감사가 유효하다. 원격은 조회일의 `main` `b30bada`, TASK-011 `74d6df8`, TASK-012 `a4ab15b` 기준

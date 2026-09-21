@@ -5,8 +5,9 @@
 | 항목 | 내용 |
 |---|---|
 | 목적 | Android 프론트엔드가 화면별 정상·진행·빈 상태·오류·복구 상태를 빠뜨리지 않도록 구현 상태를 정의한다 |
-| 상태 | 1차 초안 — 제품·디자인 검토 전, 세부 카피·시각 디자인·오프라인 정책은 미정 |
-| 기준일 | 2026-09-18 |
+| 상태 | 2차 — 백엔드 인증·탈퇴·오류 계약 반영. 제품·디자인 검토 전, 세부 카피·시각 디자인·오프라인 정책은 미정 |
+| 기준일 | 2026-09-21 |
+| 백엔드 계약 출처 | 인증 정책·오류 응답: 원격 `feat/TASK-011-authentication`(PR #27) `docs/decisions/ADR-008-authentication-policy.md`, `docs/architecture/API.md`. 계정 탈퇴: 원격 `feat/TASK-012-analysis-pipeline` `docs/decisions/ADR-010-account-deletion.md`. 두 브랜치는 2026-09-21 기준 `main`에 병합 전이다 |
 | 제품 요구사항 정본 | [PRD.md](../PRD.md) |
 | 사용자 흐름 | [USER_FLOW.md](USER_FLOW.md) |
 | 정보구조 | [RESULT_IA.md](RESULT_IA.md) |
@@ -45,6 +46,8 @@
 6. 분석 작업은 실제 도출된 모든 페르소나 이미지와 근거 검증이 끝나기 전에는 `success`로 보이지 않는다.
 7. 오류가 발생해도 사용자가 다시 입력하지 않아도 되는 값은 보존한다.
 8. `offline`의 캐시·자동 재시도·백그라운드 처리 방식은 제품 결정 전까지 구현값으로 확정하지 않는다.
+9. 서버 오류 응답은 [API.md](../../architecture/API.md) §2.1 형식을 따른다. `error.message`는 사용자에게 보여줄 수 있는 문장이며, `fieldErrors`가 있으면 각 항목을 해당 필드의 `*-FIELD-ERROR` 상태로 연결한다. `traceId`를 화면에 노출할지는 §11에서 정한다.
+10. Refresh Token은 사용할 때마다 회전하므로 토큰 갱신 요청은 한 번에 하나만 보낸다. 동시에 들어온 요청은 진행 중인 갱신 결과를 기다린다. 백엔드는 회전 직후 30초 안에 같은 토큰이 다시 오면 그 요청만 거부하고 세션은 유지하며, 유예를 넘긴 폐기 토큰 재사용은 전체 세션을 폐기한다.
 
 ---
 
@@ -67,8 +70,9 @@
 |---|---|---|---|---|
 | `AUTH-INITIAL` | 미인증 진입 | Google 로그인과 서비스 자체 로그인 진입점 | 요청 없음 | 로그인 방식 선택 |
 | `AUTH-EDITING` | 서비스 자체 로그인 정보 입력 | 이메일·비밀번호 입력값, 필수 여부, 제출 가능 상태 | 클라이언트 형식 검증 | 계속 입력 또는 로그인 제출 |
-| `AUTH-SIGNUP-EDITING` | 자체 계정 가입 정보 입력 | 이메일·비밀번호·전화번호와 확정된 수집·이용 목적 고지 | 클라이언트 형식 검증 | 계속 입력 또는 가입 제출 |
-| `AUTH-FIELD-ERROR` | 이메일 형식·필수값·비밀번호 정책·전화번호 형식 오류 | 해당 필드 가까이 원인과 수정 방법 | 서버 요청 전 차단 가능한 오류는 요청하지 않음 | 입력 수정 |
+| `AUTH-SIGNUP-EDITING` | 자체 계정 가입 정보 입력 | 이메일·비밀번호·전화번호, 전화번호는 인증·복구에 쓰지 않는다는 목적 고지, 현재 이용약관·개인정보 처리방침 버전 동의 | 클라이언트 형식 검증. 동의한 `termsVersion`·`privacyVersion`을 가입 요청에 포함 | 계속 입력 또는 가입 제출 |
+| `AUTH-SIGNUP-UNAVAILABLE` | 법률 문서 조회 결과 `legallyReviewed=false`인 운영 환경 | 지금은 가입할 수 없다는 안내와 기존 계정 로그인 진입점 | 가입 요청을 보내지 않음 | 로그인 방식 선택 |
+| `AUTH-FIELD-ERROR` | 이메일 형식·필수값·비밀번호 정책(8자 이상, UTF-8 72바이트 이하)·전화번호 형식·약관 미동의, 또는 서버 `fieldErrors` | 해당 필드 가까이 원인과 수정 방법 | 서버 요청 전 차단 가능한 오류는 요청하지 않음 | 입력 수정 |
 | `AUTH-SUBMITTING` | 서비스 자체 로그인 요청 | 로그인 처리 중 안내 | 중복 제출 차단 | 성공 또는 오류 |
 | `AUTH-SIGNUP-SUBMITTING` | 자체 계정 가입 요청 | 가입 처리 중 안내 | 중복 제출 차단 | 생성 또는 오류 |
 | `AUTH-SIGNUP-CREATED` | 자체 계정 생성 성공 | 계정이 만들어졌다는 안내 | 가입 후 자동 로그인 여부는 정책 확정 전 임의 결정하지 않음 | `AUTH-SUCCESS` 또는 `AUTH-INITIAL` |
@@ -76,7 +80,8 @@
 | `AUTH-GOOGLE-PENDING` | Google 인증 시작 | 외부 인증 진행 중 안내 | Google 인증 결과 대기 | 성공·취소·외부 인증 실패 |
 | `AUTH-GOOGLE-CANCELLED` | 사용자가 Google 인증을 취소 | 취소됐으며 다시 시도할 수 있다는 안내 | 실패로 기록하되 자격 증명 오류처럼 표현하지 않음 | 재시도 또는 다른 방식 선택 |
 | `AUTH-INVALID-CREDENTIALS` | 이메일 또는 비밀번호 불일치 | 자격 증명을 확인하라는 안내 | 민감한 실패 원인을 세분화해 노출하지 않음 | 다시 입력 |
-| `AUTH-GOOGLE-ERROR` | Google 인증·서버 검증 실패 | 실패 이유와 가능한 다음 행동 | 계정 연결 방식은 인증 정책이 확정되기 전까지 임의로 처리하지 않음 | 재시도 또는 기존 방식 로그인 |
+| `AUTH-GOOGLE-ERROR` | Google 인증·서버 검증 실패 | 실패 이유와 가능한 다음 행동 | 계정을 자동으로 연결하지 않음 | 재시도 또는 기존 방식 로그인 |
+| `AUTH-ACCOUNT-LINK-REQUIRED` | 같은 이메일의 자체 계정이 있어 Google 로그인이 `409 ACCOUNT_LINK_REQUIRED`로 거부됨 | 이미 이메일로 가입한 계정이 있으니 그 방식으로 로그인하라는 안내 | 자동 연결하지 않음. 명시적 연결 기능은 MVP에 없음 | 서비스 자체 로그인으로 이동 |
 | `AUTH-SUCCESS` | 서버 세션 생성 성공 | 다음 단계로 이동 중인 상태 | 토큰을 안전 저장소에 저장하고 저장 결과 여부 확인 | `APP-READY` 또는 `APP-FIRST-ANALYSIS-REQUIRED` |
 | `AUTH-OFFLINE` | 로그인 요청 시 네트워크 없음 | 인터넷 연결 후 다시 시도 안내 | 자격 증명 요청을 큐에 보관하지 않음 | 재시도 |
 
@@ -145,6 +150,7 @@
 | 수집·분석 | `ANALYSIS-INSUFFICIENT`, `ANALYSIS-RETRYABLE-ERROR`, `ANALYSIS-FATAL-ERROR` | 분석 진행 화면에서 실패 단계·현재 상태·다음 행동을 표시한다 |
 | 결과 | `RESULT-PARTIAL`, `RESULT-NO-PERSONA`, `RESULT-OLD-REVIEWS`, `RESULT-ERROR` | 결과 화면에서 근거 부족·오래된 리뷰·조회 실패를 해당 정보와 함께 표시한다 |
 | 저장 | `SAVE-CONFLICT`, `SAVE-FIRST-ERROR`, `SAVE-REPLACE-ERROR` | 저장 결과 유무와 기존 저장본의 보존 여부를 구분하고 재시도 행동을 표시한다 |
+| 계정 탈퇴 | `ACCOUNT-DELETE-VERIFY-ERROR`, `ACCOUNT-DELETE-ERROR` | 마이페이지 탈퇴 흐름 안에서 계정이 삭제되지 않았음을 먼저 알리고 재시도 행동을 표시한다 |
 
 ---
 
@@ -251,6 +257,11 @@
 | 로그아웃 | `LOGOUT-SUBMITTING` | 로그아웃 처리 중 | 중복 실행 방지 |
 | 로그아웃 | `LOGOUT-SUCCESS` | 로그인 화면으로 이동 | 기기 인증 정보를 제거하고 `AUTH-INITIAL`로 전이 |
 | 로그아웃 | `LOGOUT-ERROR` | 로컬·서버 세션 상태를 구분한 안전한 안내 | 민감정보 없이 재시도 또는 로그인 이동 |
+| 탈퇴 | `ACCOUNT-DELETE-CONFIRM` | 삭제 대상(계정·분석 결과·리뷰·근거·알림·페르소나 이미지)과 복구 불가 안내, 자체 계정은 현재 비밀번호 입력 | 취소 또는 탈퇴 제출 |
+| 탈퇴 | `ACCOUNT-DELETE-SUBMITTING` | 탈퇴 처리 중 | 중복 제출 차단, 하단 내비게이션 이동 차단 |
+| 탈퇴 | `ACCOUNT-DELETE-VERIFY-ERROR` | 비밀번호 불일치 또는 세션 만료로 본인 확인 실패, 계정은 그대로 | 비밀번호 재입력 또는 다시 로그인 |
+| 탈퇴 | `ACCOUNT-DELETE-ERROR` | 서버·파일 삭제 실패로 계정이 삭제되지 않았다는 안내 | 재시도. 부분 삭제를 완료처럼 보이지 않음 |
+| 탈퇴 | `ACCOUNT-DELETE-SUCCESS` | 탈퇴 완료 안내 후 로그인 화면 | 기기 인증 정보를 제거하고 `AUTH-INITIAL`로 전이 |
 
 ---
 
@@ -294,12 +305,14 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 분석 polling 주기·백오프·백그라운드 복귀 | `SC-003` | 분석 API 연동 전 |
 | 진행 중 화면 이탈·앱 종료 후 복원 | `SC-003`, 하단 내비게이션 | 분석 화면 구현 전 |
 | 세션 만료 중 분석 작업 접근 | `ANALYSIS-UNAUTHORIZED` | 인증·분석 API 연결 전 |
-| 전화번호 수집·이용 목적, 약관 동의, 가입 후 자동 로그인 | `AUTH-SIGNUP-*` | 자체 계정 가입 구현 전 |
+| 가입 후 자동 로그인 여부 (전화번호 목적·약관 버전 동의는 백엔드 계약으로 확정) | `AUTH-SIGNUP-CREATED` | 자체 계정 가입 화면 구현 전 |
 | 가게 입력과 확인의 route 분리 | `SC-001`, `SC-002` | 화면 구조 구현 전 |
 | 저장 선택 UI 형식과 세부 문구 | `SC-010` | 저장 선택 화면 구현 전 |
 | 미저장 새 결과의 접근·보관 시간 | `SAVE-KEEPING` 이후 | 작업 큐·삭제 배치 구현 전 |
 | 알림 읽음 처리 | `SC-012` | 마이페이지 API 구현 전 |
 | 최소 Android OS·지원 기기·접근성 목표 | 전체 Visual QA | 첫 UI 구현 전 |
+| 오류 화면에 `traceId`를 문의용 코드로 보여줄지 | 모든 `*-ERROR` | 오류 화면 구현 전 |
+| 웹 계정 삭제 요청 링크 제공 방식 (PRD §13-24) | `ACCOUNT-DELETE-*` 밖의 스토어 요구 | Play Console 데이터 보안 양식 작성 전 |
 
 미정 항목은 상태를 삭제하는 근거가 아니다. 프론트 코드는 확정된 상태 경계를 수용할 수 있게 만들되, 미정 정책을 숫자·시간·route 구조로 임의 고정하지 않는다.
 
@@ -331,6 +344,16 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 공백·충돌 표식 | PASS | `git diff --check` 이상 없음 |
 | 앱 렌더링·Visual QA | 미실행 | 프론트엔드 코드가 아직 없으므로 Design Foundation과 Vertical Slice 이후 수행 |
 | 독립 Reviewer | 미실행 | 제품·디자인 담당자 배정과 검토 필요 |
+
+### 3차 백엔드 계약 동기화
+
+검토일: 2026-09-21
+
+| 발견 사항 | 조치 |
+|---|---|
+| 백엔드 인증 정책(비밀번호 규칙, 전화번호 목적, 약관 버전 동의, 계정 자동 연결 금지, Refresh 회전 유예)이 상태에 없음 | `AUTH-SIGNUP-EDITING`·`AUTH-FIELD-ERROR` 보강, `AUTH-SIGNUP-UNAVAILABLE`·`AUTH-ACCOUNT-LINK-REQUIRED` 추가, 불변식 10 추가 |
+| `main`의 API.md §2.1 오류 계약과 필드 오류 상태의 연결이 없음 | 불변식 9 추가, `traceId` 노출 여부를 미정 항목으로 분리 |
+| PRD FR-012에 추가한 계정 탈퇴의 상태가 없음 | `ACCOUNT-DELETE-*` 5개와 `SC-009` 배치 추가 |
 
 ### 2차 자체 교차 검토
 
