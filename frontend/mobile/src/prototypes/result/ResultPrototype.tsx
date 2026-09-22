@@ -592,12 +592,12 @@ function ProfileIcon({ color }: { color: string }) {
   );
 }
 
-function AnalysisIcon() {
+function AnalysisIcon({ color = colors.action.onPrimary }: { color?: string }) {
   return (
     <View aria-hidden style={styles.analysisBars}>
-      <View style={[styles.analysisBar, styles.analysisBarShort]} />
-      <View style={[styles.analysisBar, styles.analysisBarMedium]} />
-      <View style={[styles.analysisBar, styles.analysisBarTall]} />
+      <View style={[styles.analysisBar, styles.analysisBarShort, { backgroundColor: color }]} />
+      <View style={[styles.analysisBar, styles.analysisBarMedium, { backgroundColor: color }]} />
+      <View style={[styles.analysisBar, styles.analysisBarTall, { backgroundColor: color }]} />
     </View>
   );
 }
@@ -638,10 +638,10 @@ export function BottomNavigation({
         accessibilityRole="button"
         accessibilityState={{ selected: !homeActive }}
         onPress={onAnalyze ?? (() => unavailable('분석하기'))}
-        style={({ pressed }) => [styles.navItem, styles.analysisNavItem, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.navItem, styles.analysisNavItem, pressed && homeActive && styles.pressed]}
       >
-        <View style={styles.analysisButton}>
-          <AnalysisIcon />
+        <View style={[styles.analysisButton, !homeActive && styles.analysisButtonCurrent]}>
+          <AnalysisIcon color={homeActive ? colors.action.onPrimary : colors.brand.onPrimary} />
         </View>
         <Text style={styles.analysisNavLabel}>분석하기</Text>
       </Pressable>
@@ -2012,6 +2012,9 @@ const styles = StyleSheet.create({
     borderColor: colors.background.surface,
     borderRadius: radii.pill,
     borderWidth: spacing[1],
+  },
+  analysisButtonCurrent: {
+    backgroundColor: colors.brand.primary,
   },
   analysisNavLabel: {
     ...typography.caption,

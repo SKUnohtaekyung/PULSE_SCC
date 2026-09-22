@@ -350,7 +350,9 @@ export function FlowPrototype({ initialScenario = 'first' }: { initialScenario?:
                 {locked ? (
                   <View accessibilityLiveRegion="polite" style={styles.progressCard}>
                     {steps.map((row, index) => {
-                      const running = phase === 'progress' && !row.done && index === steps.length - 1;
+                      const last = !row.done && index === steps.length - 1;
+                      const running = phase === 'progress' && last;
+                      const paused = phase === 'failed' && last;
                       return (
                         <View key={row.key} style={styles.stepRow}>
                           <View style={styles.stepMarker}>
@@ -360,11 +362,18 @@ export function FlowPrototype({ initialScenario = 'first' }: { initialScenario?:
                               </View>
                             ) : running && !reduceMotion ? (
                               <ActivityIndicator color={colors.brand.primary} size="small" />
+                            ) : paused ? (
+                              <View style={styles.stepPaused}>
+                                <View style={styles.stepPausedBar} />
+                              </View>
                             ) : (
                               <View style={styles.stepIdle} />
                             )}
                           </View>
-                          <Text style={[styles.stepLabel, running && styles.stepLabelRunning]}>{row.label}</Text>
+                          <View style={styles.stepCopy}>
+                            <Text style={[styles.stepLabel, running && styles.stepLabelRunning]}>{row.label}</Text>
+                            {paused ? <Text style={styles.stepPausedNote}>여기까지 진행했어요</Text> : null}
+                          </View>
                         </View>
                       );
                     })}
@@ -761,6 +770,28 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     borderWidth: strokes.focus,
   },
+  stepPaused: {
+    width: spacing[6],
+    height: spacing[6],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: colors.border.control,
+    borderRadius: radii.pill,
+    borderWidth: strokes.focus,
+  },
+  stepPausedBar: {
+    width: spacing[3],
+    height: strokes.focus,
+    backgroundColor: colors.border.control,
+  },
+  stepCopy: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  stepPausedNote: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
   stepFailed: {
     width: spacing[6],
     height: spacing[6],
@@ -775,7 +806,6 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     ...typography.body4,
-    flex: 1,
     color: colors.text.secondary,
   },
   stepLabelRunning: {

@@ -189,7 +189,7 @@
 
 입력을 고쳐야 하는 작업 실패(`STORE_NOT_FOUND`, 작업 실패로 온 `INVALID_NAVER_PLACE_URL`)는 `ANALYSIS-FATAL-ERROR`가 아니라 §4.1의 `STORE-NOT-FOUND`·`STORE-UNSUPPORTED-URL`로 돌아간다.
 
-진행 화면은 받은 단계를 쌓는 목록이다([Step 5 합성](../../design/synthesis/TASK-020/README.md)). 원격 백엔드는 실패 시 `progressStep`을 `FAILED`로 덮어써 실패 단계를 알 수 없으므로, 위 예외 상태는 마지막 진행 행을 오류로 바꾸지 않고 목록 끝에 실패 결과 행을 붙여 원인(`error.code`·`retryable` 기준)과 다음 행동을 둔다. 입력을 고쳐야 하는 실패는 목록에 남기지 않고 입력 화면으로 돌아간다.
+진행 화면은 받은 단계를 쌓는 목록이다([Step 5 합성](../../design/synthesis/TASK-020/README.md)). 원격 백엔드는 실패 시 `progressStep`을 `FAILED`로 덮어써 실패 단계를 알 수 없으므로, 위 예외 상태는 마지막 진행 행을 오류로 바꾸지 않고 목록 끝에 실패 결과 행을 붙여 원인(`error.code`·`retryable` 기준)과 다음 행동을 둔다. 마지막 진행 행에는 "여기까지 진행했어요"를 붙여 멈춘 행임을 알린다. 입력을 고쳐야 하는 실패는 목록에 남기지 않고 입력 화면으로 돌아간다.
 
 ### 5.2 `SC-009` 오류·한계 배치
 
@@ -351,7 +351,7 @@
 |---|---|---|
 | `NAV-HIDDEN` | 저장 결과 없음·첫 분석 전, 첫 저장 완료 화면(`SAVE-FIRST-SUCCESS`), 새 결과 미리보기(`RESULT-UNSAVED-PREVIEW`) | 하단 내비게이션을 표시하지 않는다. 미리보기에서는 선택 없이 다른 탭으로 떠나 새 결과를 잃지 않게 한다 |
 | `NAV-HOME-ACTIVE` | 홈 | 홈 선택 상태. 가운데 분석하기는 주요 행동으로 유지 |
-| `NAV-ANALYSIS-ACTIVE` | 새 분석 흐름(저장본이 있는 사용자의 입력·진행). 새 결과 미리보기는 `NAV-HIDDEN` | 분석하기 선택 상태. 진행 중 이탈 정책은 미정 |
+| `NAV-ANALYSIS-ACTIVE` | 새 분석 흐름(저장본이 있는 사용자의 입력·진행). 새 결과 미리보기는 `NAV-HIDDEN` | 분석하기 선택 상태. 가운데 원은 현재 위치 표시(네이비)로 바뀌고 눌러도 이동하지 않는다. 진행 중 이탈 정책은 미정 |
 | `NAV-MYPAGE-ACTIVE` | 마이페이지 | 마이페이지 선택 상태 |
 | `NAV-DISABLED-TRANSITION` | 저장 교체 등 중복 이동이 위험한 짧은 전이 | 필요한 항목만 일시 비활성화하고 이유를 접근 가능하게 알림 |
 

@@ -305,7 +305,7 @@ loading / empty / error / normal
 | DataLimitNotice | 리뷰 부족·편향·대표성 한계 안내 | TBD |
 | ResultMetadata | 플랫폼, 리뷰 수, 수집·분석 시점 표시 | TBD |
 | AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | TBD |
-| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조 | TBD |
+| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 화면 안 오렌지 주요 버튼과 경쟁하지 않게 한다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | TBD |
 | PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | TBD |
 | ErrorState | 오류 이유와 재시도 가능 행동 표시 | TBD |
 

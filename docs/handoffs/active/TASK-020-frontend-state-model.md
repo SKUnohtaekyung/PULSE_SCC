@@ -2,7 +2,7 @@
 
 ## Status
 
-Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAIL(P2 2건) → 2차 FAIL(P2 1건) → 3차 PASS. 이후 사용자가 Android 프로토타입을 보고 네이비 헤더와 입력 차례로 펼치기를 선택(2026-09-22) — 반영 후 독립 Reviewer 1차 FAIL(P2 상태 표시줄 아이콘 색) → 2차 PASS. Step 4 게이트는 2026-09-22 PASS. 작업은 TASK-019 브랜치에서 수행
+Step 6 Figma 정본화 게이트 PASS (2026-09-22) — SVG 보드 8장 생성·Step 5 결정 4개 반영. 독립 Reviewer 1차 FAIL(P2 3건: 문구 축약, loading·disabled 임의 결정, 범위 표기) → 2차 PASS. Step 5는 2026-09-22 PASS. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -28,6 +28,7 @@ Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAI
 - 기능명세의 논리 화면 13개 추적과 저장소 내 Markdown 상대 링크를 검증했다.
 - (Step 3) 상태 모델이 요구하는 오류·주의·입력·삭제·로딩·이미지 실패 표현을 토큰·컴포넌트 규칙·에셋 규칙과 대조했다. 기존 토큰의 대비 미달 3건(오류 원색/화면 배경 4.4999:1, 주의 원색 아이콘/화면 배경 2.97:1, 입력 경계 `border.strong` 1.48:1)과 삭제 토큰 부재를 찾아 토큰을 추가하고 규칙을 적었다. 새 삭제 버튼과 포커스 링이 맞닿는 조합(1.9954:1)은 리뷰에서 추가로 찾아 링 offset 규칙으로 막았다.
 - (Step 4) Vertical Slice 앞 단계(입력·진행·첫 저장/홈)의 서로 다른 UX 가설 4개와 결과 상태 변형 보드 1개를 ImageGen으로 만들고, 각 가설의 최적화 대상·상태 대응·trade-off와 Step 5 질문을 정리했다. 정상 결과 화면은 TASK-015·017·016에서 이미 탐색·합성돼 다시 하지 않았다.
+- (Step 6) 이 세션에 Figma 연결이 없어 사용자 선택에 따라 팀 Figma import용 SVG 보드 8장(IA·Flow, Foundation, Components, Assets, Final UI 4장)을 토큰에서 생성했다. Step 5에서 넘긴 결정 4개를 정해 합성안·프로토타입·보드와 SCREEN_STATES·DESIGN_SYSTEM에 반영했다(키보드 가림은 가설 — Step 7에서 확인).
 - (Step 5) 사용자 선택(한 화면 입력·쌓이는 진행 목록 — 가설 1, 첫 저장 완료 화면 — 가설 2, 새 결과 미리보기 — 상태 보드 ③)을 합성하고, 위임받은 저장 선택 시점(처음부터 하단 고정 + 교체 확인)과 실패 배치·결과 상태 표현을 정했다.
 - PRD·기능명세·User Flow·Result IA를 다시 대조해 회원가입, 새 결과 미리보기, 저장 오류, 결과 한계, 마이페이지 상태 누락을 보완했다.
 
@@ -44,6 +45,8 @@ Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAI
 - (Step 3) `docs/design/evidence/TASK-020/` — Android 100%·200% 글자 크기 캡처
 - (Step 4) `docs/design/explorations/TASK-020/` — 가설 보드 4장, 상태 보드 1장, README, PROMPTS
 - (Step 5) `docs/design/synthesis/TASK-020/README.md` — 합성안 정본
+- (Step 6) `docs/design/figma/TASK-020/` — generate.mjs, svg 8장, README / 합성안 Step 6 decisions / 프로토타입의 멈춘 진행 행·분석하기 현재 위치 표시 / evidence `step6-*.png`
+- (Step 6) `SCREEN_STATES.md` §5.1 뒤 문단(멈춘 행)·§9 `NAV-ANALYSIS-ACTIVE`, `DESIGN_SYSTEM.md` §5.3 BottomNavigation 행 — 결정 2·3 반영
 - (Step 5) `frontend/mobile/src/prototypes/flow/FlowPrototype.tsx`, `src/app/flow.tsx`, `src/app/preview.tsx`, `ResultPrototype.tsx`(미리보기 모드·저장 선택·확인 대화상자·하단 내비게이션 연결) — Android 합성 프로토타입
 - (Step 5) `docs/design/evidence/TASK-020/step5-*.png` — Android 실행 캡처
 - (Step 5) `SCREEN_STATES.md` §5.1·§7·§9·§11·§13, `DESIGN_SYSTEM.md` 5.4·§6·§13, `RESULT_IA.md` §5·§6, `USER_FLOW.md` UF-03·UF-04·UF-06 — 합성 결정 반영
@@ -61,6 +64,7 @@ Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAI
 9. (Step 3) 아이콘 공급원은 이번 단계에서 정하지 않는다. 의존성 추가 결정이므로 Vertical Slice 착수 전에 정한다.
 10. (Step 4) 시안 이미지 생성에 한해 Codex 내장 ImageGen을 쓴다(2026-09-22 사용자 허용). Codex는 저장소 밖에서 read-only로 실행하고, 저장소 반영·검토·문서화는 Claude가 한다.
 11. (Step 5) 새 결과 미리보기의 저장 선택은 처음부터 하단에 고정하고, 교체만 확인 대화상자를 거친다. 교체 확인 대화상자의 최종 `바꾸기`만 `destructive.primary`를 쓴다. 유지는 "새 결과는 저장되지 않고 닫은 뒤 다시 볼 수 없을 수 있다" 안내로 대신하고, 미리보기에서는 하단 내비게이션을 숨겨 선택 없이 떠나지 않게 한다.
+12. (Step 6) Figma 보드는 사람이 보는 사본이고, 토큰·상태·합성 결정의 정본은 코드와 문서다. 보드는 `generate.mjs`로 토큰에서 다시 뽑는다.
 
 ## Verification
 
@@ -100,7 +104,7 @@ Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAI
 
 ## Next Action
 
-사용자 확인 후 Step 6 Figma 정본화(합성안 Next의 결정 항목 1~4 포함). SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
+사용자가 `docs/design/figma/TASK-020/svg/`를 팀 Figma에 import하고 확인한 뒤 Step 7 Vertical Slice. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 
