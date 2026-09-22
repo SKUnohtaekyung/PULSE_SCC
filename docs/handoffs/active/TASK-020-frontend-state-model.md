@@ -108,4 +108,4 @@ Step 6 Figma 정본화 게이트 PASS (2026-09-22) — SVG 보드 8장 생성·S
 
 ## Last Verified Commit
 
-`c070dd6` — Step 5 Android 합성 프로토타입과 사용자 선택(네이비 헤더·차례로 펼치기), 독립 Reviewer PASS를 반영한 커밋.
+`db2537e` — Step 6 Figma import 보드·Step 5 결정 반영과 독립 Reviewer PASS를 반영한 커밋.
