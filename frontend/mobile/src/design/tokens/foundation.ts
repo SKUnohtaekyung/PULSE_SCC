@@ -16,13 +16,16 @@ export const palette = {
   slate200: '#E2E8F0',
   slate300: '#CBD5E1',
   slate400: '#94A3B8',
+  slate500: '#64748B',
   slate600: '#475569',
   slate900: '#0F172A',
   page: '#F5F7FA',
   ink: '#191F28',
   success: '#059669',
   warning: '#D97706',
+  warningStrong: '#B45309',
   error: '#DC2626',
+  errorStrong: '#B91C1C',
 } as const;
 
 export const colors = {
@@ -44,6 +47,7 @@ export const colors = {
   border: {
     default: palette.slate200,
     strong: palette.slate300,
+    control: palette.slate500,
     brand: palette.royalBlue40,
     error: palette.error,
   },
@@ -67,6 +71,13 @@ export const colors = {
     success: palette.success,
     warning: palette.warning,
     error: palette.error,
+    warningText: palette.warningStrong,
+    errorText: palette.errorStrong,
+  },
+  destructive: {
+    primary: palette.errorStrong,
+    onPrimary: palette.white,
+    text: palette.errorStrong,
   },
   focus: {
     ring: palette.royalBlue,

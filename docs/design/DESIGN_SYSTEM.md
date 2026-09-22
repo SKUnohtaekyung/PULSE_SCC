@@ -6,8 +6,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **Design Foundation 구현 — 토큰·Pretendard·접근성 기준 코드 반영** |
-| 최종 수정 | 2026-09-18 |
+| 상태 | **Design Foundation 구현 — 토큰·Pretendard·접근성 기준 코드 반영. 화면 상태 모델 기준 재확인(2026-09-22)** |
+| 최종 수정 | 2026-09-22 |
 | 소유 역할 | `role:design-system` |
 | 제품 요구사항 | [`../product/PRD.md`](../product/PRD.md) |
 | 상세 기능명세 | [`../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md`](../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
@@ -37,7 +37,7 @@ Google 소셜 로그인과 서비스 자체 로그인은 MVP 범위다. 대시�
 | 정보 | 정본 |
 |---|---|
 | 제품 기능과 범위 | `docs/product/PRD.md` |
-| 화면·기능·상태 | `docs/product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` |
+| 화면·기능·상태 | `docs/product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md`, 상태 목록은 [`SCREEN_STATES.md`](../product/requirements/SCREEN_STATES.md) |
 | 디자인 의미와 사용 원칙 | 이 문서 |
 | 실제 색상·간격·타입 값 | `frontend/mobile/src/design/tokens/foundation.ts` |
 | 컴포넌트 props와 동작 | 구현 후 컴포넌트 코드와 타입 |
@@ -80,11 +80,13 @@ Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../dec
 | 자동 검증 | `frontend/mobile/scripts/verify-design-tokens.mjs` |
 | 공용 컴포넌트 경로 | `frontend/mobile/src/components/ui/` — 경로 확정, 컴포넌트 구현 전 |
 
+MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyle: "light"`로 시스템 다크 모드를 따르지 않으며, 다크 테마 토큰은 PRD 범위가 바뀌기 전에는 만들지 않는다.
+
 웹 전용 CSS variables나 Tailwind를 정본으로 두지 않는다. 컴포넌트는 `palette` 원시값보다 `colors` 의미 토큰을 우선 사용한다. 값 변경 시 토큰 검증, lint, typecheck, Android bundle을 함께 실행한다.
 
 ### 3.2 색상 이식 기준
 
-아래 값은 사용자 제공 PULSE 대조본에서 확인된 기존 코드 값과 SCC가 채택한 불투명 action 원색이다. 전체 원시 팔레트와 실제 의미 매핑은 토큰 코드가 정본이다.
+아래 값은 사용자 제공 PULSE 대조본에서 확인된 기존 코드 값, SCC가 채택한 불투명 action 원색, 그리고 화면 상태 모델 대조 뒤 SCC가 추가한 값(표에 `SCC 추가`로 표시)이다. 전체 원시 팔레트와 실제 의미 매핑은 토큰 코드가 정본이다.
 
 | 의미 토큰 후보 | 값 | 용도 |
 |---|---|---|
@@ -107,13 +109,28 @@ Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../dec
 | `neutral-200` | `#E2E8F0` | 구분선·카드 경계 |
 | `neutral-300` | `#CBD5E1` | 비활성 배경 |
 | `neutral-400` | `#94A3B8` | 비활성 콘텐츠. 일반 본문·placeholder에 쓰지 않음 |
+| `neutral-500` | `#64748B` | 입력·선택 컨트롤 경계(`border.control`). SCC 추가 |
 | `neutral-600` | `#475569` | 보조 본문 |
 | `neutral-900` | `#0F172A` | 강한 제목 |
 | `success` | `#059669` | 성공 |
-| `warning` | `#D97706` | 주의·근거 한계 |
-| `error` | `#DC2626` | 오류 |
+| `warning` | `#D97706` | 주의 비텍스트 신호(막대·점). 카드(흰 배경) 위에서만 사용 |
+| `warning-strong` | `#B45309` | 주의 문장과 주의 아이콘(`status.warningText`, 아이콘 겸용). SCC 추가 |
+| `error` | `#DC2626` | 오류·부정 비텍스트 신호(`status.error`)와 입력 오류 경계(`border.error`) |
+| `error-strong` | `#B91C1C` | 오류 문장과 오류 아이콘(`status.errorText`, 아이콘 겸용), 되돌릴 수 없는 행동(`destructive`). SCC 추가 |
 
 8자리 HEX는 알파를 포함하므로 배경에 따라 대비가 바뀐다. 따라서 원래의 `#FF5A36CC`는 `sourceOverlay`로만 보존하고, 주요 CTA는 불투명 `#FF5A36` 위에 `#191F28` 텍스트를 쓴다. 자동 검증 결과 이 조합은 5.34:1이다. `neutral-400`은 비활성 표현에만 쓰고 일반 보조 본문과 placeholder는 7.58:1인 `neutral-600`을 사용한다.
+
+2026-09-22 화면 상태 모델([SCREEN_STATES](../product/requirements/SCREEN_STATES.md))과 대조하면서 기존 값의 한계를 계산으로 확인했다. 수치는 `verify:tokens` 출력이다.
+
+| 조합 | 대비 | 판정 | 대응 |
+|---|---:|---|---|
+| `error` 텍스트 / 화면 배경 `#F5F7FA` | 4.4999:1 | 4.5:1 미만 | 오류 문장은 배경과 관계없이 `status.errorText`(화면 배경 6.03:1) |
+| `warning` 아이콘 / 화면 배경 | 2.97:1 | 3:1 미만 | 주의 아이콘은 배경과 관계없이 `status.warningText`(화면 배경 4.68:1) |
+| `warning` 텍스트 / 카드 | 3.19:1 | 4.5:1 미만 | 주의 문장은 배경과 관계없이 `status.warningText` |
+| `border.strong` 경계 / 카드 | 1.48:1 | 3:1 미만 | 입력 컨트롤 경계는 `border.control`(카드 4.76:1, 화면 배경 4.43:1) |
+| 포커스 링 / `destructive.primary` | 1.9954:1 | 3:1 미만 | 포커스 링을 버튼 가장자리에서 띄워 그린다(5.4절). 링은 화면 배경·카드와 대비한다 |
+
+기존 `warning`·`error`·`neutral-*` 값은 Tailwind CSS v3 기본 팔레트(HEX 정의)의 amber-600·red-600·slate 단계와 같은 값이다. 추가 값 세 개도 같은 팔레트의 amber-700·red-700·slate-500을 골랐다. 새 브랜드색이 아니다. `verify:tokens`는 위 미달 조합을 `knownLimits`로 고정해, 원래 값이 바뀌면 이 규칙을 다시 보게 한다.
 
 ### 3.3 색상 사용 규칙
 
@@ -122,6 +139,11 @@ Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../dec
 - 긍정·부정 신호에 success/error 색상을 사용할 수 있지만 반드시 아이콘·레이블·문장을 함께 둔다.
 - “리뷰에서 확인된 것”과 “AI 해석”은 색만 바꾸지 말고 제목, 배지, 카드 구조로 구분한다.
 - 경고색은 리뷰 부족, 데이터 편향, 결과 한계처럼 사용자의 판단에 필요한 주의에 사용한다.
+- 오류·주의 **문장과 아이콘**은 배경과 관계없이 `status.errorText`·`status.warningText`를 쓴다.
+- `status.error`·`status.success`는 부정·긍정 신호 막대처럼 문장이 아닌 신호에 쓰고, `status.warning`은 카드 위의 같은 용도에만 쓴다. 입력 오류 경계는 `border.error`를 쓴다.
+- 주의·오류 안내는 색 막대나 배경만으로 구분하지 않는다. 표시 기호와 원인·다음 행동 문장을 함께 둔다.
+- 입력·선택 컨트롤의 경계는 `border.control`을 쓴다. `border.default`·`border.strong`은 카드와 구분선처럼 식별에 필요하지 않은 경계에만 쓴다.
+- 되돌릴 수 없는 행동은 `destructive` 토큰을 쓴다. `action`(오렌지)을 쓰지 않는다. 사용 방식은 5.4절을 따른다.
 - 기능마다 새로운 임시 브랜드색을 추가하지 않는다. 필요한 경우 `role:design-system` 검토 후 토큰으로 추가한다.
 - 컴포넌트 안에 HEX, RGB, HSL 값을 직접 적지 않는다.
 
@@ -181,6 +203,9 @@ Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../dec
 - 아이콘과 로고는 이미지 생성으로 대체하지 않는다. 일관된 벡터·코드 자산을 사용하고 아이콘 버튼에는 접근 가능한 이름을 제공한다.
 - 페르소나 이미지는 실제 인물 사진처럼 오인시키지 않으며, 생성 사실·기능 중심 대체 텍스트·로딩·실패 대체 상태를 함께 제공한다.
 - 이미지가 없어도 유형명, 관찰 특성, 근거 리뷰, 결과 한계를 이해할 수 있어야 한다.
+- 이미지 로딩·로드 실패·생성 실패(`IMAGE-LOADING`, `IMAGE-LOAD-ERROR`, `IMAGE-GENERATION-FAILED`)의 대체 표현은 생성 이미지가 아니라 코드로 그린다. 같은 크기의 `background.emphasized` 영역에 상태 문장을 두어 레이아웃이 흔들리지 않게 하고, 실패 대체 표현을 정상 이미지처럼 보이게 하지 않는다.
+- 에셋 폴더의 기록(README)에는 출처·버전·라이선스·해시와 함께 **사용처와 사용 금지 조건**을 적는다. 프로토타입 전용 에셋은 제품 화면에 쓰지 않는다는 사실을 금지 조건으로 적는다.
+- 아이콘 공급원(라이브러리 또는 자체 벡터)은 아직 정하지 않았다(13장). 정하기 전까지 프로토타입의 `View` 도형 아이콘은 제품 컴포넌트로 승격하지 않는다.
 
 ---
 
@@ -256,6 +281,8 @@ default / hover / focus / active / disabled / loading / error
 loading / empty / error / normal
 ```
 
+로딩 자리표시는 `background.emphasized` 영역과 무엇을 불러오는지 알리는 문장으로 만든다. 자리표시가 실제 결과 수치나 이미지처럼 보이게 하지 않고, 모션 감소 설정에서는 반복 반짝임을 끈다.
+
 정상 결과의 TOP3 페르소나 이미지 3개는 P0 완료 조건이다. 유형 부족 결과에서는 실제 도출된 모든 페르소나 이미지가 있어야 완료 상태로 표현한다.
 
 ### 5.3 MVP 컴포넌트 목록
@@ -290,6 +317,9 @@ loading / empty / error / normal
 - disabled와 loading을 시각적으로 구분하고 둘 다 실제 클릭을 막는다.
 - 로딩 중 버튼의 텍스트를 단순히 숨기지 말고 수행 중인 행동을 알린다.
 - 포커스 링을 제거하지 않는다.
+- 되돌릴 수 없는 행동(계정 탈퇴)의 진입점은 `destructive.text` 텍스트 버튼으로 두고, 삭제 범위를 보여준 뒤의 최종 확인 버튼만 `destructive.primary` 배경에 `destructive.onPrimary` 텍스트를 쓴다. 한 화면에 `action` CTA와 `destructive` 버튼을 나란히 두지 않는다.
+- 로그아웃은 되돌릴 수 있으므로 `destructive`를 쓰지 않는다.
+- 포커스 링(`focus.ring`, `strokes.focus`)은 버튼 가장자리에서 띄워 그려 링이 화면 배경·카드와 대비하게 한다. `destructive.primary`와 링이 맞닿으면 1.9954:1로 3:1에 못 미친다.
 
 ### 5.5 입력
 
@@ -325,7 +355,7 @@ loading / empty / error / normal
 | SC-009 오류·한계 | 원인, 현재 상태, 사용자가 할 수 있는 다음 행동을 함께 제공 |
 | SC-010 결과 저장 | 첫 결과 자동 저장 상태와 새 결과 교체·기존 결과 유지 선택을 명확히 표시 |
 | SC-011 홈 | 첫 분석 완료 후 저장된 분석 결과 1개와 포디움 기반 유형별 결과를 표시. 저장 결과가 없으면 가게 입력으로 이동 |
-| SC-012 마이페이지 | 분석 완료·실패 인앱 알림, 알림 설정·서비스 정보, 로그아웃, 계정 탈퇴, 현재 저장 결과 이미지 최대 3개만 제공. 계정 탈퇴는 되돌릴 수 없는 행동이므로 action 색을 쓰지 않고 삭제 범위를 먼저 보여준 뒤 재확인한다 |
+| SC-012 마이페이지 | 분석 완료·실패 인앱 알림, 알림 설정·서비스 정보, 로그아웃, 계정 탈퇴, 현재 저장 결과 이미지 최대 3개만 제공. 계정 탈퇴는 되돌릴 수 없는 행동이므로 action 색 대신 `destructive` 토큰(5.4절)을 쓰고 삭제 범위를 먼저 보여준 뒤 재확인한다 |
 
 ---
 
@@ -434,4 +464,8 @@ UI 변경은 `.claude/skills/visual-qa/SKILL.md` 절차를 읽고 실제 렌더�
 | 사실·해석·지식·제안 카드 시안 | 결과 화면 구현 전 |
 | 긴 근거 리뷰의 접기·펼치기 방식 | SC-005 구현 전 |
 | 로딩 단계 표시 방식 | SC-003 구현 전 |
-| 계정 탈퇴처럼 되돌릴 수 없는 행동의 버튼 색 토큰 (현재 `foundation.ts`에 없음) | SC-012 탈퇴 화면 구현 전 |
+| 아이콘 공급원 — 라이브러리 채택 여부와 라이선스 기록 | Vertical Slice(워크플로 7단계) 착수 전 |
+| 로딩 자리표시·이미지 실패·빈 포디움 슬롯의 시각 구분(현재 셋 다 `background.emphasized` 영역과 문장으로만 구분) | Step 4 Design Exploration |
+| 오프라인·인증 만료 안내의 표현(오류인지 안내인지) | 오프라인 정책 확정 후(SCREEN_STATES §11), 늦어도 SC-003 구현 전 |
+| 버튼 loading·disabled, 하단 내비게이션 일시 비활성(`NAV-DISABLED-TRANSITION`), 알림 설정 토글의 상태 표현 | 해당 공용 컴포넌트 구현 전 |
+| ~~되돌릴 수 없는 행동의 버튼 색 토큰~~ | 2026-09-22 `colors.destructive`로 해소 |

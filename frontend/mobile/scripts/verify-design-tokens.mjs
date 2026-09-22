@@ -65,15 +65,52 @@ const contrastChecks = [
   ['브랜드 텍스트 / 카드', colors.text.brand, colors.background.surface, accessibility.contrast.normalText],
   ['반전 텍스트 / 브랜드', colors.brand.onPrimary, colors.brand.primary, accessibility.contrast.normalText],
   ['CTA 텍스트 / CTA', colors.action.onPrimary, colors.action.primary, accessibility.contrast.normalText],
-  ['성공 아이콘 / 카드', colors.status.success, colors.background.surface, accessibility.contrast.nonText],
-  ['주의 아이콘 / 카드', colors.status.warning, colors.background.surface, accessibility.contrast.nonText],
-  ['오류 텍스트 / 카드', colors.status.error, colors.background.surface, accessibility.contrast.normalText],
+  ['성공 신호 / 카드', colors.status.success, colors.background.surface, accessibility.contrast.nonText],
+  ['주의 신호 / 카드', colors.status.warning, colors.background.surface, accessibility.contrast.nonText],
+  // status.error는 규칙상 비텍스트 신호지만, 카드 위 텍스트 기준(4.5:1)까지 만족하는지 더 엄격하게 확인한다.
+  ['오류 원색 / 카드', colors.status.error, colors.background.surface, accessibility.contrast.normalText],
+  // 화면 배경(canvas)과 보조 배경 위 조합. 상태 모델의 오류·주의·삭제 표현이 카드 밖에도 놓인다.
+  ['본문 / 화면 배경', colors.text.primary, colors.background.canvas, accessibility.contrast.normalText],
+  ['보조 본문 / 화면 배경', colors.text.secondary, colors.background.canvas, accessibility.contrast.normalText],
+  ['보조 본문 / 강조 배경', colors.text.secondary, colors.background.emphasized, accessibility.contrast.normalText],
+  ['브랜드 텍스트 / 화면 배경', colors.text.brand, colors.background.canvas, accessibility.contrast.normalText],
+  ['오류 강조 텍스트 / 화면 배경', colors.status.errorText, colors.background.canvas, accessibility.contrast.normalText],
+  ['오류 강조 텍스트 / 강조 배경', colors.status.errorText, colors.background.emphasized, accessibility.contrast.normalText],
+  ['주의 텍스트 / 카드', colors.status.warningText, colors.background.surface, accessibility.contrast.normalText],
+  ['주의 텍스트 / 화면 배경', colors.status.warningText, colors.background.canvas, accessibility.contrast.normalText],
+  ['주의 텍스트 / 강조 배경', colors.status.warningText, colors.background.emphasized, accessibility.contrast.normalText],
+  ['성공 신호 / 화면 배경', colors.status.success, colors.background.canvas, accessibility.contrast.nonText],
+  ['오류 경계 / 카드', colors.border.error, colors.background.surface, accessibility.contrast.nonText],
+  ['입력 경계 / 카드', colors.border.control, colors.background.surface, accessibility.contrast.nonText],
+  ['입력 경계 / 화면 배경', colors.border.control, colors.background.canvas, accessibility.contrast.nonText],
+  ['포커스 링 / 화면 배경', colors.focus.ring, colors.background.canvas, accessibility.contrast.nonText],
+  ['포커스 링 / CTA', colors.focus.ring, colors.action.primary, accessibility.contrast.nonText],
+  ['삭제 텍스트 / 삭제 버튼', colors.destructive.onPrimary, colors.destructive.primary, accessibility.contrast.normalText],
+  ['삭제 링크 / 카드', colors.destructive.text, colors.background.surface, accessibility.contrast.normalText],
+  ['삭제 링크 / 화면 배경', colors.destructive.text, colors.background.canvas, accessibility.contrast.normalText],
+];
+
+// 원래 값이 특정 배경에서 기준에 못 미친다는 사실을 고정해 둔다. 값을 바꾸면 규칙(DESIGN_SYSTEM §3.3)도 다시 본다.
+const knownLimits = [
+  ['오류 원색 텍스트 / 화면 배경', colors.status.error, colors.background.canvas, accessibility.contrast.normalText],
+  ['주의 원색 아이콘 / 화면 배경', colors.status.warning, colors.background.canvas, accessibility.contrast.nonText],
+  ['주의 원색 텍스트 / 카드', colors.status.warning, colors.background.surface, accessibility.contrast.normalText],
+  ['포커스 링 / 삭제 버튼 (맞닿을 때)', colors.focus.ring, colors.destructive.primary, accessibility.contrast.nonText],
 ];
 
 for (const [name, foreground, background, minimum] of contrastChecks) {
   const ratio = contrastRatio(foreground, background);
   assert(ratio >= minimum, `${name}: ${ratio.toFixed(2)}:1은 ${minimum}:1 미만입니다.`);
   console.log(`${name}: ${ratio.toFixed(2)}:1 (기준 ${minimum}:1)`);
+}
+
+for (const [name, foreground, background, minimum] of knownLimits) {
+  const ratio = contrastRatio(foreground, background);
+  assert(
+    ratio < minimum,
+    `${name}: ${ratio.toFixed(2)}:1로 기준을 넘습니다. 사용 제한 규칙이 여전히 필요한지 확인하세요.`,
+  );
+  console.log(`${name}: ${ratio.toFixed(4)}:1 — 기준 ${minimum}:1 미만, 사용 금지 조합`);
 }
 
 const spacingValues = Object.values(spacing);

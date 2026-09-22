@@ -140,6 +140,41 @@ export function TokenShowcase() {
           </View>
         </View>
 
+        <View style={styles.section}>
+          <View style={styles.sectionHeading}>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>
+              State color
+            </Text>
+            <Text style={styles.sectionCaption}>
+              오류·주의 문장과 아이콘은 어느 배경에서도 강조 토큰을 쓰고, 색 외에 표시와 문장을 함께 둡니다.
+            </Text>
+          </View>
+          <View style={styles.stateList}>
+            <View style={styles.fieldSample}>
+              <Text style={styles.fieldLabel}>네이버 가게 URL</Text>
+              <View style={styles.fieldBox}>
+                <Text style={styles.fieldValue}>naver.me/예시</Text>
+              </View>
+              <Text style={styles.fieldHint}>입력 경계 border.control</Text>
+            </View>
+            <Text style={styles.errorLine}>! 네이버 가게 주소만 분석할 수 있어요. status.errorText</Text>
+            <View style={styles.warningNotice}>
+              <Text style={styles.warningMark}>!</Text>
+              <Text style={styles.warningCopy}>
+                2년 넘은 리뷰가 포함돼 있어요. 최근 상황과 다를 수 있어요. status.warningText
+              </Text>
+            </View>
+            <View
+              accessibilityLabel="삭제 스타일 예시, 계정 탈퇴. 실행되지 않는 개발용 견본입니다."
+              accessibilityRole="text"
+              accessible
+              style={styles.destructiveBadge}
+            >
+              <Text style={styles.destructiveBadgeText}>계정 탈퇴</Text>
+            </View>
+          </View>
+        </View>
+
         <View style={styles.accessibilityCard}>
           <View style={styles.statusDot} />
           <View style={styles.accessibilityCopy}>
@@ -318,6 +353,70 @@ const styles = StyleSheet.create({
   structureLabel: {
     ...typography.body7,
     color: colors.text.secondary,
+  },
+  stateList: {
+    gap: spacing[4],
+  },
+  fieldSample: {
+    gap: spacing[2],
+  },
+  fieldLabel: {
+    ...typography.body6,
+    color: colors.text.primary,
+  },
+  fieldBox: {
+    minHeight: layout.touchTargetMin,
+    justifyContent: 'center',
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.control,
+    borderRadius: radii.control,
+    borderWidth: strokes.hairline,
+    paddingHorizontal: spacing[4],
+  },
+  fieldValue: {
+    ...typography.body4,
+    color: colors.text.primary,
+  },
+  fieldHint: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  errorLine: {
+    ...typography.errorText,
+    color: colors.status.errorText,
+  },
+  warningNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.default,
+    borderLeftColor: colors.status.warningText,
+    borderLeftWidth: strokes.focus,
+    borderRadius: radii.control,
+    borderWidth: strokes.hairline,
+    padding: spacing[4],
+    gap: spacing[3],
+  },
+  warningMark: {
+    ...typography.body5,
+    color: colors.status.warningText,
+  },
+  warningCopy: {
+    ...typography.body7,
+    color: colors.text.primary,
+    flex: 1,
+  },
+  destructiveBadge: {
+    alignSelf: 'flex-start',
+    minHeight: layout.touchTargetMin,
+    justifyContent: 'center',
+    backgroundColor: colors.destructive.primary,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing[5],
+  },
+  destructiveBadgeText: {
+    ...typography.buttonMain,
+    color: colors.destructive.onPrimary,
   },
   accessibilityCard: {
     flexDirection: 'row',
