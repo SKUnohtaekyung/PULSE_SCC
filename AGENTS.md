@@ -52,7 +52,8 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 ```
 java 21.0.8   python 3.13.2
 Gradle 9.7.1 → backend/spring-api/gradlew.bat으로 실행 확인
-Docker → 미설치, Testcontainers PostgreSQL 테스트는 컴파일 확인·실행 건너뜀
+Docker → CLI 29.8.0 설치됨. Virtual Machine Platform 기능이 꺼져 데몬 미기동 → Testcontainers skip
+PostgreSQL 18 → 로컬 Windows 서비스로 실행 확인 (2026-09-19). Docker 없이 bootRun 가능
 ```
 
 ### 스택 확정 시 반드시 함께 갱신할 것
@@ -144,7 +145,7 @@ Docker → 미설치, Testcontainers PostgreSQL 테스트는 컴파일 확인·�
 
 ### 6.1 브랜치와 커밋
 
-- 기본 브랜치는 `main`. **`main` 직접 push 금지.** GitHub 브랜치 보호로 강제된다.
+- 기본 브랜치는 `main`. **`main` 직접 push 금지.** GitHub 브랜치 보호로 강제할 예정이다 — **2026-09-22 기준 보호 규칙이 설정되어 있지 않다**(API 조회 404). 설정 전까지는 각자 지킨다.
 - 브랜치명: `<type>/TASK-<번호>-<짧은설명>` (예: `feat/TASK-003-login-form`)
 - 커밋 메시지: Conventional Commits. 본문 한국어 허용. (예: `feat(auth): 로그인 폼 추가`)
 - merge 전략(squash / merge commit)은 **확정 필요**.

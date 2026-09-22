@@ -93,7 +93,49 @@ feat/TASK-011-authentication
 - PostgreSQL migration은 컴파일됐지만 Docker 부재로 실제 DB에 적용 검증되지 않았다.
 
 ## Next Action
-PR #27에서 독립 Reviewer와 `role:product`·`role:platform` 리뷰를 요청한다. 이어서 Docker 환경에서 PostgreSQL 통합 테스트 4개를 실행하고 모두 PASS일 때만 병합한다.
+
+1. **사람**: 관리자 PowerShell `wsl --install --no-distribution` → 재부팅 → `docker info`
+2. Docker 되면 `.\backend\spring-api\gradlew.bat -p backend\spring-api test --rerun-tasks` 에서 skip 0 확인. 재사용 감지 폐기가 실제 커밋되는지(검토 6번) 통합 테스트 추가
+3. **사람**: PR #27 에 `role:product`·`role:platform` 리뷰어 지정
+4. **제품 결정**: `/register` 409 유지 여부, 로그인 시도 제한 → ADR-008 또는 이슈
+5. PR #27 병합 기준(실DB 검증으로 충분 / Testcontainers 대기)은 사용자 결정. 방식은 squash
+6. 병합 후 `feat/TASK-012-analysis-pipeline` 에 `main` 을 merge commit 으로 연결 (force push 금지). TASK-012 는 **수정 전** 인증 커밋 3개를 들고 있다
+
+## 2026-09-22 세션 종료 시점 상태
+
+### 실제 DB 검증 (2026-09-19, 커밋 `74d6df8` 코드 기준)
+
+Testcontainers 대신 **로컬 PostgreSQL 18 에 실제로 앱을 기동**해 인증 SQL 을 처음 실행했다. 독립 검토 FAIL 1번의 실질적 근거다. 단 Testcontainers 4개 자체는 여전히 미실행이다.
+
+| 검증 | 방법 | 결과 |
+|---|---|---|
+| 앱 기동 | `bootRun` + `GET /actuator/health` | PASS — `UP`. DB 연결·Flyway V1/V2·JPA validate 통과 |
+| 회원가입 | `POST /api/v1/auth/register` | PASS — 201 |
+| 로그인 | `POST /api/v1/auth/login` | PASS — 200 |
+| 세션 복원 | `GET /api/v1/auth/session` | PASS — 200 |
+| 토큰 회전 | `POST /api/v1/auth/refresh` | PASS — 200 |
+| 회전 토큰 재사용 | 같은 refresh 재전송 | PASS — 401, **`traceId` 포함·`fieldErrors` 생략** (API.md 2.1 준수) |
+| 회전 경합 유예 창 | R1 회전→R2 발급→R1 재사용(401)→R2 사용 | PASS — R2 200. 수정 전이면 전 기기 로그아웃 |
+
+### 로컬 환경
+
+- PostgreSQL 18 서비스 `postgresql-x64-18` 실행 중. `scc` 역할·DB 는 사용자가 생성했다.
+- `backend/.env` 생성됨(gitignore 확인). DB 비밀번호는 사용자가 입력. **`SCC_OPENAI_API_KEY` 는 비어 있다.**
+- PowerShell 에서 PostgreSQL 도구: `$env:Path += ";C:\Program Files\PostgreSQL\18\bin"` 후 실행. Git Bash 경로나 `&` 없는 따옴표 경로는 파싱 오류.
+- **Docker 는 안 된다.** CLI 29.8.0 설치됨, `Virtual Machine Platform` 기능 꺼짐 → "Virtualization support not detected". CPU(Intel Core Ultra 7 258V)는 가상화 지원·하이퍼바이저 실행 중이라 Windows 기능 문제로 판단. 해결: 관리자 PowerShell `wsl --install --no-distribution` → 재부팅. 안 되면 BIOS 에서 Intel VT-x 활성화.
+
+### 독립 검토 지적 처리 현황
+
+| # | 지적 | 상태 |
+|---|---|---|
+| 1 | 인증 SQL 미실행 | 실제 DB 로 확인. **Testcontainers 4개 미실행** |
+| 2 | `traceId`·`fieldErrors` 계약 위반 | 수정·실응답 확인 |
+| 3 | 리뷰어 미지정 | **미처리 — 사람이 지정** |
+| 4 | 계정 열거 | 응답 시간은 수정. `/register` 409·속도 제한은 **제품 결정 대기** |
+| 5 | 회전 경합 전 기기 로그아웃 | 수정·실동작 확인 |
+| 6 | 재사용 감지 `noRollbackFor` 의존 | 미처리 — Docker 통합 테스트로 커밋 검증 필요 |
+| 7 | 테스트 공백 | 12 → 58개 (통과 54, skip 4) |
 
 ## Last Verified Commit
-aa0dfa1 — 오류 계약 준수와 인증 테스트 보완까지 위 Verification이 유효하다. 인증 구현 본체의 직전 검증 기준 커밋은 7773443
+
+`74d6df8` — 계정 열거·회전 경합 수정까지. 이 코드로 2026-09-19 실제 DB 검증 수행
