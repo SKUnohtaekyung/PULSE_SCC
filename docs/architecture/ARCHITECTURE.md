@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| 상태 | **백엔드 실행 골격·초기 DB migration 구현 — 비즈니스 API 전** |
+| 상태 | **백엔드 실행 골격·초기 DB·인증 API 구현 — 분석 비즈니스 API 전** |
 | 최종 수정 | 2026-09-16 |
 | 소유 역할 | `role:platform` |
 
@@ -12,7 +12,7 @@
 
 ## 1. 현재 상태
 
-상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md), 초기 DB 적용 범위는 [ADR-007](../decisions/ADR-007-initial-database-schema.md)로 확정했다. 공개 API와 PostgreSQL 모델은 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot와 FastAPI 실행 골격, Flyway V1 초기 스키마는 존재하지만 비즈니스 API는 아직 없다.
+상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md), 초기 DB 적용 범위는 [ADR-007](../decisions/ADR-007-initial-database-schema.md), 인증 정책은 [ADR-008](../decisions/ADR-008-authentication-policy.md)로 확정했다. 공개 API와 PostgreSQL 모델은 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot와 FastAPI 실행 골격, Flyway V1·V2와 인증 API가 존재하며 분석 비즈니스 API는 아직 없다.
 
 | 항목 | 상태 |
 |---|---|
