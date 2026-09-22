@@ -205,7 +205,7 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 - 이미지가 없어도 유형명, 관찰 특성, 근거 리뷰, 결과 한계를 이해할 수 있어야 한다.
 - 이미지 로딩·로드 실패·생성 실패(`IMAGE-LOADING`, `IMAGE-LOAD-ERROR`, `IMAGE-GENERATION-FAILED`)의 대체 표현은 생성 이미지가 아니라 코드로 그린다. 같은 크기의 `background.emphasized` 영역에 상태 문장을 두어 레이아웃이 흔들리지 않게 하고, 실패 대체 표현을 정상 이미지처럼 보이게 하지 않는다.
 - 에셋 폴더의 기록(README)에는 출처·버전·라이선스·해시와 함께 **사용처와 사용 금지 조건**을 적는다. 프로토타입 전용 에셋은 제품 화면에 쓰지 않는다는 사실을 금지 조건으로 적는다.
-- 아이콘 공급원(라이브러리 또는 자체 벡터)은 아직 정하지 않았다(13장). 정하기 전까지 프로토타입의 `View` 도형 아이콘은 제품 컴포넌트로 승격하지 않는다.
+- 아이콘은 라이브러리를 쓰지 않고 `View` 도형으로 그린다(2026-09-22 Step 7 결정, 13장). 제품 공용 아이콘은 `frontend/mobile/src/components/ui/**`에 두고, 색·굵기는 토큰으로 맞추며 아이콘 버튼에는 접근 가능한 이름을 준다. 도형으로 표현하기 어려운 아이콘이 필요해지면 그때 공급원을 다시 정한다.
 
 ---
 
@@ -287,27 +287,27 @@ loading / empty / error / normal
 
 ### 5.3 MVP 컴포넌트 목록
 
-경로와 props는 구현 후 채운다.
+경로는 구현된 것만 적는다. 2026-09-22 Step 7 Vertical Slice에서 첫 흐름에 필요한 것만 만들었다.
 
 | 컴포넌트 | 책임 | 경로 |
 |---|---|---|
-| AuthMethodSelector | Google 로그인과 서비스 자체 로그인 진입 선택 | TBD |
-| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·전화번호 입력과 오류·제출 상태 | TBD |
-| StoreInput | 가게 이름·업종·네이버 가게 URL 입력과 검증 안내 | TBD |
-| StoreConfirmation | 입력값과 URL에서 확인한 매장 정보 대조 | TBD |
-| AnalysisProgress | 수집·분석 단계와 현재 상태 표시 | TBD |
-| InsightSummary | 선택한 페르소나의 4개 관점 결과 요약 | TBD |
-| EvidenceReviewList | 대표 근거 1~2개와 작성자 정보 없는 전체 근거 리뷰 표시 | TBD |
-| FactInterpretationBlock | `리뷰에서 확인`과 `AI 해석`을 별도 카드·배지·제목으로 구분 | TBD |
-| PersonaCard | 손님 유형, 관찰 특성, 근거와 한계 표시 | TBD |
-| PersonaImage | AI 생성 이미지와 고지·대체 상태 표시 | TBD |
-| AdviceCard | 리뷰 사실·검토할 행동 기본 노출과 AI 해석·지식 펼쳐보기 | TBD |
-| DataLimitNotice | 리뷰 부족·편향·대표성 한계 안내 | TBD |
-| ResultMetadata | 플랫폼, 리뷰 수, 수집·분석 시점 표시 | TBD |
-| AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | TBD |
-| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 화면 안 오렌지 주요 버튼과 경쟁하지 않게 한다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | TBD |
-| PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | TBD |
-| ErrorState | 오류 이유와 재시도 가능 행동 표시 | TBD |
+| AuthMethodSelector | Google 로그인과 서비스 자체 로그인 진입 선택 | 미구현 — Google 로그인이 Slice 밖 |
+| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·전화번호 입력과 오류·제출 상태 | 로그인만 `frontend/mobile/src/features/auth/LoginScreen.tsx` (입력 한 칸은 `components/ui/TextField.tsx`). 가입은 미구현 |
+| StoreInput | 가게 이름·업종·네이버 가게 URL 입력과 검증 안내 | `frontend/mobile/src/features/analysis/AnalyzeScreen.tsx` |
+| StoreConfirmation | 입력값과 URL에서 확인한 매장 정보 대조 | 미구현 — API 없음(SCREEN_STATES §4.3) |
+| AnalysisProgress | 수집·분석 단계와 현재 상태 표시 | `frontend/mobile/src/components/ui/ProgressList.tsx` |
+| InsightSummary | 선택한 페르소나의 4개 관점 결과 요약 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| EvidenceReviewList | 대표 근거 1~2개와 작성자 정보 없는 전체 근거 리뷰 표시 | 대표 근거만 `ResultView.tsx`. 전체 근거 화면(SC-005)은 미구현 |
+| FactInterpretationBlock | `리뷰에서 확인`과 `AI 해석`을 별도 카드·배지·제목으로 구분 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| PersonaCard | 손님 유형, 관찰 특성, 근거와 한계 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| PersonaImage | AI 생성 이미지와 고지·대체 상태 표시 | `frontend/mobile/src/features/result/ResultView.tsx` (조회 실패 대체 포함) |
+| AdviceCard | 리뷰 사실·검토할 행동 기본 노출과 AI 해석·지식 펼쳐보기 | `frontend/mobile/src/features/result/ResultView.tsx` (지식 참고는 서버가 아직 빈 배열) |
+| DataLimitNotice | 리뷰 부족·편향·대표성 한계 안내 | `frontend/mobile/src/components/ui/Notice.tsx` + `ResultView.tsx` |
+| ResultMetadata | 플랫폼, 리뷰 수, 수집·분석 시점 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | 첫 저장만 `frontend/mobile/src/features/analysis/FirstSaveScreen.tsx`. 교체·유지는 다음 Slice |
+| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 화면 안 오렌지 주요 버튼과 경쟁하지 않게 한다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | `frontend/mobile/src/components/ui/BottomNavigation.tsx` |
+| PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | 미구현 — 마이페이지가 Slice 밖 |
+| ErrorState | 오류 이유와 재시도 가능 행동 표시 | `frontend/mobile/src/components/ui/Notice.tsx` + 화면별 버튼 |
 
 ### 5.4 버튼
 
@@ -315,6 +315,8 @@ loading / empty / error / normal
 - 주요 분석 행동에는 action 색상을 사용할 수 있다.
 - 정보 탐색·근거 확인에는 primary 또는 ghost 계열을 사용한다.
 - disabled와 loading을 시각적으로 구분하고 둘 다 실제 클릭을 막는다.
+- **disabled**는 `background.emphasized` 배경과 `text.disabled` 글자를 쓰고 테두리를 없앤다. 색만으로 알리지 않도록 접근성 상태(`disabled`)를 함께 준다(2026-09-22 Step 7 확정).
+- **loading**은 버튼 색을 그대로 두고 글자만 수행 중인 행동 문구로 바꾼다(예: `분석하기` → `분석 요청을 보내는 중이에요`). 앞에 작은 진행 표시를 두되 모션 감소 설정에서는 문구만 남기고, 접근성 상태로 `busy`를 준다(2026-09-22 Step 7 확정).
 - 로딩 중 버튼의 텍스트를 단순히 숨기지 말고 수행 중인 행동을 알린다.
 - 포커스 링을 제거하지 않는다.
 - 되돌릴 수 없는 행동(계정 탈퇴)의 진입점은 `destructive.text` 텍스트 버튼으로 두고, 삭제 범위를 보여준 뒤의 최종 확인 버튼만 `destructive.primary` 배경에 `destructive.onPrimary` 텍스트를 쓴다. 한 화면에 `action` CTA와 `destructive` 버튼을 나란히 두지 않는다.
@@ -465,8 +467,8 @@ UI 변경은 `.claude/skills/visual-qa/SKILL.md` 절차를 읽고 실제 렌더�
 | 사실·해석·지식·제안 카드 시안 | 결과 화면 구현 전 |
 | 긴 근거 리뷰의 접기·펼치기 방식 | SC-005 구현 전 |
 | ~~로딩 단계 표시 방식~~ | 2026-09-22 Step 5 합성으로 해소 — 받은 단계를 쌓는 진행 목록 |
-| 아이콘 공급원 — 라이브러리 채택 여부와 라이선스 기록 | Vertical Slice(워크플로 7단계) 착수 전 |
+| ~~아이콘 공급원 — 라이브러리 채택 여부와 라이선스 기록~~ | 2026-09-22 Step 7에서 해소 — 아이콘 라이브러리를 쓰지 않는다. 필요한 아이콘(홈·마이페이지·분석하기·체크·경고)은 `View` 도형으로 그려 `components/ui`에 둔다. 추적할 외부 라이선스가 생기지 않고 색·굵기를 토큰으로 맞출 수 있다. 도형으로 표현하기 어려운 아이콘이 필요해지면 그때 다시 정한다 |
 | ~~로딩 자리표시·이미지 실패·빈 포디움 슬롯의 시각 구분~~ | 2026-09-22 Step 5 합성으로 해소 — 빈 칸은 점선 테두리, 로딩과 조회 실패는 같은 영역에 아이콘·문장·버튼으로 구분 |
-| 오프라인·인증 만료 안내의 표현(오류인지 안내인지) | 오프라인 정책 확정 후(SCREEN_STATES §11), 늦어도 SC-003 구현 전 |
-| 버튼 loading·disabled, 하단 내비게이션 일시 비활성(`NAV-DISABLED-TRANSITION`), 알림 설정 토글의 상태 표현 | 해당 공용 컴포넌트 구현 전 |
+| 오프라인 안내의 표현(오류인지 안내인지) | 오프라인 정책 확정 후(SCREEN_STATES §11). 인증 만료(`AUTH-EXPIRED`)는 2026-09-22 Step 7에서 해소 — 오류가 아니라 `warning` 안내로 로그인 화면 위에 이유와 다음 행동을 표시한다 |
+| 하단 내비게이션 일시 비활성(`NAV-DISABLED-TRANSITION`), 알림 설정 토글의 상태 표현 | 해당 공용 컴포넌트 구현 전. 버튼 loading·disabled는 2026-09-22 Step 7에서 §5.4로 확정 |
 | ~~되돌릴 수 없는 행동의 버튼 색 토큰~~ | 2026-09-22 `colors.destructive`로 해소 |

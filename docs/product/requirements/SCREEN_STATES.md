@@ -378,6 +378,8 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 
 ## 11. 구현 전 남은 결정
 
+> 2026-09-22 Step 7에서 확인한 계약 차이: [API.md](../../architecture/API.md) §4.2의 세션 응답(`accessToken`·`expiresAt`·`hasSavedAnalysis`)과 실제 `AuthController.SessionResponse`(`accessToken`·`accessTokenExpiresAt`·`refreshToken`·`refreshTokenExpiresAt`·`user.hasSavedAnalysis`)가 다르다. 앱은 실제 응답을 따랐다. API.md는 `role:platform` 소유이므로 어느 쪽으로 맞출지 그 역할이 정한다.
+
 | 항목 | 막고 있는 상태·동작 | 결정 시점 |
 |---|---|---|
 | 네트워크 오프라인·캐시·자동 재시도 정책 | 모든 `*-OFFLINE`, 앱 재실행 | 네트워크 계층 구현 전 |
@@ -435,6 +437,43 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 공백·충돌 표식 | PASS | `git diff --check` 이상 없음 |
 | 앱 렌더링·Visual QA | 미실행 | 프론트엔드 코드가 아직 없으므로 Design Foundation과 Vertical Slice 이후 수행 |
 | 독립 Reviewer | 미실행 | 제품·디자인 담당자 배정과 검토 필요 |
+
+### 7차 Step 7 첫 Vertical Slice 구현 확인
+
+확인일: 2026-09-22. §10의 흐름을 `frontend/mobile`에 구현하고 Android 에뮬레이터(`Medium_Phone`, Android 17/API 37, Expo Go)에서 실행해 확인했다.
+백엔드가 아직 병합·배포되지 않아 **고정 fixture 서버**로 확인했다(§10 마지막 문단 허용 범위). fixture와 실제 API는 같은 타입을 쓰고 endpoint·요청·응답 모양은 원격 백엔드 코드를 그대로 따랐다.
+
+| 상태 | 결과 | 근거 캡처 |
+|---|---|---|
+| `APP-BOOTING` → `AUTH-RESTORING` → `AUTH-EXPIRED` | 확인 | `step7-08-auth-expired.png` — 앱을 껐다 켜면 저장소의 토큰으로 세션을 확인하고, 봉투 없는 401 → 토큰 갱신 실패 → 로그인 화면 |
+| `AUTH-FIELD-ERROR` | 확인 | `step7-09-auth-field-error.png` |
+| `AUTH-SUBMITTING` → `AUTH-SUCCESS` → `APP-FIRST-ANALYSIS-REQUIRED` | 확인 | `step7-01-login.png`, `step7-02-store-input.png` |
+| `STORE-INITIAL`·`STORE-EDITING` | 확인 | `step7-02`, `step7-03-store-category.png` |
+| `STORE-FIELD-ERROR`(URL 형식) | 확인 | `step7-04-store-url-error.png` |
+| `STORE-CREATING-JOB` | 확인 | 버튼 loading 표현(DESIGN_SYSTEM §5.4). 별도 캡처 없음 — fixture 응답이 빨라 화면에 남지 않음 |
+| `ANALYSIS-QUEUED` → `ANALYSIS-COLLECTING` | 확인 | `step7-05-progress.png` — 받은 단계만 쌓아서 표시 |
+| `SAVE-FIRST-SUCCESS` → `HOME-LOADING` → `RESULT-NORMAL` | 확인 | `step7-06-first-save.png`, `step7-07-home-result.png` |
+| `RESULT-LIMITS`·`RESULT-OLD-REVIEWS` | 확인 | `step7-07` 아래쪽 한계 안내 |
+| `RESULT-NO-PERSONA` | 확인(fixture 전용) | `step7-15-result-no-persona.png` |
+| `ANALYSIS-RETRYABLE-ERROR` → 새 키 재요청 성공 | 확인 | `step7-10-analysis-retryable.png` — 멈춘 행 + 실패 결과 행 |
+| `ANALYSIS-INSUFFICIENT` | 확인 | `step7-13-analysis-insufficient.png` |
+| `STORE-NOT-FOUND` | 확인 | `step7-12-store-not-found.png` — 입력 화면으로 돌아가 값 보존 |
+| `STORE-JOB-ERROR`(`IDEMPOTENCY_KEY_REUSED`) | 확인 | `step7-14-store-job-error.png` |
+| 불변식 12(봉투 없는 401 → 갱신 → 재전송) | 확인 | 액세스 토큰 만료 상황에서 흐름이 끊기지 않고 끝까지 진행 |
+| 불변식 13(실패 후 새 `Idempotency-Key`) | 확인 | 재시도 가능 실패 뒤 `다시 분석하기`가 새 키로 성공 |
+| `NAV-HIDDEN`·`NAV-ANALYSIS-ACTIVE` | 확인 | `step7-11-nav-analysis-active.png` |
+| `IMAGE-LOAD-ERROR` | 부분 확인 | `step7-19-image-load-error.png` — 원인과 "유형 내용은 그대로 볼 수 있어요" 안내까지 확인. 재조회 버튼은 실제 서버 모드에만 나오므로 동작은 미확인 |
+| `ADVICE-NO-KNOWLEDGE` | 확인 | `step7-21-advice-expanded.png` — 서버가 빈 배열을 주므로 없다는 사실을 표시 |
+
+확인하지 못한 것:
+
+- `ANALYSIS-FATAL-ERROR`, `STORE-UNSUPPORTED-URL`(작업 실패로 오는 경우), `IMAGE-GENERATION-FAILED`, `RESULT-PARTIAL`: 코드 경로와 fixture 상황은 만들었으나 화면 캡처는 남기지 않았다.
+- `IMAGE-READY`·`IMAGE-LOADING`: fixture 모드에는 내려받을 이미지가 없어 자리표시만 확인했다(`step7-20`, 200%는 `step7-23`). 실제 서버 연결 후 확인한다. 이미지 요청의 401 갱신·재요청(§6.4)도 아직 구현하지 않았다.
+- `INSIGHT-LIMITED`: 대표 근거가 없는 관점을 문구로 처리했으나 fixture에 해당 데이터가 없어 화면으로 보지는 못했다.
+- `STORE-OFFLINE`·`ANALYSIS-OFFLINE`: 네트워크 단절을 재현하지 않았다.
+- `SAVE-FIRST-ERROR`: 서버 계약상 발생하면 안 되는 불일치라 fixture로 만들지 않았다.
+- TalkBack 낭독과 실기기: 미실행.
+- 실제 백엔드 연결: 미실행. §11의 백엔드 공백이 풀리기 전에는 fixture 결과가 실제 응답과 같다고 볼 수 없다.
 
 ### 6차 Step 5 디자인 합성 반영
 

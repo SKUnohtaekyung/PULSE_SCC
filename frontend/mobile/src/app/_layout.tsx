@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 
 import { pretendardFontAssets } from '@/design/fonts';
 import { colors } from '@/design/tokens';
+import { SessionProvider } from '@/session/SessionProvider';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(pretendardFontAssets);
@@ -16,13 +17,13 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <SessionProvider>
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: colors.background.canvas },
           headerShown: false,
         }}
       />
-    </>
+    </SessionProvider>
   );
 }

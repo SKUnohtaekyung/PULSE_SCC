@@ -14,8 +14,9 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomNavigation } from '@/components/ui/BottomNavigation';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
-import { BottomNavigation } from '@/prototypes/result/ResultPrototype';
+
 
 // Step 5 합성안(docs/design/synthesis/TASK-020)을 Android에서 확인하는 디자인 프로토타입이다.
 // 서버 대신 고정 시나리오로 상태를 바꾸며, 실제 API·저장·인증은 연결하지 않는다.
@@ -245,7 +246,7 @@ export function FlowPrototype({ initialScenario = 'first' }: { initialScenario?:
             ) : null}
 
             {phase === 'firstSaved' ? (
-              <FirstSaved onOpenResult={() => router.dismissTo('/')} />
+              <FirstSaved onOpenResult={() => router.dismissTo('/prototype-result')} />
             ) : (
               <>
                 {returnedNotice ? (
@@ -413,7 +414,7 @@ export function FlowPrototype({ initialScenario = 'first' }: { initialScenario?:
           active="analysis"
           bottomInset={insets.bottom}
           onAnalyze={() => undefined}
-          onHome={() => router.dismissTo('/')}
+          onHome={() => router.dismissTo('/prototype-result')}
         />
       ) : null}
     </View>

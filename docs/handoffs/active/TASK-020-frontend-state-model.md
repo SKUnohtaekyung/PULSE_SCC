@@ -2,7 +2,7 @@
 
 ## Status
 
-Step 6 Figma 정본화 게이트 PASS (2026-09-22) + Figma import 완료. 보드 8장을 https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ 에 넣고 글꼴을 Gothic A1로 교정했다. 작업은 TASK-019 브랜치에서 수행
+Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -30,6 +30,7 @@ Step 6 Figma 정본화 게이트 PASS (2026-09-22) + Figma import 완료. 보드
 - (Step 4) Vertical Slice 앞 단계(입력·진행·첫 저장/홈)의 서로 다른 UX 가설 4개와 결과 상태 변형 보드 1개를 ImageGen으로 만들고, 각 가설의 최적화 대상·상태 대응·trade-off와 Step 5 질문을 정리했다. 정상 결과 화면은 TASK-015·017·016에서 이미 탐색·합성돼 다시 하지 않았다.
 - (Step 6) 이 세션에 Figma 연결이 없어 사용자 선택에 따라 팀 Figma import용 SVG 보드 8장(IA·Flow, Foundation, Components, Assets, Final UI 4장)을 토큰에서 생성했다. Step 5에서 넘긴 결정 4개를 정해 합성안·프로토타입·보드와 SCREEN_STATES·DESIGN_SYSTEM에 반영했다(키보드 가림은 가설 — Step 7에서 확인).
 - (Step 5) 사용자 선택(한 화면 입력·쌓이는 진행 목록 — 가설 1, 첫 저장 완료 화면 — 가설 2, 새 결과 미리보기 — 상태 보드 ③)을 합성하고, 위임받은 저장 선택 시점(처음부터 하단 고정 + 교체 확인)과 실패 배치·결과 상태 표현을 정했다.
+- (Step 7) SCREEN_STATES §10의 첫 Vertical Slice를 구현했다. 계약 타입·HTTP 클라이언트(봉투 없는 401 → 단일 갱신 → 재전송)·엔드포인트·가상 서버, 안전 저장소 기반 세션, 로그인·가게 입력·진행·첫 저장·홈 결과 화면, 공용 UI 컴포넌트 9종을 만들었다. Android에서 정상 흐름과 실패 경계 7가지를 실행해 캡처 23장으로 남겼다.
 - PRD·기능명세·User Flow·Result IA를 다시 대조해 회원가입, 새 결과 미리보기, 저장 오류, 결과 한계, 마이페이지 상태 누락을 보완했다.
 
 ## Changed
@@ -49,6 +50,15 @@ Step 6 Figma 정본화 게이트 PASS (2026-09-22) + Figma import 완료. 보드
 - (Step 6) `SCREEN_STATES.md` §5.1 뒤 문단(멈춘 행)·§9 `NAV-ANALYSIS-ACTIVE`, `DESIGN_SYSTEM.md` §5.3 BottomNavigation 행 — 결정 2·3 반영
 - (Step 5) `frontend/mobile/src/prototypes/flow/FlowPrototype.tsx`, `src/app/flow.tsx`, `src/app/preview.tsx`, `ResultPrototype.tsx`(미리보기 모드·저장 선택·확인 대화상자·하단 내비게이션 연결) — Android 합성 프로토타입
 - (Step 5) `docs/design/evidence/TASK-020/step5-*.png` — Android 실행 캡처
+- (Step 7) `frontend/mobile/src/api/**` — 계약 타입, 오류 봉투 해석, HTTP/가상 서버 전송, 인증 클라이언트, 엔드포인트, 페르소나 이미지 source, fixtures(고정 결과 데이터 + 상황 12종)
+- (Step 7) `frontend/mobile/src/session/**` — `expo-secure-store` 토큰 저장과 `SessionProvider`(앱 시작·세션 복원·만료)
+- (Step 7) `frontend/mobile/src/components/ui/**` — Button, TextField, Chip, Notice, LoadingBlock, ProgressList, ScreenHeader, BottomNavigation(프로토타입에서 옮김)
+- (Step 7) `frontend/mobile/src/features/**` — auth·analysis·result 화면과 fixture 상황 전환 패널
+- (Step 7) `frontend/mobile/src/app/**` — `/`(시작 분기), `/login`, `/analyze`, `/first-save`, `/home`, `/prototype-result`
+- (Step 7) `frontend/mobile/package.json`·`app.json` — `expo-secure-store` 추가
+- (Step 7) `frontend/mobile/README.md` — 화면 구성, 서버 연결(`EXPO_PUBLIC_API_BASE_URL`), 코드 구조
+- (Step 7) `DESIGN_SYSTEM.md` §5.3 경로·§5.4 버튼 loading/disabled·§13(아이콘 공급원, 인증 만료 표현 해소)
+- (Step 7) `SCREEN_STATES.md` §13 7차 기록 / `docs/design/evidence/TASK-020/step7-*.png` 23장과 README
 - (Step 5) `SCREEN_STATES.md` §5.1·§7·§9·§11·§13, `DESIGN_SYSTEM.md` 5.4·§6·§13, `RESULT_IA.md` §5·§6, `USER_FLOW.md` UF-03·UF-04·UF-06 — 합성 결정 반영
 
 ## Decisions
@@ -67,6 +77,14 @@ Step 6 Figma 정본화 게이트 PASS (2026-09-22) + Figma import 완료. 보드
 12. (Step 6) Figma 보드는 사람이 보는 사본이고, 토큰·상태·합성 결정의 정본은 코드와 문서다. 보드는 `generate.mjs`로 토큰에서 다시 뽑는다.
 13. (Step 6) Figma 컴포넌트화·오토레이아웃은 10단계까지 끝낸 뒤 0~10단계 재검토에서 한다(2026-09-22 사용자 결정).
 
+14. (Step 7) 백엔드 병합 전까지 앱은 `src/api/fixtures`의 가상 서버로 동작한다. `EXPO_PUBLIC_API_BASE_URL`이 있으면 자동으로 실제 HTTP 모드가 된다. fixture와 실제 API는 같은 타입을 쓰고, 화면에는 가상 서버로 동작 중임을 표시한다.
+15. (Step 7) 아이콘 라이브러리를 쓰지 않는다(§13 해소). 필요한 아이콘은 `View` 도형으로 그린다.
+16. (Step 7) 버튼 loading은 색을 유지하고 글자를 진행 문구로 바꾸며, disabled는 `background.emphasized`+`text.disabled`로 구분한다(DESIGN_SYSTEM §5.4).
+17. (Step 7) 회원가입·Google 로그인·마이페이지·전체 근거 화면·새 결과 미리보기는 이번 Slice에 넣지 않는다. 화면에서 "이번 범위가 아니다"라고 알린다.
+18. (Step 7) 공용 `BottomNavigation`을 `components/ui`로 옮기고 프로토타입도 같은 것을 쓴다(중복 금지).
+19. (Step 7, 리뷰 반영) fixture 모드에서는 페르소나 이미지를 코드로 그린 자리표시로 대신한다. 프로토타입 전용 에셋을 제품 화면에 쓰지 않는다(DESIGN_SYSTEM §3.6).
+20. (Step 7, 리뷰 반영) 가상 데이터로 그린 화면에는 첫 저장·홈에도 안내를 둔다(`features/dev/FixtureBanner`).
+
 ## Verification
 
 - `SC-AUTH`, `SC-001`~`SC-012` 추적: PASS — 13/13
@@ -82,6 +100,11 @@ Step 6 Figma 정본화 게이트 PASS (2026-09-22) + Figma import 완료. 보드
 - (Step 4) 시안 5장 육안 대조: 초안 문제 3건(장식 이미지의 AI 표시, 유형 이름 누락, 편집 중 생긴 오타)을 편집으로 수정. 가설 3의 "분석하지" 오타는 편집 2회 실패로 남겨 Known defects에 기록. 앱 코드 변경 없음, Visual QA 해당 없음
 - (Step 5) 합성 문서: 링크·`git diff --check` 확인
 - (Step 5) Android 프로토타입: lint·typecheck·verify:tokens·export:android PASS, Expo Go에서 첫 분석·재시도 실패·저장본 있음(미리보기·교체 확인·뒤로가기) 경로 실행, 캡처 9장. 글자 크기 200%·TalkBack·실기기 미실행. 독립 Reviewer PASS
+- (Step 7) `verify:tokens`: PASS, `lint`: PASS, `typecheck`: PASS, `export:android`: PASS (2026-09-22, 변경 반영 후 재실행)
+- (Step 7) Android Visual QA(`Medium_Phone`, Expo Go): PASS — 로그인 → 가게 입력 → 진행 → 첫 저장 → 홈 결과 전체 흐름과 실패 7가지를 실행해 캡처 23장. 글자 크기 200%는 마지막 수정본으로 다시 확인하고 1.0으로 복원했다. 도중 발견한 헤더 배지 잘림 결함을 고치고 다시 확인. TalkBack·실기기·오프라인·키보드 가림은 미실행(evidence README에 기록)
+- (Step 7) 독립 Reviewer: 1차 FAIL(P1 2·P2 4) → 지적 사항 반영 후 재검토. 반영 내용: fixture 안내 누락(P1), 프로토타입 에셋 제품 사용(P1), TextField 중복(P2), IMAGE-LOAD-ERROR 재조회·크기(P2), DESIGN_SYSTEM §3.6↔§13 모순(P2), 갱신 실패 판정 범위(P2), 그리고 P3 중 하단 내비게이션 노출·401 코드 처리·주의 테두리 대비·미처리 rejection·§11 계약 차이 기록
+- (Step 7) 1차 수정 후 재검증: `verify:tokens`·`lint`·`typecheck`·`export:android` PASS, Android에서 첫 저장·홈·이미지 자리표시·이미지 조회 실패·제안 펼침 재확인(`step7-06`·`07`·`19`·`20`·`21`)
+- (Step 7) 2차 독립 Reviewer: 새 P2 1건(이미지 대체 영역 고정 높이 → 큰 글자에서 넘침 위험, 200% 캡처가 수정 전 것) 지적. 최소 높이로 되돌리고 200%를 다시 찍어 확인(`step7-17`·`22`·`23`), 홈 기반 캡처(`step7-15`·`16`)도 배너 반영본으로 교체
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved
@@ -105,7 +128,7 @@ Step 6 Figma 정본화 게이트 PASS (2026-09-22) + Figma import 완료. 보드
 
 ## Next Action
 
-사용자 확인 후 Step 7 Vertical Slice. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
+사용자 확인 후 Step 8. Step 7에서 남은 것: 실제 백엔드 연결(§11 공백 해소 후), 오프라인·키보드·TalkBack 확인, 회원가입·Google 로그인·마이페이지·전체 근거 화면. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 

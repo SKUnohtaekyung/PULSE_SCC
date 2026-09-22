@@ -45,4 +45,46 @@ npm run android:device
 - `src/design/tokens/foundation.ts`의 readonly semantic theme
 - Pretendard v1.3.9 정적 굵기 4종과 토큰 대비 자동 검증
 
-앱 패키지 ID, 서명, EAS 프로젝트, 최종 아이콘·스플래시 자산은 아직 확정하지 않았다. 현재 첫 화면(`/`)은 가상 데이터로 만든 결과 화면 프로토타입(`src/prototypes/result`)이고, Design Foundation 견본은 `/foundation` 경로에 있다. 둘 다 개발용이며 기본 이미지 자산은 임시값이므로 제품 UI 완료 증거가 아니다.
+앱 패키지 ID, 서명, EAS 프로젝트, 최종 아이콘·스플래시 자산은 아직 확정하지 않았다.
+
+## 화면 구성 (2026-09-22 Step 7 Vertical Slice)
+
+| route | 화면 | 다루는 상태 |
+|---|---|---|
+| `/` | 앱 시작·세션 복원 후 분기 | `APP-BOOTING`, `AUTH-RESTORING`, `APP-READY`, `APP-FIRST-ANALYSIS-REQUIRED` |
+| `/login` | 자체 계정 로그인 | `AUTH-INITIAL`·`AUTH-EDITING`·`AUTH-FIELD-ERROR`·`AUTH-SUBMITTING`·`AUTH-INVALID-CREDENTIALS`·`AUTH-EXPIRED` 안내 |
+| `/analyze` | 가게 정보 입력과 분석 진행 | `STORE-*`, `ANALYSIS-*` |
+| `/first-save` | 첫 저장 완료 | `SAVE-FIRST-SUCCESS` |
+| `/home` | 저장된 결과 | `HOME-LOADING`·`RESULT-*` |
+| `/foundation` | Design Foundation 견본 | — |
+| `/prototype-result`, `/flow`, `/preview` | Step 5·6 디자인 프로토타입(가상 데이터) | — |
+
+상태 정본은 `docs/product/requirements/SCREEN_STATES.md`다.
+
+## 서버 연결
+
+기본값은 **가상(fixture) 서버**다. 백엔드가 아직 병합·배포되지 않아 `src/api/fixtures`의 고정 데이터로 동작한다.
+fixture 모드에서는 입력 화면 위에 어떤 상황을 재현 중인지 보여주는 전환 패널이 나오고, 예시 계정은 `owner@example.com / pulse1234`다.
+
+실제 서버에 붙일 때는 환경변수로 주소를 준다. 값이 있으면 자동으로 HTTP 모드가 된다.
+
+```powershell
+$env:EXPO_PUBLIC_API_BASE_URL = "http://10.0.2.2:8080"
+npm run start
+```
+
+`10.0.2.2`는 Android 에뮬레이터에서 PC의 `localhost`를 가리키는 주소다. 실기기는 PC의 LAN 주소를 쓴다.
+토큰은 `expo-secure-store`에 저장하고, 봉투 없는 401을 받으면 토큰을 한 번 갱신한 뒤 원래 요청을 다시 보낸다(SCREEN_STATES 공통 불변식 12).
+
+## 코드 구조
+
+```
+src/
+├─ api/          계약 타입·HTTP 클라이언트·엔드포인트·가상 서버(fixtures)
+├─ session/      안전 저장소와 세션 상태(SessionProvider)
+├─ components/ui 공용 UI 컴포넌트
+├─ features/     화면 단위 구현(auth·analysis·result·dev)
+├─ design/       토큰과 글꼴
+├─ prototypes/   Step 5·6 디자인 프로토타입(제품 화면 아님)
+└─ app/          Expo Router route
+```
