@@ -104,4 +104,4 @@ Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAI
 
 ## Last Verified Commit
 
-`ef5c0b4` — Step 5 Design Synthesis 합성안·정본 반영과 독립 Reviewer PASS를 반영한 커밋.
+`c070dd6` — Step 5 Android 합성 프로토타입과 사용자 선택(네이비 헤더·차례로 펼치기), 독립 Reviewer PASS를 반영한 커밋.
