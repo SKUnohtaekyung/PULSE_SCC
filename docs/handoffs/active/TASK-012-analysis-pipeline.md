@@ -98,6 +98,57 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 `feat/TASK-012-naver-review-collector` (커밋 `739c516`) 는 같은 TASK 번호·같은 `collection/` 패키지·같은 ADR-009 번호로 수집 계층을 중복 구현한 브랜치다. 이 브랜치를 정본으로 유지하기로 결정하고 해당 브랜치는 개발을 중단했다. ref 는 삭제하지 않고 남겨 두었다. 위 날짜 보강은 그 브랜치에서 옮겨 온 유일한 항목이다.
 
+## 2026-09-22 세션 종료 — 다음 세션이 이어받을 것
+
+### 브랜치 관계 (가장 먼저 읽을 것)
+
+- 이 브랜치는 PR #27(`feat/TASK-011-authentication`)의 **수정 전** 인증 커밋 3개(`7773443`, `e61e713`, `948e404`)를 포함한다.
+- PR #27 에는 그 뒤로 오류 계약 준수·Google issuer 500 수정·계정 열거·회전 경합 수정(`aa0dfa1`, `74d6df8`, `bc6439b`)이 추가됐다. 이 브랜치에는 **없다.**
+- PR #27 이 squash 병합되면 이 브랜치에 `main` 을 **merge commit 으로 연결**하고, 인증 파일 충돌은 `main` 쪽을 정본으로 해결한다. force push 금지.
+- 폐기한 중복 브랜치 `feat/TASK-012-naver-review-collector`(`739c516`)는 **로컬에만** 있다. 삭제 여부는 사용자 결정 대기.
+- 인증 쪽 상세 상태는 PR #27 브랜치의 `docs/handoffs/active/TASK-011-authentication.md` 를 본다.
+
+### 사람만 할 수 있는 것
+
+| 순위 | 작업 | 풀리는 것 |
+|---|---|---|
+| 1 | 관리자 PowerShell `wsl --install --no-distribution` → 재부팅 | Docker → Testcontainers 6개 |
+| 2 | OpenAI 새 키 발급·이전 키 폐기 → `backend/.env` 의 `SCC_OPENAI_API_KEY` | 수집→분석→이미지 전체 E2E |
+| 3 | PR #27 리뷰어 지정·승인 | 인증 병합 |
+| 4 | GitHub 브랜치 보호 설정 (현재 없음) | `main` 보호 |
+| 5 | Google OAuth Client ID, 약관 법률 검토, 실기기 확인 | 출시 준비 |
+
+### 에이전트가 이어서 할 것 (막는 것 없음)
+
+| 순위 | 작업 | 메모 |
+|---|---|---|
+| 1 | `GET /api/v1/analyses/{analysisId}/evidence` 구현 | API.md 에 계약만 있고 controller 없음. cursor 방식. 구현 후 프론트 "근거 리뷰 더 보기" 연결 (`C:\PULSE_SCC_FE` 는 현재 `evidencePreview` 만 표시) |
+| 2 | RAG 전문 지식 검색 | 제안의 `knowledgeReferences` 가 항상 빈 배열 |
+| 3 | 내구성 있는 작업 큐 | 현재 Spring 인프로세스 비동기라 재시작 시 진행 작업 유실 |
+| 4 | `build_reviews` 의 `len < 10` 최소 글자 수 | 제품 결정 전 임의값. 결정 후 반영 |
+
+### 조건 충족 후 할 것
+
+- Docker 가능 → `AnalysisApiIntegrationTests`·`InitialSchemaMigrationTests` 실행, skip 0 확인
+- OpenAI 키 → 실제 매장 URL 로 E2E. 날짜 보강이 GraphQL 응답으로 120건 중 몇 건을 채우는지 측정 (현재 저장 응답 1페이지로만 확인)
+- 앱 기동 → Visual QA: 빈 포디움 슬롯, 분석 불가 화면, 알림 목록
+
+### 제품 결정 대기
+
+| 결정 | 현재 |
+|---|---|
+| **유효 리뷰 50건 기준 유지 여부** | 실측 표본에서 본문 없는 리뷰가 50%. 소규모 매장은 사실상 분석 불가 |
+| 리뷰 최소 글자 수 | 10자, 근거 없음 |
+| 작성일 모르는 리뷰의 2년 경고 | 경고 대상에서 제외 중 (PRD 미해결 질문 13) |
+| `/register` 409 로 가입 여부 노출 | 노출 중 |
+| 로그인 시도 제한 | 없음 |
+
+### 로컬 환경 메모
+
+- 로컬 PostgreSQL 18 에 `scc` 역할·DB 생성 완료. `backend/.env` 생성됨(gitignore). OpenAI 키만 비어 있다.
+- 이 조합으로 2026-09-19 Spring `bootRun` 과 인증 API 실동작을 확인했다(상세는 TASK-011 핸드오프).
+- 명령은 PowerShell 기준으로 안내한다. Git Bash 경로(`/c/...`)는 사용자 터미널에서 실패했다.
+
 ## Unresolved
 - 네이버 정책은 원칙적으로 자동 수집을 금지한다. 명시적 승인 또는 공식 API/robots 허용 확인 전 운영 활성화 금지.
 - 실제 OpenAI API 호출을 포함한 전체 분석 E2E는 미실행. 채팅에 노출된 키는 사용하지 않고 폐기·재발급이 필요하다.
