@@ -1,12 +1,15 @@
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Alert,
   Animated,
+  BackHandler,
   Easing,
   Image,
   type ImageSourcePropType,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -599,9 +602,20 @@ function AnalysisIcon() {
   );
 }
 
-function BottomNavigation({ bottomInset }: { bottomInset: number }) {
+export function BottomNavigation({
+  bottomInset,
+  active = 'home',
+  onHome,
+  onAnalyze,
+}: {
+  bottomInset: number;
+  active?: 'home' | 'analysis';
+  onHome?: () => void;
+  onAnalyze?: () => void;
+}) {
   const unavailable = (name: string) =>
-    Alert.alert('디자인 프로토타입', `${name} 화면은 아직 연결하지 않았어요. 현재는 결과 화면만 확인할 수 있습니다.`);
+    Alert.alert('디자인 프로토타입', `${name} 화면은 아직 연결하지 않았어요.`);
+  const homeActive = active === 'home';
 
   return (
     <View
@@ -609,21 +623,21 @@ function BottomNavigation({ bottomInset }: { bottomInset: number }) {
       style={[styles.bottomNavigation, { paddingBottom: Math.max(bottomInset, spacing[2]) }]}
     >
       <Pressable
-        accessibilityLabel="홈, 현재 화면"
+        accessibilityLabel={homeActive ? '홈, 현재 화면' : '홈'}
         accessibilityRole="button"
-        accessibilityState={{ selected: true }}
-        onPress={() => unavailable('홈')}
+        accessibilityState={{ selected: homeActive }}
+        onPress={onHome ?? (() => unavailable('홈'))}
         style={({ pressed }) => [styles.navItem, pressed && styles.pressed]}
       >
-        <HomeIcon color={colors.brand.primary} />
-        <Text style={[styles.navLabel, styles.navLabelSelected]}>홈</Text>
+        <HomeIcon color={homeActive ? colors.brand.primary : colors.text.secondary} />
+        <Text style={[styles.navLabel, homeActive && styles.navLabelSelected]}>홈</Text>
       </Pressable>
 
       <Pressable
-        accessibilityHint="프로토타입에서는 분석 입력 화면을 열지 않습니다."
-        accessibilityLabel="분석하기"
+        accessibilityLabel={homeActive ? '분석하기' : '분석하기, 현재 화면'}
         accessibilityRole="button"
-        onPress={() => unavailable('분석하기')}
+        accessibilityState={{ selected: !homeActive }}
+        onPress={onAnalyze ?? (() => unavailable('분석하기'))}
         style={({ pressed }) => [styles.navItem, styles.analysisNavItem, pressed && styles.pressed]}
       >
         <View style={styles.analysisButton}>
@@ -645,7 +659,14 @@ function BottomNavigation({ bottomInset }: { bottomInset: number }) {
   );
 }
 
-export function ResultPrototype() {
+type SaveDialog = 'replace' | 'leave' | null;
+
+export function ResultPrototype({ mode = 'saved' }: { mode?: 'saved' | 'preview' }) {
+  const router = useRouter();
+  const isPreview = mode === 'preview';
+  const [saveDialog, setSaveDialog] = useState<SaveDialog>(null);
+  const [saving, setSaving] = useState<'replace' | 'keep' | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { fontScale, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const horizontalPadding = width >= layout.breakpoint.medium ? spacing[6] : spacing[4];
@@ -686,6 +707,33 @@ export function ResultPrototype() {
     ).start();
   };
 
+  useEffect(() => {
+    if (!isPreview) return;
+    // 미리보기에서 뒤로가기를 누르면 새 결과를 조용히 버리지 않고 선택을 묻는다.
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (saving === null) setSaveDialog('leave');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [isPreview, saving]);
+
+  useEffect(
+    () => () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    },
+    [],
+  );
+
+  const finishSave = (choice: 'replace' | 'keep') => {
+    setSaveDialog(null);
+    setSaving(choice);
+    AccessibilityInfo.announceForAccessibility(
+      choice === 'replace' ? '새 결과로 바꾸는 중이에요.' : '기존 결과로 돌아가는 중이에요.',
+    );
+    // 가상 저장 요청. 실제 구현에서는 교체만 PUT /api/v1/me/saved-analysis/{analysisId}를 호출한다.
+    saveTimer.current = setTimeout(() => router.dismissTo('/'), 900);
+  };
+
   const scrollToSelectedDetails = () => {
     scrollRef.current?.scrollTo({
       animated: !reduceMotion,
@@ -712,9 +760,18 @@ export function ResultPrototype() {
             </View>
           </View>
 
+          {isPreview ? (
+            <View accessibilityRole="alert" style={styles.previewNotice}>
+              <Text aria-hidden style={styles.previewNoticeMark}>
+                !
+              </Text>
+              <Text style={styles.previewNoticeText}>새 분석 결과예요. 아직 저장된 결과를 바꾸지 않았어요.</Text>
+            </View>
+          ) : null}
+
           <View style={styles.insightHero}>
             <View style={[styles.insightCopy, largeText && styles.insightCopyLargeText]}>
-              <Text style={styles.insightEyebrow}>리뷰 분석 완료</Text>
+              <Text style={styles.insightEyebrow}>{isPreview ? '새 분석 결과 · 저장 전' : '리뷰 분석 완료'}</Text>
               <Text accessibilityRole="header" style={styles.insightTitle}>
                 영등원조쌈밥
               </Text>
@@ -722,8 +779,8 @@ export function ResultPrototype() {
               <View style={styles.heroDateRow}>
                 <CalendarIcon />
                 <View style={styles.heroDateList}>
-                  <Text style={styles.heroDateText}>수집 2026.09.18</Text>
-                  <Text style={styles.heroDateText}>분석 완료 2026.09.18</Text>
+                  <Text style={styles.heroDateText}>수집 {isPreview ? '2026.09.20' : '2026.09.18'}</Text>
+                  <Text style={styles.heroDateText}>분석 완료 {isPreview ? '2026.09.20' : '2026.09.18'}</Text>
                 </View>
               </View>
             </View>
@@ -881,12 +938,272 @@ export function ResultPrototype() {
           </Text>
         </ScrollView>
       </SafeAreaView>
-      <BottomNavigation bottomInset={insets.bottom} />
+      {isPreview ? (
+        <View style={[styles.saveBar, { paddingBottom: Math.max(insets.bottom, spacing[3]) }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: saving !== null, busy: saving === 'replace' }}
+            disabled={saving !== null}
+            onPress={() => setSaveDialog('replace')}
+            style={({ pressed }) => [
+              styles.savePrimary,
+              saving !== null && styles.saveDisabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.savePrimaryText}>
+              {saving === 'replace' ? '새 결과로 바꾸는 중…' : '새 결과로 바꾸기'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: saving !== null, busy: saving === 'keep' }}
+            disabled={saving !== null}
+            onPress={() => finishSave('keep')}
+            style={({ pressed }) => [
+              styles.saveSecondary,
+              saving !== null && styles.saveDisabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.saveSecondaryText}>
+              {saving === 'keep' ? '기존 결과로 돌아가는 중…' : '기존 결과 유지'}
+            </Text>
+          </Pressable>
+          <Text style={styles.saveNote}>
+            기존 결과를 유지하면 이번 새 결과는 저장되지 않고, 이 화면을 닫은 뒤에는 다시 볼 수 없을 수 있어요.
+          </Text>
+        </View>
+      ) : (
+        <BottomNavigation bottomInset={insets.bottom} onAnalyze={() => router.push('/flow?scenario=saved')} />
+      )}
+
+      <Modal
+        animationType={reduceMotion ? 'none' : 'fade'}
+        navigationBarTranslucent
+        onRequestClose={() => setSaveDialog(null)}
+        statusBarTranslucent
+        transparent
+        visible={saveDialog !== null}
+      >
+        <View style={styles.dialogBackdrop}>
+          <View aria-hidden style={styles.dialogScrim} />
+          <View accessibilityViewIsModal style={styles.dialog}>
+            {saveDialog === 'replace' ? (
+              <>
+                <Text accessibilityRole="header" style={styles.dialogTitle}>
+                  저장된 결과를 바꿀까요?
+                </Text>
+                <View style={styles.dialogTarget}>
+                  <Text style={styles.dialogTargetLabel}>지금 저장된 결과</Text>
+                  <Text style={styles.dialogTargetValue}>영등원조쌈밥 · 2026.09.18 분석</Text>
+                </View>
+                <Text style={styles.dialogBody}>바꾸면 이전 결과는 앱에서 다시 볼 수 없어요.</Text>
+                <View style={styles.dialogActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setSaveDialog(null)}
+                    style={({ pressed }) => [styles.dialogButton, styles.dialogCancel, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.dialogCancelText}>취소</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => finishSave('replace')}
+                    style={({ pressed }) => [
+                      styles.dialogButton,
+                      styles.dialogDestructive,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.dialogDestructiveText}>바꾸기</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text accessibilityRole="header" style={styles.dialogTitle}>
+                  새 결과를 어떻게 할까요?
+                </Text>
+                <Text style={styles.dialogBody}>선택하지 않고 나가면 새 결과를 다시 볼 수 없을 수 있어요.</Text>
+                <View style={styles.dialogStack}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setSaveDialog('replace')}
+                    style={({ pressed }) => [styles.dialogButton, styles.dialogOutline, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.dialogOutlineText}>새 결과로 바꾸기</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => finishSave('keep')}
+                    style={({ pressed }) => [styles.dialogButton, styles.dialogOutline, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.dialogOutlineText}>기존 결과 유지</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setSaveDialog(null)}
+                    style={({ pressed }) => [styles.dialogButton, styles.dialogCancel, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.dialogCancelText}>계속 보기</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  previewNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.default,
+    borderLeftColor: colors.status.warning,
+    borderLeftWidth: spacing[1],
+    borderRadius: radii.control,
+    borderWidth: strokes.hairline,
+    padding: spacing[4],
+    gap: spacing[3],
+  },
+  previewNoticeMark: {
+    ...typography.body5,
+    color: colors.status.warningText,
+  },
+  previewNoticeText: {
+    ...typography.body6,
+    flex: 1,
+    color: colors.text.primary,
+  },
+  saveBar: {
+    backgroundColor: colors.background.surface,
+    borderTopColor: colors.border.default,
+    borderTopWidth: strokes.hairline,
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    gap: spacing[2],
+  },
+  savePrimary: {
+    minHeight: layout.touchTargetMin,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.action.primary,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+  },
+  savePrimaryText: {
+    ...typography.buttonMain,
+    color: colors.action.onPrimary,
+    textAlign: 'center',
+  },
+  saveSecondary: {
+    minHeight: layout.touchTargetMin,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.surface,
+    borderColor: colors.brand.primary,
+    borderRadius: radii.control,
+    borderWidth: strokes.hairline,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+  },
+  saveSecondaryText: {
+    ...typography.buttonMain,
+    color: colors.text.brand,
+    textAlign: 'center',
+  },
+  saveDisabled: {
+    opacity: 0.6,
+  },
+  saveNote: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  dialogBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing[6],
+  },
+  dialogScrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: colors.background.inverse,
+    opacity: 0.5,
+  },
+  dialog: {
+    backgroundColor: colors.background.surface,
+    borderRadius: radii.panel,
+    padding: spacing[6],
+    gap: spacing[4],
+  },
+  dialogTitle: {
+    ...typography.head5,
+    color: colors.text.strong,
+  },
+  dialogTarget: {
+    backgroundColor: colors.background.subtle,
+    borderColor: colors.border.default,
+    borderRadius: radii.control,
+    borderWidth: strokes.hairline,
+    padding: spacing[3],
+    gap: spacing[1],
+  },
+  dialogTargetLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  dialogTargetValue: {
+    ...typography.body6,
+    color: colors.text.primary,
+  },
+  dialogBody: {
+    ...typography.body4,
+    color: colors.text.primary,
+  },
+  dialogActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  dialogStack: {
+    gap: spacing[2],
+  },
+  dialogButton: {
+    minHeight: layout.touchTargetMin,
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.control,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+  },
+  dialogCancel: {
+    backgroundColor: colors.background.emphasized,
+  },
+  dialogCancelText: {
+    ...typography.buttonSub,
+    color: colors.text.primary,
+  },
+  dialogDestructive: {
+    backgroundColor: colors.destructive.primary,
+  },
+  dialogDestructiveText: {
+    ...typography.buttonMain,
+    color: colors.destructive.onPrimary,
+  },
+  dialogOutline: {
+    borderColor: colors.brand.primary,
+    borderWidth: strokes.hairline,
+  },
+  dialogOutlineText: {
+    ...typography.buttonSub,
+    color: colors.text.brand,
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.background.canvas,

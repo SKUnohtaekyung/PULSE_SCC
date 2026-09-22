@@ -1,6 +1,5 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 import { pretendardFontAssets } from '@/design/fonts';
 import { colors } from '@/design/tokens';
@@ -24,7 +23,6 @@ export default function RootLayout() {
           headerShown: false,
         }}
       />
-      <StatusBar style="dark" />
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 ## Status
 
-Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAIL(P2 2건) → 2차 FAIL(P2 1건) → 3차 PASS. 입력 화면 헤더 색 조정은 사용자 확인 대기. Step 4 게이트는 2026-09-22 PASS. 작업은 TASK-019 브랜치에서 수행
+Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAIL(P2 2건) → 2차 FAIL(P2 1건) → 3차 PASS. 이후 사용자가 Android 프로토타입을 보고 네이비 헤더와 입력 차례로 펼치기를 선택(2026-09-22) — 반영 후 독립 Reviewer 1차 FAIL(P2 상태 표시줄 아이콘 색) → 2차 PASS. Step 4 게이트는 2026-09-22 PASS. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -44,6 +44,8 @@ Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAI
 - (Step 3) `docs/design/evidence/TASK-020/` — Android 100%·200% 글자 크기 캡처
 - (Step 4) `docs/design/explorations/TASK-020/` — 가설 보드 4장, 상태 보드 1장, README, PROMPTS
 - (Step 5) `docs/design/synthesis/TASK-020/README.md` — 합성안 정본
+- (Step 5) `frontend/mobile/src/prototypes/flow/FlowPrototype.tsx`, `src/app/flow.tsx`, `src/app/preview.tsx`, `ResultPrototype.tsx`(미리보기 모드·저장 선택·확인 대화상자·하단 내비게이션 연결) — Android 합성 프로토타입
+- (Step 5) `docs/design/evidence/TASK-020/step5-*.png` — Android 실행 캡처
 - (Step 5) `SCREEN_STATES.md` §5.1·§7·§9·§11·§13, `DESIGN_SYSTEM.md` 5.4·§6·§13, `RESULT_IA.md` §5·§6, `USER_FLOW.md` UF-03·UF-04·UF-06 — 합성 결정 반영
 
 ## Decisions
@@ -73,7 +75,8 @@ Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAI
 - (Step 3) 독립 Reviewer: PASS — 1차 FAIL(status.error 범위 모순, 포커스 링/삭제 버튼 대비 미검사, handoff 기록 오류 2건) → 2차 PASS(P3만 남음, 반영)
 - (Step 3) Android Visual QA(`Medium_Phone`, Expo Go, `/foundation`): PASS — 100%·200% 글자 크기에서 State color 견본 잘림·겹침 없음. TalkBack·실기기 미실행
 - (Step 4) 시안 5장 육안 대조: 초안 문제 3건(장식 이미지의 AI 표시, 유형 이름 누락, 편집 중 생긴 오타)을 편집으로 수정. 가설 3의 "분석하지" 오타는 편집 2회 실패로 남겨 Known defects에 기록. 앱 코드 변경 없음, Visual QA 해당 없음
-- (Step 5) 문서 전용 변경. 링크·`git diff --check` 확인, 앱 코드 변경 없음
+- (Step 5) 합성 문서: 링크·`git diff --check` 확인
+- (Step 5) Android 프로토타입: lint·typecheck·verify:tokens·export:android PASS, Expo Go에서 첫 분석·재시도 실패·저장본 있음(미리보기·교체 확인·뒤로가기) 경로 실행, 캡처 9장. 글자 크기 200%·TalkBack·실기기 미실행. 독립 Reviewer PASS
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved
@@ -97,7 +100,7 @@ Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAI
 
 ## Next Action
 
-입력 화면 헤더 색 조정(합성안 §1)을 사용자에게 확인받은 뒤 Step 6 Figma 정본화. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
+사용자 확인 후 Step 6 Figma 정본화(합성안 Next의 결정 항목 1~4 포함). SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 

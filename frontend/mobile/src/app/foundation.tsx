@@ -1,5 +1,12 @@
+import { StatusBar } from 'expo-status-bar';
+
 import { TokenShowcase } from '@/design/TokenShowcase';
 
 export default function FoundationScreen() {
-  return <TokenShowcase />;
+  return (
+    <>
+      <StatusBar style="dark" />
+      <TokenShowcase />
+    </>
+  );
 }
