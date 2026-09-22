@@ -52,3 +52,16 @@
 | `step6-reanalysis-nav.png` | 결정 3 — 저장본이 있는 사용자의 입력 화면에서 하단 가운데 분석하기가 네이비·흰 아이콘. 오렌지는 화면 안 `분석하기` 하나 |
 
 미확인: 결정 4(키보드 가림) — 에뮬레이터에 하드웨어 키보드가 연결돼 화면 키보드가 전체로 올라오지 않았다.
+
+## Step 6 Figma import
+
+- 검증일: 2026-09-22. 파일 https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ 의 페이지 `TASK-020 Vertical Slice`
+- 캡처는 Figma가 렌더한 화면이다(글꼴 교정 뒤 상태, Gothic A1)
+
+| 파일 | 확인한 것 |
+|---|---|
+| `step6-figma-01.png` | 01 IA·Flow — 상자·화살표·설명이 그대로. 글꼴 교정 전 캡처 |
+| `step6-figma-05.png` | 05 첫 분석 6화면 — 한글·이미지·색 정상, 글꼴 교정 뒤 |
+| `step6-figma-07.png` | 07 다시 분석·저장 선택 — 대화상자와 어두운 배경 정상, 글꼴 교정 전 캡처 |
+
+미확인: 팀원 PC에서 열었을 때의 글꼴(각자 Gothic A1이 없으면 다시 대체된다), Figma 컴포넌트화.

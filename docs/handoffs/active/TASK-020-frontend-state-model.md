@@ -2,7 +2,7 @@
 
 ## Status
 
-Step 6 Figma 정본화 게이트 PASS (2026-09-22) — SVG 보드 8장 생성·Step 5 결정 4개 반영. 독립 Reviewer 1차 FAIL(P2 3건: 문구 축약, loading·disabled 임의 결정, 범위 표기) → 2차 PASS. Step 5는 2026-09-22 PASS. 작업은 TASK-019 브랜치에서 수행
+Step 6 Figma 정본화 게이트 PASS (2026-09-22) + Figma import 완료. 보드 8장을 https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ 에 넣고 글꼴을 Gothic A1로 교정했다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -104,7 +104,7 @@ Step 6 Figma 정본화 게이트 PASS (2026-09-22) — SVG 보드 8장 생성·S
 
 ## Next Action
 
-사용자가 `docs/design/figma/TASK-020/svg/`를 팀 Figma에 import하고 확인한 뒤 Step 7 Vertical Slice. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
+사용자 확인 후 Step 7 Vertical Slice. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 

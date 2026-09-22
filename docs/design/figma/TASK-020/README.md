@@ -2,7 +2,9 @@
 
 ## Status
 
-Step 5 합성안([synthesis/TASK-020](../../synthesis/TASK-020/README.md))을 팀 Figma에 옮기기 위한 SVG 보드 8장이다. 범위는 **Step 5 합성 범위**(입력·진행·첫 저장·새 결과 미리보기 네 화면과 결과 상태 네 가지)이고, 첫 Vertical Slice(SCREEN_STATES §10)와 같지 않다. 이 세션에는 Figma 연결이 없어, [발표 자료](../../../presentation/README.md)와 같은 방식으로 SVG를 만들고 사용자가 팀 Figma에 넣는다(2026-09-22 사용자 선택).
+Step 5 합성안([synthesis/TASK-020](../../synthesis/TASK-020/README.md))을 팀 Figma에 옮기기 위한 SVG 보드 8장이다. 범위는 **Step 5 합성 범위**(입력·진행·첫 저장·새 결과 미리보기 네 화면과 결과 상태 네 가지)이고, 첫 Vertical Slice(SCREEN_STATES §10)와 같지 않다. [발표 자료](../../../presentation/README.md)와 같은 방식으로 SVG를 만들어 Figma에 넣는다(2026-09-22 사용자 선택).
+
+**2026-09-22 import 완료:** https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — `lawyland` 팀의 내 드래프트, 파일 `PULSE TASK-020 Vertical Slice`, 페이지 `TASK-020 Vertical Slice`. 팀 공용 파일로 옮기는 것은 사용자가 정한다.
 
 정본 관계:
 
@@ -57,10 +59,20 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/g
 
 `frontend/mobile/node_modules`가 있어야 한다(이미지 축소에 `jimp-compact`를 쓴다). 설치는 `npm --prefix frontend/mobile install`.
 
+## Import 결과 (2026-09-22)
+
+- 보드 8장이 각각 프레임으로 들어갔고 레이어 이름은 파일명과 같다(`01-ia-flow` …). 크기는 원본과 같다.
+- 도형·색·점선·이미지(페르소나 3장)는 그대로 들어갔다. 이미지 fill 노드 16개 확인.
+- **글꼴 대체:** Figma 계정에 Pretendard가 없어 SVG import가 모든 글자를 `Inter Regular/Bold` 두 가지로 바꿨다. 굵기 4단계(400·500·600·700)가 2단계로 뭉개졌다. `font-family="Pretendard, Noto Sans KR"`처럼 목록을 줘도 Figma는 무시한다(시험으로 확인).
+- 그래서 import 뒤 글자 레이어 604개를 **Gothic A1**(Regular·Medium·SemiBold·Bold)로 바꾸고, 각 글자의 굵기는 이 폴더 SVG의 `font-weight`를 순서대로 읽어 그대로 넣었다. 보드별 글자 수가 SVG와 정확히 같아 순서로 대응했다(51·104·89·27·83·69·110·71 = 604).
+- Gothic A1은 Figma에서 쓸 수 있는 **대체 글꼴**이다. 제품 글꼴 정본은 Pretendard이고(DESIGN_SYSTEM §3.4) 코드는 그대로다. 팀이 Pretendard를 각자 PC에 설치하면(원본 OTF: `frontend/mobile/assets/fonts/`) Figma에서 글꼴만 바꿔 쓸 수 있다.
+- 실행 캡처: [evidence/TASK-020](../../evidence/TASK-020/README.md)의 `step6-figma-*.png`
+
 ## 검증 범위
 
 - 8장을 브라우저로 렌더링해 겹침·넘침을 눈으로 확인했다. 이 PC에는 Pretendard가 시스템 글꼴로 없어 대체 글꼴로 렌더링됐다. 독립 리뷰에서 Pretendard OTF를 로드해 다시 렌더링했을 때 눈에 띄는 넘침은 없었다.
 - 글자 폭은 근사(`measure()`: 한글 1.0배, 라틴 0.56배)이고 자동 줄바꿈이 없다. 긴 문장은 스크립트에서 줄을 직접 나눈다. 문구를 바꾸면 넘침을 다시 확인한다.
 - 레이어 id는 보드 안에서 겹치지 않게 번호를 붙였다. 대화상자 뒤 배경 화면(07)의 페르소나 이미지는 용량을 줄이려고 회색 사각형으로 대체했다.
-- 실제 Figma import 결과(레이어 구조, 글꼴 대체, 이미지)는 **미확인**이다. import 후 깨지는 곳이 있으면 이 스크립트를 고친다.
+- 실제 Figma import 결과는 위 "Import 결과"에서 확인했다. 8장 모두 화면으로 보고 글자 잘림·겹침·이미지 누락이 없음을 확인했다.
+- Figma에서 컴포넌트·오토레이아웃으로 묶는 작업은 하지 않았다. 레이어 이름(`Button/Primary/분석하기` 등)만 그대로 들어가 있다.
 - 보드는 Android 렌더링과 픽셀 단위로 같지 않다. 간격·크기의 기준은 코드다.
