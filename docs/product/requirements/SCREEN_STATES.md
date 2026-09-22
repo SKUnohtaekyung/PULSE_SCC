@@ -5,8 +5,8 @@
 | 항목 | 내용 |
 |---|---|
 | 목적 | Android 프론트엔드가 화면별 정상·진행·빈 상태·오류·복구 상태를 빠뜨리지 않도록 구현 상태를 정의한다 |
-| 상태 | 5차 — 백엔드 계약 반영과 프론트엔드 구현 가능성 재검토. 세부 카피·시각 디자인·오프라인 정책은 미정 |
-| 기준일 | 2026-09-21 |
+| 상태 | 6차 — Step 5 디자인 합성의 저장 선택 시점·실패 배치·내비게이션 조건 반영. 세부 카피·시각 디자인·오프라인 정책은 미정 |
+| 기준일 | 2026-09-22 |
 | 백엔드 계약 출처 | 인증 정책·계정 연결·가입 응답: 원격 `feat/TASK-011-authentication`(PR #27, `74d6df8`)의 `docs/decisions/ADR-008-authentication-policy.md`, `docs/architecture/API.md`, `AuthService`·`AuthController`. 약관·법률 문서 동의와 계정 탈퇴: 원격 `feat/TASK-012-analysis-pipeline`(`a4ab15b`)의 `docs/architecture/API.md`, `docs/decisions/ADR-010-account-deletion.md`, `LegalController`, `MyPageService`. 두 브랜치는 2026-09-21 기준 `main`에 병합 전이며 병합 후 상대 링크로 바꾼다 |
 | 제품 요구사항 정본 | [PRD.md](../PRD.md) |
 | 사용자 흐름 | [USER_FLOW.md](USER_FLOW.md) |
@@ -189,6 +189,8 @@
 
 입력을 고쳐야 하는 작업 실패(`STORE_NOT_FOUND`, 작업 실패로 온 `INVALID_NAVER_PLACE_URL`)는 `ANALYSIS-FATAL-ERROR`가 아니라 §4.1의 `STORE-NOT-FOUND`·`STORE-UNSUPPORTED-URL`로 돌아간다.
 
+진행 화면은 받은 단계를 쌓는 목록이다([Step 5 합성](../../design/synthesis/TASK-020/README.md)). 원격 백엔드는 실패 시 `progressStep`을 `FAILED`로 덮어써 실패 단계를 알 수 없으므로, 위 예외 상태는 마지막 진행 행을 오류로 바꾸지 않고 목록 끝에 실패 결과 행을 붙여 원인(`error.code`·`retryable` 기준)과 다음 행동을 둔다. 입력을 고쳐야 하는 실패는 목록에 남기지 않고 입력 화면으로 돌아간다.
+
 ### 5.2 `SC-009` 오류·한계 배치
 
 `SC-009`는 독립 route를 뜻하지 않는다. 오류와 한계를 발생 단계 안에 배치하기 위한 논리 화면 ID다.
@@ -302,15 +304,15 @@
 | 상태 ID | 조건·이벤트 | 사용자에게 보이는 것 | 시스템 처리 | 다음 전이 |
 |---|---|---|---|---|
 | `SAVE-FIRST-PENDING` | 저장본이 없는 계정의 작업이 아직 `RUNNING` | 분석 진행 화면의 마지막 단계 문구. 별도 저장 화면을 만들지 않음 | 작업 상태 조회 계속 | `SAVE-FIRST-SUCCESS` 또는 분석 실패 상태 |
-| `SAVE-FIRST-SUCCESS` | 작업이 `COMPLETED`이고 저장본의 `analysisId`가 이 작업의 `analysisId`와 같음 | 결과가 저장돼 홈에서 볼 수 있다는 완료 상태 | 홈으로 이동 | `HOME-LOADING` |
-| `SAVE-CHOICE-REQUIRED` | 저장본의 `analysisId`가 이 작업과 다르고 `RESULT-UNSAVED-PREVIEW` 확인을 마침 | 새 결과로 교체 / 기존 결과 유지 | 선택 전 기존 저장본 유지 | 사용자 선택 |
+| `SAVE-FIRST-SUCCESS` | 작업이 `COMPLETED`이고 저장본의 `analysisId`가 이 작업의 `analysisId`와 같음 | 결과가 저장돼 홈에서 볼 수 있다는 별도 완료 화면 | 사용자가 `결과 보기`를 누르면 홈으로 이동 | `HOME-LOADING` |
+| `SAVE-CHOICE-REQUIRED` | 저장본의 `analysisId`가 이 작업과 다름. `RESULT-UNSAVED-PREVIEW`와 같은 화면에 함께 표시 | 미리보기 하단에 고정된 새 결과로 교체 / 기존 결과 유지와 "유지하면 새 결과는 저장되지 않고 화면을 닫은 뒤 다시 볼 수 없을 수 있다"는 안내. 교체는 현재 저장본(가게 이름·분석일)을 밝힌 확인을 거친다 | 선택 전 기존 저장본 유지. 뒤로가기·닫기는 조용히 버리지 않고 두 선택과 계속 보기를 묻는다. 여기서 교체를 고르면 교체 확인을 한 번 더 거친다 | 사용자 선택 |
 | `SAVE-REPLACING` | 새 결과로 교체 선택 | 교체 중 안내, 중복 선택 차단 | 소유권·완료 상태 확인 후 트랜잭션 update | 홈의 새 결과 |
 | `SAVE-KEEPING` | 기존 결과 유지 선택 | 기존 결과로 돌아가는 중 안내 | 기존 저장본 변경 없음 | 홈의 기존 결과 |
 | `SAVE-CONFLICT` | 동시 변경·저장 충돌 | 저장 상태가 바뀌었다는 안내 | 최신 저장본 재조회 | 다시 선택 또는 홈 |
 | `SAVE-FIRST-ERROR` | 작업이 `COMPLETED`됐는데 저장 결과 조회가 `SAVED_ANALYSIS_NOT_FOUND` | 아직 홈에 저장된 결과가 없다는 안내와 재조회 | 첫 분석 결과를 완료로 가장하지 않음. 서버 계약상 발생하면 안 되는 불일치이므로 결과 무결성 오류로 다룬다 | 저장 결과 재조회 |
 | `SAVE-REPLACE-ERROR` | 기존 저장본 교체 실패 | 기존 저장본이 그대로 유지됐다는 안내 | 기존 저장본을 손상시키지 않음 | 교체 재시도 또는 기존 결과 유지 |
 
-기존 결과 유지 후 미저장 새 결과를 얼마나 다시 볼 수 있는지는 미정이다. 이 정책이 확정되기 전에는 프론트가 임의의 영구 보관·히스토리 화면을 만들지 않는다.
+저장 선택을 미리보기 첫 화면부터 보여주고 교체만 확인을 거치는 결정과 그 근거는 [Step 5 합성](../../design/synthesis/TASK-020/README.md)의 Save choice timing에 있다. 기존 결과 유지 후 미저장 새 결과를 얼마나 다시 볼 수 있는지는 미정이다. 이 정책이 확정되기 전에는 프론트가 임의의 영구 보관·히스토리 화면을 만들지 않는다.
 
 ---
 
@@ -347,9 +349,9 @@
 
 | 상태 ID | 조건 | 표시·동작 |
 |---|---|---|
-| `NAV-HIDDEN` | 저장 결과 없음·첫 분석 전 | 하단 내비게이션을 표시하지 않는다 |
+| `NAV-HIDDEN` | 저장 결과 없음·첫 분석 전, 첫 저장 완료 화면(`SAVE-FIRST-SUCCESS`), 새 결과 미리보기(`RESULT-UNSAVED-PREVIEW`) | 하단 내비게이션을 표시하지 않는다. 미리보기에서는 선택 없이 다른 탭으로 떠나 새 결과를 잃지 않게 한다 |
 | `NAV-HOME-ACTIVE` | 홈 | 홈 선택 상태. 가운데 분석하기는 주요 행동으로 유지 |
-| `NAV-ANALYSIS-ACTIVE` | 새 분석 흐름 | 분석하기 선택 상태. 진행 중 이탈 정책은 미정 |
+| `NAV-ANALYSIS-ACTIVE` | 새 분석 흐름(저장본이 있는 사용자의 입력·진행). 새 결과 미리보기는 `NAV-HIDDEN` | 분석하기 선택 상태. 진행 중 이탈 정책은 미정 |
 | `NAV-MYPAGE-ACTIVE` | 마이페이지 | 마이페이지 선택 상태 |
 | `NAV-DISABLED-TRANSITION` | 저장 교체 등 중복 이동이 위험한 짧은 전이 | 필요한 항목만 일시 비활성화하고 이유를 접근 가능하게 알림 |
 
@@ -385,7 +387,8 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 운영 가입 차단을 앱이 판별하는 방법(빌드 설정 또는 서버 필드) | `AUTH-SIGNUP-UNAVAILABLE` | 운영 출시 전 |
 | Refresh 회전 유예(30초)를 백엔드 정본(ADR·API.md)에 올릴지, TASK-011과 TASK-012 코드 중 어느 동작을 남길지 (`role:feature`·`role:platform`) | 불변식 10 | 두 원격 브랜치 병합 전 |
 | 가게 입력과 확인의 route 분리 | `SC-001`, `SC-002` | 화면 구조 구현 전 |
-| 저장 선택 UI 형식과 세부 문구 | `SC-010` | 저장 선택 화면 구현 전 |
+| 저장 선택 UI 세부 문구(형식은 [Step 5 합성](../../design/synthesis/TASK-020/README.md)에서 결정) | `SC-010` | Step 6 정본화 |
+| 실패한 분석 단계를 서버가 알려줄지(현재 `progressStep`이 `FAILED`로 덮여 알 수 없음, `role:feature`) | `SC-003` 실패 결과 행 | 분석 API 연동 전 |
 | 미저장 새 결과의 접근·보관 시간 | `SAVE-KEEPING` 이후 | 작업 큐·삭제 배치 구현 전 |
 | 알림 읽음 처리 | `SC-012` | 마이페이지 API 구현 전 |
 | 최소 Android OS·지원 기기·접근성 목표 | 전체 Visual QA | 첫 UI 구현 전 |
@@ -432,6 +435,19 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 공백·충돌 표식 | PASS | `git diff --check` 이상 없음 |
 | 앱 렌더링·Visual QA | 미실행 | 프론트엔드 코드가 아직 없으므로 Design Foundation과 Vertical Slice 이후 수행 |
 | 독립 Reviewer | 미실행 | 제품·디자인 담당자 배정과 검토 필요 |
+
+### 6차 Step 5 디자인 합성 반영
+
+반영일: 2026-09-22. 사용자가 고른 합성안([Step 5 합성](../../design/synthesis/TASK-020/README.md))에 맞춰 아래를 고쳤다.
+
+| 변경 | 내용 |
+|---|---|
+| §5.1 뒤 | 분석 실패를 진행 목록 끝의 실패 결과 행과 원인·다음 행동으로 배치. 실패 단계는 표시하지 않음 |
+| §7 `SAVE-FIRST-SUCCESS` | 자동 이동 대신 별도 완료 화면에서 `결과 보기`로 홈 이동 |
+| §9 `NAV-ANALYSIS-ACTIVE` | 미리보기를 제외 |
+| §11 | 저장 선택 형식 해소(문구만 남음), 실패 단계 제공 여부 추가 |
+| §7 `SAVE-CHOICE-REQUIRED` | "미리보기 확인을 마친 뒤"에서 "미리보기와 같은 화면에 함께 표시"로. 교체 확인, 유지 안내, 뒤로가기 처리 추가 |
+| §9 `NAV-HIDDEN` | 첫 저장 완료 화면과 새 결과 미리보기를 조건에 추가 |
 
 ### 5차 독립 재검토 반영
 

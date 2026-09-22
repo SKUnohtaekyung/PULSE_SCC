@@ -2,7 +2,7 @@
 
 ## Status
 
-Step 4 Design Exploration 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAIL(P2 4건) → 2차 FAIL(P2 1건) → 3차 PASS. Step 3 게이트는 2026-09-22 PASS. 작업은 TASK-019 브랜치에서 수행
+Step 5 Design Synthesis 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 FAIL(P2 2건) → 2차 FAIL(P2 1건) → 3차 PASS. 입력 화면 헤더 색 조정은 사용자 확인 대기. Step 4 게이트는 2026-09-22 PASS. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -28,6 +28,7 @@ Step 4 Design Exploration 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 F
 - 기능명세의 논리 화면 13개 추적과 저장소 내 Markdown 상대 링크를 검증했다.
 - (Step 3) 상태 모델이 요구하는 오류·주의·입력·삭제·로딩·이미지 실패 표현을 토큰·컴포넌트 규칙·에셋 규칙과 대조했다. 기존 토큰의 대비 미달 3건(오류 원색/화면 배경 4.4999:1, 주의 원색 아이콘/화면 배경 2.97:1, 입력 경계 `border.strong` 1.48:1)과 삭제 토큰 부재를 찾아 토큰을 추가하고 규칙을 적었다. 새 삭제 버튼과 포커스 링이 맞닿는 조합(1.9954:1)은 리뷰에서 추가로 찾아 링 offset 규칙으로 막았다.
 - (Step 4) Vertical Slice 앞 단계(입력·진행·첫 저장/홈)의 서로 다른 UX 가설 4개와 결과 상태 변형 보드 1개를 ImageGen으로 만들고, 각 가설의 최적화 대상·상태 대응·trade-off와 Step 5 질문을 정리했다. 정상 결과 화면은 TASK-015·017·016에서 이미 탐색·합성돼 다시 하지 않았다.
+- (Step 5) 사용자 선택(한 화면 입력·쌓이는 진행 목록 — 가설 1, 첫 저장 완료 화면 — 가설 2, 새 결과 미리보기 — 상태 보드 ③)을 합성하고, 위임받은 저장 선택 시점(처음부터 하단 고정 + 교체 확인)과 실패 배치·결과 상태 표현을 정했다.
 - PRD·기능명세·User Flow·Result IA를 다시 대조해 회원가입, 새 결과 미리보기, 저장 오류, 결과 한계, 마이페이지 상태 누락을 보완했다.
 
 ## Changed
@@ -42,6 +43,8 @@ Step 4 Design Exploration 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 F
 - (Step 3) `docs/design/DESIGN_SYSTEM.md` — 라이트 테마 한정, 색상 이식표·대비 한계표, 오류·주의·입력·삭제 사용 규칙, 로딩 자리표시·이미지 실패 대체·에셋 사용 금지 조건, 아이콘 공급원 미결정 기록, 5.4절 포커스 링 offset 규칙, §13 후속 결정 3행(로딩·실패·빈 슬롯 구분, 오프라인·인증 만료 표현, 버튼·내비게이션·토글 상태)
 - (Step 3) `docs/design/evidence/TASK-020/` — Android 100%·200% 글자 크기 캡처
 - (Step 4) `docs/design/explorations/TASK-020/` — 가설 보드 4장, 상태 보드 1장, README, PROMPTS
+- (Step 5) `docs/design/synthesis/TASK-020/README.md` — 합성안 정본
+- (Step 5) `SCREEN_STATES.md` §5.1·§7·§9·§11·§13, `DESIGN_SYSTEM.md` 5.4·§6·§13, `RESULT_IA.md` §5·§6, `USER_FLOW.md` UF-03·UF-04·UF-06 — 합성 결정 반영
 
 ## Decisions
 
@@ -55,6 +58,7 @@ Step 4 Design Exploration 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 F
 8. (Step 3) 되돌릴 수 없는 행동은 진입점 텍스트 버튼(`destructive.text`)과 최종 확인 버튼(`destructive.primary`)으로 나눈다.
 9. (Step 3) 아이콘 공급원은 이번 단계에서 정하지 않는다. 의존성 추가 결정이므로 Vertical Slice 착수 전에 정한다.
 10. (Step 4) 시안 이미지 생성에 한해 Codex 내장 ImageGen을 쓴다(2026-09-22 사용자 허용). Codex는 저장소 밖에서 read-only로 실행하고, 저장소 반영·검토·문서화는 Claude가 한다.
+11. (Step 5) 새 결과 미리보기의 저장 선택은 처음부터 하단에 고정하고, 교체만 확인 대화상자를 거친다. 교체 확인 대화상자의 최종 `바꾸기`만 `destructive.primary`를 쓴다. 유지는 "새 결과는 저장되지 않고 닫은 뒤 다시 볼 수 없을 수 있다" 안내로 대신하고, 미리보기에서는 하단 내비게이션을 숨겨 선택 없이 떠나지 않게 한다.
 
 ## Verification
 
@@ -69,6 +73,7 @@ Step 4 Design Exploration 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 F
 - (Step 3) 독립 Reviewer: PASS — 1차 FAIL(status.error 범위 모순, 포커스 링/삭제 버튼 대비 미검사, handoff 기록 오류 2건) → 2차 PASS(P3만 남음, 반영)
 - (Step 3) Android Visual QA(`Medium_Phone`, Expo Go, `/foundation`): PASS — 100%·200% 글자 크기에서 State color 견본 잘림·겹침 없음. TalkBack·실기기 미실행
 - (Step 4) 시안 5장 육안 대조: 초안 문제 3건(장식 이미지의 AI 표시, 유형 이름 누락, 편집 중 생긴 오타)을 편집으로 수정. 가설 3의 "분석하지" 오타는 편집 2회 실패로 남겨 Known defects에 기록. 앱 코드 변경 없음, Visual QA 해당 없음
+- (Step 5) 문서 전용 변경. 링크·`git diff --check` 확인, 앱 코드 변경 없음
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved
@@ -76,7 +81,7 @@ Step 4 Design Exploration 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 F
 1. 오프라인·캐시·자동 재시도 정책
 2. 분석 polling·백오프와 앱 종료·복귀 정책
 3. 가게 입력·확인 route 분리 여부
-4. 저장 선택 UI와 미저장 결과 보관 정책
+4. 미저장 결과 보관 정책과 저장 선택 문구(저장 선택 형식은 Step 5 합성에서 결정)
 5. 알림 읽음 처리
 6. 최소 Android OS·지원 기기·접근성 목표
 7. ~~Expo SDK·React Native 버전과 workflow~~ — 2026-09-18 [ADR-011](../../decisions/ADR-011-frontend-bootstrap.md)로 해소
@@ -92,7 +97,7 @@ Step 4 Design Exploration 게이트 PASS (2026-09-22) — 독립 Reviewer 1차 F
 
 ## Next Action
 
-사용자 확인 후 Step 5 Design Synthesis(`docs/design/explorations/TASK-020/README.md`의 Open questions를 사용자와 결정). SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
+입력 화면 헤더 색 조정(합성안 §1)을 사용자에게 확인받은 뒤 Step 6 Figma 정본화. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 
