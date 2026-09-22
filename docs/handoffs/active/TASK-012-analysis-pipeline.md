@@ -104,7 +104,12 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 - 이 브랜치는 PR #27(`feat/TASK-011-authentication`)의 **수정 전** 인증 커밋 3개(`7773443`, `e61e713`, `948e404`)를 포함한다.
 - PR #27 에는 그 뒤로 오류 계약 준수·Google issuer 500 수정·계정 열거·회전 경합 수정(`aa0dfa1`, `74d6df8`, `bc6439b`)이 추가됐다. 이 브랜치에는 **없다.**
-- PR #27 이 squash 병합되면 이 브랜치에 `main` 을 **merge commit 으로 연결**하고, 인증 파일 충돌은 `main` 쪽을 정본으로 해결한다. force push 금지.
+- PR #27 이 squash 병합되면 이 브랜치에 `main` 을 **merge commit 으로 연결**한다. force push 금지.
+- **인증 파일 충돌은 한쪽을 통째로 택하지 말고 손으로 합친다.** 양쪽이 같은 파일을 다르게 발전시켰다.
+  - 이 브랜치만 가진 것: `AuthService.register` 의 약관 동의 기록(`insertLegalConsent`)·기본 알림 설정 생성(`insertNotificationSettings`)·`LegalDocuments.requireCurrent` 검사, Google 가입 시 알림 설정 생성, `SecurityConfigTests` 의 `TransactionTemplate` mock
+  - PR #27 만 가진 것: `traceId`·`fieldErrors` 오류 계약, Google issuer 문자열 클레임 처리, 이메일 320자 제한, 로그인 미끼 해시, 회전 유예 창·`deleteUnusedSession`, `RefreshSession.replacedBySessionId`, 테스트 46개
+  - `main` 쪽을 통째로 택하면 **약관 동의 기록이 사라진다.** 이 브랜치 쪽을 통째로 택하면 **보안 수정이 사라진다.**
+  - 합친 뒤 Spring test 전체와 로컬 DB `bootRun` + 가입·로그인·회전 호출로 재확인한다.
 - 폐기한 중복 브랜치 `feat/TASK-012-naver-review-collector`(`739c516`)는 **로컬에만** 있다. 삭제 여부는 사용자 결정 대기.
 - 인증 쪽 상세 상태는 PR #27 브랜치의 `docs/handoffs/active/TASK-011-authentication.md` 를 본다.
 
