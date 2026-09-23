@@ -242,12 +242,8 @@ export function AnalyzeScreen() {
         return;
       }
 
-      // 저장본이 있는 사용자의 새 결과 미리보기·저장 선택은 다음 Slice다(SCREEN_STATES §10).
-      setCompletionIssue({
-        title: '새 결과를 미리 보는 화면은 아직 연결하지 않았어요',
-        message:
-          '기존 저장 결과는 그대로 있어요. 새 결과로 바꾸는 선택 화면은 다음 단계에서 연결해요.',
-      });
+      // 저장본이 다르면 이 결과는 저장되지 않았다. 미리보기와 저장 선택으로 보낸다(SCREEN_STATES §7).
+      router.replace({ pathname: '/preview-result', params: { jobId: job.jobId } });
     },
     [client, router, setHasSavedAnalysis],
   );
@@ -366,6 +362,7 @@ export function AnalyzeScreen() {
             active="analysis"
             bottomInset={insets.bottom}
             onHome={() => router.replace('/home')}
+            onMyPage={() => router.push('/mypage')}
           />
         ) : null
       }

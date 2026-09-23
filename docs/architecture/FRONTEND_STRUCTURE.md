@@ -51,10 +51,10 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 
 | 확인한 것 | 결과 |
 |---|---|
-| 공용 컴포넌트 10종(Button·TextField·Field·Chip·Notice·LoadingBlock·ProgressList·ScreenHeader·BottomNavigation·Screen) | 유지 |
+| 공용 컴포넌트 14종(Button·TextField·Field·Chip·CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock·Notice·LoadingBlock·ProgressList·ScreenHeader·BottomNavigation·Screen) | 유지 — 9단계에서 CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock을 더했다. 페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다 |
 | 화면 골격(SafeArea·스크롤·읽기 폭·좌우 여백)이 화면마다 복제됨 | **보완함** — `components/ui/Screen.tsx`로 모으고 5개 화면을 옮겼다. 9단계에서 화면이 늘어도 골격은 한 곳이다 |
 | 같은 입력을 두 번 구현(`TextField` ↔ 가게 입력 화면) | 보완함(Step 7 리뷰에서 해소) — `Field`를 분리해 글자 입력과 선택 입력이 같은 껍데기를 쓴다 |
-| DESIGN_SYSTEM §5.3 목록 중 미구현 | AuthMethodSelector·CredentialForm(가입)·StoreConfirmation·EvidenceReviewList(전체 목록)·AnalysisStorageState(교체·유지)·PersonaImageStorage — 9단계 |
+| DESIGN_SYSTEM §5.3 목록 중 미구현 | AuthMethodSelector(Google 결정 대기)·StoreConfirmation(API 없음, SCREEN_STATES §4.3) |
 | 9단계에 새로 필요한 공용 컴포넌트 | 확인 대화상자(Modal/Dialog), 설정 토글(Switch), 알림 목록 행. 프로토타입(`prototypes/result`)에 대화상자 구현이 있어 승격해 쓴다 |
 | 목록 화면(`SC-005` 전체 근거는 cursor 페이지네이션이라 `FlatList`가 필요) | **보완함** — `Screen`에 `scroll={false}`를 두면 본문이 남은 높이를 모두 차지해 목록이 자기 스크롤을 갖는다. 60행짜리 목록을 임시 화면에 띄워 실제로 스크롤되는 것을 확인했다(`step8-05-list-scroll.png`, 확인 뒤 임시 화면은 되돌림). `FlatList`를 `ScrollView` 안에 넣으면 가상화가 꺼진다 |
 | 버튼·칩의 focus 표현 | 결정 필요 — DESIGN_SYSTEM §5.2가 요구하나 Android 실기기 기준(§8.2)이 미정이라 두지 않았다 |
@@ -72,10 +72,10 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 
 | 확인한 것 | 결과 |
 |---|---|
-| 구현된 엔드포인트 9개(login·session·logout·refresh·작업 생성/조회/결과·저장본 조회/교체) | 유지 |
-| API.md에 있으나 미구현: register·google·evidence·persona-images 직접 조회·notifications·notification-settings | 9단계 |
-| 앱·백엔드가 쓰지만 API.md §3.1 표에 없는 `GET /api/v1/auth/session`, API.md에 없고 SCREEN_STATES §3.2에만 있는 `GET /api/v1/legal-documents` | 결정 필요 — API.md를 실제에 맞출지 `role:platform`이 정한다(§4.2 세션 응답 불일치와 같은 건) |
-| 가상 서버가 실제와 같은 경로·요청·응답을 쓰는지 | 유지 — 원격 백엔드 코드에서 읽은 모양을 그대로 따랐다(Step 7 리뷰에서 전수 대조) |
+| 구현된 엔드포인트 15개(login·register·session·logout·refresh·legal-documents·작업 생성/조회/결과·저장본 조회/교체·근거 목록·알림 조회·알림 설정 조회/변경) | 유지 |
+| API.md에 있으나 미구현: google 로그인·persona-images 직접 조회 | Google은 앱 식별자·OAuth 설정 결정 대기, 이미지 직접 조회는 실제 서버 연결과 함께 |
+| API.md와 실제 백엔드가 어긋나는 endpoint 3건: `GET /api/v1/auth/session`(API.md 표에 없음), `GET /api/v1/legal-documents`(API.md에 없고 SCREEN_STATES §3.2에만 있음), `DELETE /api/v1/me/account`(원격 백엔드에는 있으나 API.md §3.3이 계약에서 제외) | 결정 필요 — API.md를 실제에 맞출지 `role:platform`이 정한다(§4.2 세션 응답 불일치와 같은 건). 탈퇴는 이 결정 전까지 앱에서 구현하지 않는다 |
+| 가상 서버가 실제와 같은 경로·요청·응답을 쓰는지 | 유지 — 원격 백엔드 코드에서 읽은 모양을 따른다. Step 7 호출 9개와 Step 9 호출 6개를 각각 리뷰에서 대조했다. 9단계 대조에서 `GET /me/notifications`가 배열인데 앱이 `{ items }`로 읽던 것을 찾아 고쳤다 |
 | fixture ↔ http 전환 | 유지 — `EXPO_PUBLIC_API_BASE_URL` 유무로 갈린다. 화면 코드는 그대로다 |
 | 요청 timeout | **보완함** — 15초 뒤 요청을 끊고 `NetworkError`로 다룬다. 없으면 진행 화면 조회가 영영 멈춘다 |
 | API.md §4.2와 실제 `SessionResponse` 불일치 | 결정 필요 — SCREEN_STATES §11 머리말에 기록. `role:platform`이 정한다 |

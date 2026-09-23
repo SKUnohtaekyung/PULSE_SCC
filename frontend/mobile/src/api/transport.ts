@@ -3,7 +3,7 @@ import { NetworkError } from '@/api/errors';
 import { handleFixtureRequest } from '@/api/fixtures/server';
 
 export type ApiRequest = {
-  method: 'GET' | 'POST' | 'PUT';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH';
   path: string;
   body?: unknown;
   headers?: Record<string, string>;

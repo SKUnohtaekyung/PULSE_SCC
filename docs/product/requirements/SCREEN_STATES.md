@@ -438,6 +438,33 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 앱 렌더링·Visual QA | 미실행 | 프론트엔드 코드가 아직 없으므로 Design Foundation과 Vertical Slice 이후 수행 |
 | 독립 Reviewer | 미실행 | 제품·디자인 담당자 배정과 검토 필요 |
 
+### 8차 Step 9 전체 구현 확인
+
+확인일: 2026-09-23. Step 7 Slice 밖에 있던 화면을 구현하고 Android 에뮬레이터(`Medium_Phone`, Expo Go)에서 실행했다.
+백엔드는 여전히 병합·배포 전이라 **고정 fixture 서버**로 확인했다.
+
+| 상태 | 결과 | 근거 캡처 |
+|---|---|---|
+| `AUTH-LEGAL-LOADING` → `AUTH-SIGNUP-EDITING` | 확인 | `step9-01-signup.png` — 조회한 약관 버전을 화면에 표시 |
+| `AUTH-FIELD-ERROR`(가입) | 확인 | 빈 값 제출 시 필드별 오류와 동의 누락 안내 |
+| `AUTH-SIGNUP-SUBMITTING` → `AUTH-SIGNUP-CREATED` → `APP-FIRST-ANALYSIS-REQUIRED` | 확인 | `step9-02-signup-to-analyze.png` |
+| `MYPAGE-NORMAL`·`NOTIFICATION-NORMAL`·`SETTING-NORMAL-ON` | 확인 | `step9-03-mypage.png` |
+| `SETTING-UPDATING` → `SETTING-NORMAL-OFF` | 확인 | 토글이 꺼짐으로 바뀌고 글자도 함께 바뀜 |
+| `STORED-IMAGES-NORMAL`·서비스 정보·로그아웃 진입점·탈퇴 안내 | 확인 | 마이페이지 아래쪽 |
+| `EVIDENCE-LOADING` → `EVIDENCE-NORMAL` → `EVIDENCE-LOADING-MORE` → `EVIDENCE-END` | 확인 | `step9-04-evidence-list.png`, `step9-05-evidence-end.png` — cursor로 47건을 모두 이어 받음 |
+| `RESULT-UNSAVED-PREVIEW` + `SAVE-CHOICE-REQUIRED` + `NAV-HIDDEN` | 확인 | `step9-06-preview-save-choice.png` |
+| 교체 확인 대화상자 | 확인 | `step9-07-replace-confirm.png` — 현재 저장본 이름·분석일을 밝히고 최종 버튼만 `destructive` |
+| `SAVE-REPLACING` → 홈의 새 결과 | 확인 | `step9-08-home-after-replace.png` |
+| `LOGOUT-CONFIRM` → `LOGOUT-SUCCESS` | 확인 | `step9-09-logout-confirm.png` 이후 로그인 화면 |
+
+확인하지 못한 것:
+
+- `AUTH-CONSENT-OUTDATED`·`AUTH-SIGNUP-ERROR`(중복 이메일)·`AUTH-SIGNUP-UNAVAILABLE`: 코드와 fixture 경로는 있으나 화면 캡처는 남기지 않았다.
+- `EVIDENCE-EMPTY`·`EVIDENCE-ERROR`·`MYPAGE-PARTIAL-ERROR`·`SETTING-ERROR`·`SAVE-REPLACE-ERROR`·`LOGOUT-ERROR`: 실패를 재현하지 않았다.
+- `SAVE-KEEPING`(기존 결과 유지)과 뒤로가기 3택 대화상자: 코드에 있으나 이번 실행에서는 교체 경로만 확인했다.
+- Google 로그인(`AUTH-GOOGLE-*`)과 계정 탈퇴(`ACCOUNT-DELETE-*`): 구현하지 않았다. 앱 식별자·OAuth 설정과 탈퇴 API가 정해지기 전에는 만들지 않는다(§11).
+- 실제 백엔드 연결·TalkBack·실기기: 미실행.
+
 ### 7차 Step 7 첫 Vertical Slice 구현 확인
 
 확인일: 2026-09-22. §10의 흐름을 `frontend/mobile`에 구현하고 Android 에뮬레이터(`Medium_Phone`, Android 17/API 37, Expo Go)에서 실행해 확인했다.

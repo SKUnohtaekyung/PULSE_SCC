@@ -89,6 +89,7 @@ export function HomeScreen() {
             active="home"
             bottomInset={insets.bottom}
             onAnalyze={() => router.push('/analyze')}
+            onMyPage={() => router.push('/mypage')}
           />
         )
       }
@@ -123,7 +124,21 @@ export function HomeScreen() {
       {phase === 'ready' && result ? (
         <>
           <Text style={styles.context}>지금 저장된 결과예요.</Text>
-          <ResultView client={client} result={result} />
+          <ResultView
+            client={client}
+            onOpenEvidence={(args) =>
+              router.push({
+                pathname: '/evidence',
+                params: {
+                  analysisId: args.analysisId,
+                  personaId: args.personaId,
+                  personaLabel: args.personaLabel,
+                  perspective: args.perspective,
+                },
+              })
+            }
+            result={result}
+          />
         </>
       ) : null}
     </Screen>

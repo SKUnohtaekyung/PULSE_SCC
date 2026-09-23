@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -31,6 +32,7 @@ const loginErrorCopy: Record<string, string> = {
 };
 
 export function LoginScreen() {
+  const router = useRouter();
   const { signIn, client, expired } = useSession();
   const [email, setEmail] = useState(isFixtureMode ? fixtureAccount.email : '');
   const [password, setPassword] = useState('');
@@ -137,11 +139,13 @@ export function LoginScreen() {
         onPress={() => void submit()}
       />
 
+      <Button label="이메일로 가입하기" onPress={() => router.push('/signup')} variant="ghost" />
+
       <View style={styles.otherWays}>
-        <Text style={styles.otherWaysTitle}>다른 방법</Text>
+        <Text style={styles.otherWaysTitle}>Google 로그인</Text>
         <Text style={styles.otherWaysBody}>
-          Google 로그인과 이메일 가입은 이번 구현 범위에 들어 있지 않아요. 백엔드 연결을 마친 뒤 이어서
-          연결해요.
+          Google 로그인은 앱 식별자와 OAuth 설정이 정해진 뒤에 연결해요. 지금은 이메일 계정으로 이용해
+          주세요.
         </Text>
       </View>
 

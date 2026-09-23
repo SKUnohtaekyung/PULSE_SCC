@@ -2,7 +2,7 @@
 
 ## Status
 
-Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
+Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -15,7 +15,8 @@ Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice �
 | `docs/architecture/FRONTEND_STRUCTURE.md`(신설)·`docs/architecture/ARCHITECTURE.md` | `role:platform` | Step 8 구조 검증 기록 |
 | `docs/design/**`(DESIGN_SYSTEM·evidence·synthesis·figma) | `role:design-system` | Step 3~8 토큰·컴포넌트·검증 기록 |
 | `frontend/mobile/src/design/**`·`src/components/ui/**` | `role:design-system` | 토큰과 공용 컴포넌트 |
-| `docs/product/requirements/SCREEN_STATES.md` | `role:product` | 상태 모델 갱신 |
+| `docs/product/requirements/SCREEN_STATES.md` | `role:product` | 상태 모델 갱신과 Step 7·9 검증 기록 |
+| `frontend/mobile/src/components/ui/**`(Step 9 신설 4종 포함) | `role:design-system` | CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock |
 
 ## Branch
 
@@ -40,6 +41,7 @@ Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice �
 - (Step 6) 이 세션에 Figma 연결이 없어 사용자 선택에 따라 팀 Figma import용 SVG 보드 8장(IA·Flow, Foundation, Components, Assets, Final UI 4장)을 토큰에서 생성했다. Step 5에서 넘긴 결정 4개를 정해 합성안·프로토타입·보드와 SCREEN_STATES·DESIGN_SYSTEM에 반영했다(키보드 가림은 가설 — Step 7에서 확인).
 - (Step 5) 사용자 선택(한 화면 입력·쌓이는 진행 목록 — 가설 1, 첫 저장 완료 화면 — 가설 2, 새 결과 미리보기 — 상태 보드 ③)을 합성하고, 위임받은 저장 선택 시점(처음부터 하단 고정 + 교체 확인)과 실패 배치·결과 상태 표현을 정했다.
 - (Step 7) SCREEN_STATES §10의 첫 Vertical Slice를 구현했다. 계약 타입·HTTP 클라이언트(봉투 없는 401 → 단일 갱신 → 재전송)·엔드포인트·가상 서버, 안전 저장소 기반 세션, 로그인·가게 입력·진행·첫 저장·홈 결과 화면, 공용 UI 컴포넌트 9종을 만들었다. Android에서 정상 흐름과 실패 경계 7가지를 실행해 캡처 23장으로 남겼다.
+- (Step 9) Step 7 Slice 밖에 있던 화면을 구현했다. 이메일 가입(약관 조회·동의), 저장본이 있는 사용자의 새 결과 미리보기와 저장 선택(교체 확인·유지·뒤로가기 3택), 마이페이지(알림·알림 설정·저장 이미지·서비스 정보·로그아웃), 근거 리뷰 전체 보기(cursor). API 계층에 6개 호출과 가상 서버 응답을 더했다.
 - (Step 8) Component·State·API·Env·오류 처리·반응형 여섯 축으로 Step 7 구조가 전체 구현까지 버티는지 확인했다. 화면 골격 공통화(`components/ui/Screen`), 요청 timeout, 오류 문구 공통 규칙(`api/errorMessage`)을 보완하고, 결정이 필요한 5건을 `docs/architecture/FRONTEND_STRUCTURE.md`에 남겼다.
 - PRD·기능명세·User Flow·Result IA를 다시 대조해 회원가입, 새 결과 미리보기, 저장 오류, 결과 한계, 마이페이지 상태 누락을 보완했다.
 
@@ -60,6 +62,8 @@ Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice �
 - (Step 6) `SCREEN_STATES.md` §5.1 뒤 문단(멈춘 행)·§9 `NAV-ANALYSIS-ACTIVE`, `DESIGN_SYSTEM.md` §5.3 BottomNavigation 행 — 결정 2·3 반영
 - (Step 5) `frontend/mobile/src/prototypes/flow/FlowPrototype.tsx`, `src/app/flow.tsx`, `src/app/preview.tsx`, `ResultPrototype.tsx`(미리보기 모드·저장 선택·확인 대화상자·하단 내비게이션 연결) — Android 합성 프로토타입
 - (Step 5) `docs/design/evidence/TASK-020/step5-*.png` — Android 실행 캡처
+- (Step 9) `frontend/mobile/src/api/**` — 가입·약관·근거·알림·알림 설정 타입과 호출, 가상 서버 응답 / `components/ui/CheckRow·ToggleRow·ConfirmDialog` 신설 / `features/auth/SignupScreen`·`features/result/PreviewResultScreen`·`EvidenceScreen`·`features/mypage/MyPageScreen` 신설 / `ResultView`에 근거 전체 보기 진입점 / route `/signup`·`/preview-result`·`/evidence`·`/mypage` / evidence `step9-*.png` 9장
+- (Step 9) `SCREEN_STATES.md` §13 8차 기록 / `DESIGN_SYSTEM.md` §5.3 경로·§13 토글 결정 / `FRONTEND_STRUCTURE.md` 구현 현황 / `frontend/mobile/README.md` 화면 표
 - (Step 8) `docs/architecture/FRONTEND_STRUCTURE.md` 신설 + `ARCHITECTURE.md` 링크 / `frontend/mobile/src/components/ui/Screen.tsx`·`api/errorMessage.ts` 신설 / `api/transport.ts` timeout / 화면 5개를 공통 골격으로 이동 / evidence `step8-*.png`
 - (Step 7) `frontend/mobile/src/api/**` — 계약 타입, 오류 봉투 해석, HTTP/가상 서버 전송, 인증 클라이언트, 엔드포인트, 페르소나 이미지 source, fixtures(고정 결과 데이터 + 상황 12종)
 - (Step 7) `frontend/mobile/src/session/**` — `expo-secure-store` 토큰 저장과 `SessionProvider`(앱 시작·세션 복원·만료)
@@ -101,6 +105,13 @@ Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice �
 23. (Step 8) 분석 polling은 두 번째 사용처가 생길 때 hook으로 뽑는다. polling 정책이 미정이라 지금 추상화하지 않는다.
 24. (Step 8) 문구는 두 곳에 둔다. 일반 문구(연결·세션·원인 미상)는 `api`, 코드별 문구는 `features`가 갖는다.
 
+25. (Step 9) 저장본이 있는 사용자의 새 결과는 미리보기 화면(`/preview-result`)으로 보내고, 저장 선택을 끝내기 전에는 근거 전체 보기로 나가지 않는다.
+26. (Step 9) 알림 설정 토글은 스위치 옆에 `켜짐`·`꺼짐` 글자를 함께 둔다. 색만으로 상태를 알리지 않는다.
+27. (Step 9) 계정 탈퇴는 구현하지 않는다. 원격 백엔드에는 `DELETE /api/v1/me/account`가 있으나 이 저장소 API.md §3.3이 계약에서 제외했다. 계약을 맞출지는 `role:platform`이 정한다(FRONTEND_STRUCTURE §2.3).
+28. (Step 9) Google 로그인은 앱 식별자·scheme·OAuth client id가 정해진 뒤에 만든다. 로그인 화면에 그 사실을 적는다.
+29. (Step 9, 리뷰 반영) 페르소나 이미지는 `components/ui/PersonaImageBlock` 하나로 그린다. 결과 화면과 마이페이지가 같은 고지·로딩·실패 규칙을 쓴다.
+30. (Step 9, 리뷰 반영) 입력 검증은 서버 규칙보다 좁히지 않는다. 전화번호는 숫자 8~15자리와 국가번호를 허용하고, 보낼 때만 숫자로 정리한다.
+
 ## Verification
 
 - `SC-AUTH`, `SC-001`~`SC-012` 추적: PASS — 13/13
@@ -121,6 +132,10 @@ Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice �
 - (Step 7) 독립 Reviewer: 1차 FAIL(P1 2·P2 4) → 지적 사항 반영 후 재검토. 반영 내용: fixture 안내 누락(P1), 프로토타입 에셋 제품 사용(P1), TextField 중복(P2), IMAGE-LOAD-ERROR 재조회·크기(P2), DESIGN_SYSTEM §3.6↔§13 모순(P2), 갱신 실패 판정 범위(P2), 그리고 P3 중 하단 내비게이션 노출·401 코드 처리·주의 테두리 대비·미처리 rejection·§11 계약 차이 기록
 - (Step 7) 1차 수정 후 재검증: `verify:tokens`·`lint`·`typecheck`·`export:android` PASS, Android에서 첫 저장·홈·이미지 자리표시·이미지 조회 실패·제안 펼침 재확인(`step7-06`·`07`·`19`·`20`·`21`)
 - (Step 7) 2차 독립 Reviewer: 새 P2 1건(이미지 대체 영역 고정 높이 → 큰 글자에서 넘침 위험, 200% 캡처가 수정 전 것) 지적. 최소 높이로 되돌리고 200%를 다시 찍어 확인(`step7-17`·`22`·`23`), 홈 기반 캡처(`step7-15`·`16`)도 배너 반영본으로 교체
+- (Step 9) `verify:tokens`·`lint`·`typecheck`·`export:android`: PASS (2026-09-23)
+- (Step 9) Android Visual QA: PASS — 가입 → 첫 분석 → 홈 → 마이페이지(알림 설정 토글 포함) → 근거 목록(끝까지) → 두 번째 분석 → 미리보기 → 교체 확인 → 홈 교체 → 로그아웃을 실제로 실행하고 캡처 9장. 실패 상태·200%·TalkBack·실기기는 미실행(evidence README에 기록)
+- (Step 9) 독립 Reviewer: 1차 FAIL(P2 3건 — SCREEN_STATES §13 7차 제목 소실, `GET /me/notifications` 응답 모양 불일치, 마이페이지 이미지의 AI 고지·실패 상태 누락, P3 7건) → 모두 반영 후 재검토
+- (Step 9) 수정 후 재검증: `verify:tokens`·`lint`·`typecheck`·`export:android` PASS, Android에서 마이페이지 이미지 고지 재확인(`step9-10`)
 - (Step 8) `verify:tokens`·`lint`·`typecheck`·`export:android`: PASS (2026-09-23, 구조 변경 후 재실행)
 - (Step 8) Android 회귀·반응형: PASS — 화면 5개를 공통 골격으로 옮긴 뒤 로그인 → 입력 → 진행 → 첫 저장 → 홈 재실행, 가로 화면과 글자 크기 200%를 다시 확인(`step8-01`~`step8-04`). 컷아웃 기기·태블릿은 미실행
 - (Step 8) 독립 Reviewer: 1차 FAIL(P2 1건 — 구조 문서의 의존 서술이 코드와 불일치, P3 11건) → 문서 정정과 `Screen`의 목록·컷아웃·가운데 정렬 보완 후 재검토
@@ -147,7 +162,7 @@ Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice �
 
 ## Next Action
 
-사용자 확인 후 Step 8. Step 7에서 남은 것: 실제 백엔드 연결(§11 공백 해소 후), 오프라인·키보드·TalkBack 확인, 회원가입·Google 로그인·마이페이지·전체 근거 화면. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
+사용자 확인 후 Step 10(독립 검토). Step 9에서 남은 것: 실제 백엔드 연결(§11 공백 해소 후), Google 로그인과 계정 탈퇴(결정 대기), 실패 상태 재현, 오프라인·키보드·TalkBack·실기기 확인. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 

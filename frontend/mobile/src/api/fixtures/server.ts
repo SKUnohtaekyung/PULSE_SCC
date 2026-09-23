@@ -40,7 +40,7 @@ export const fixtureAccount = {
 };
 
 export type FixtureRequest = {
-  method: 'GET' | 'POST' | 'PUT';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH';
   path: string;
   body?: unknown;
   headers?: Record<string, string>;
@@ -64,6 +64,8 @@ type Session = {
   accessToken: string;
   refreshToken: string;
   accessTokenExpired: boolean;
+  /** 이 세션으로 로그인한 계정. 가입한 계정과 예시 계정을 구분해서 돌려준다. */
+  email: string;
 };
 
 const userId = '8bf5c78a-0000-4000-8000-000000000001';
@@ -81,6 +83,12 @@ let results = new Map<string, AnalysisResult>();
 let idempotencyKeys = new Map<string, string>();
 let jobAttempts = 0;
 let tokenSeq = 0;
+let notificationsEnabled = true;
+/** 가입으로 만든 계정. 가입 뒤에는 이 계정으로도 로그인할 수 있다. */
+let registeredAccount: { email: string; password: string } | null = null;
+
+/** 현재 약관 버전. 가입 요청의 동의 버전과 비교한다. */
+const legalVersions = { termsVersion: '2026-09-01', privacyVersion: '2026-09-01' };
 
 /**
  * 상황을 바꾸면 작업과 저장본을 모두 비운다.
@@ -108,6 +116,8 @@ export function resetFixtureServer() {
   setFixtureScenario(scenario);
   session = null;
   savedAnalysis = null;
+  notificationsEnabled = true;
+  registeredAccount = null;
 }
 
 const uuid = (seed: number, suffix: string) =>
@@ -126,12 +136,13 @@ const envelope = (
 /** 원격 백엔드의 SecurityConfig는 인증 실패 응답을 따로 정의하지 않아 봉투 없는 401이 온다(불변식 12). */
 const envelopeless401 = (): FixtureResponse => ({ status: 401, body: null });
 
-const issueSession = (expired: boolean): Session => {
+const issueSession = (expired: boolean, email: string): Session => {
   tokenSeq += 1;
   return {
     accessToken: `fixture-access-${tokenSeq}`,
     refreshToken: `fixture-refresh-${tokenSeq}`,
     accessTokenExpired: expired,
+    email,
   };
 };
 
@@ -142,7 +153,7 @@ const sessionBody = (current: Session) => ({
   refreshTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   user: {
     id: userId,
-    email: fixtureAccount.email,
+    email: current.email,
     hasSavedAnalysis: savedAnalysis !== null,
   },
 });
@@ -282,11 +293,67 @@ function handleAuth(request: FixtureRequest): FixtureResponse | null {
     if (fieldErrors.length > 0) {
       return envelope(400, 'INVALID_INPUT', '입력값을 확인해 주세요.', { fieldErrors });
     }
-    if (email !== fixtureAccount.email || password !== fixtureAccount.password) {
+    const known =
+      (email === fixtureAccount.email && password === fixtureAccount.password) ||
+      (registeredAccount !== null &&
+        email === registeredAccount.email &&
+        password === registeredAccount.password);
+    if (!known) {
       return envelope(401, 'INVALID_CREDENTIALS', '이메일 또는 비밀번호가 올바르지 않습니다.');
     }
-    session = issueSession(scenario === 'expiredAccessToken');
+    session = issueSession(scenario === 'expiredAccessToken', email);
     return { status: 200, body: sessionBody(session) };
+  }
+
+  if (request.path === '/api/v1/legal-documents' && request.method === 'GET') {
+    return {
+      status: 200,
+      body: {
+        termsVersion: legalVersions.termsVersion,
+        privacyVersion: legalVersions.privacyVersion,
+      },
+    };
+  }
+
+  if (request.path === '/api/v1/auth/register' && request.method === 'POST') {
+    const body = readBody(request);
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+    const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : '';
+    const termsVersion = typeof body.termsVersion === 'string' ? body.termsVersion : '';
+    const privacyVersion = typeof body.privacyVersion === 'string' ? body.privacyVersion : '';
+
+    const fieldErrors: { field: string; code: string; message: string }[] = [];
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      fieldErrors.push({ field: 'email', code: 'INVALID_VALUE', message: '이메일 형식을 확인해 주세요.' });
+    }
+    if (password.length < 8) {
+      fieldErrors.push({ field: 'password', code: 'INVALID_VALUE', message: '비밀번호는 8자 이상입니다.' });
+    }
+    if (!/^\+?\d{8,15}$/.test(phoneNumber.replace(/[^\d+]/g, ''))) {
+      fieldErrors.push({
+        field: 'phoneNumber',
+        code: 'INVALID_VALUE',
+        message: '전화번호를 다시 확인해 주세요. 예: 010-1234-5678',
+      });
+    }
+    if (fieldErrors.length > 0) {
+      return envelope(400, 'INVALID_INPUT', '입력값을 확인해 주세요.', { fieldErrors });
+    }
+    if (
+      termsVersion !== legalVersions.termsVersion ||
+      privacyVersion !== legalVersions.privacyVersion
+    ) {
+      return envelope(400, 'CURRENT_LEGAL_CONSENT_REQUIRED', '약관에 다시 동의해 주세요.');
+    }
+    if (email === fixtureAccount.email || email === registeredAccount?.email) {
+      return envelope(409, 'EMAIL_ALREADY_EXISTS', '이미 가입된 이메일입니다.');
+    }
+
+    registeredAccount = { email, password };
+    savedAnalysis = null;
+    session = issueSession(false, email);
+    return { status: 201, body: sessionBody(session) };
   }
 
   if (request.path === '/api/v1/auth/refresh' && request.method === 'POST') {
@@ -295,7 +362,7 @@ function handleAuth(request: FixtureRequest): FixtureResponse | null {
     if (!session || refreshToken !== session.refreshToken) {
       return envelope(401, 'INVALID_REFRESH_TOKEN', '다시 로그인해 주세요.');
     }
-    session = issueSession(false);
+    session = issueSession(false, session.email);
     return { status: 200, body: sessionBody(session) };
   }
 
@@ -303,7 +370,7 @@ function handleAuth(request: FixtureRequest): FixtureResponse | null {
     if (!isAuthorized(request)) return envelopeless401();
     return {
       status: 200,
-      body: { id: userId, email: fixtureAccount.email, hasSavedAnalysis: savedAnalysis !== null },
+      body: { id: userId, email: session?.email ?? fixtureAccount.email, hasSavedAnalysis: savedAnalysis !== null },
     };
   }
 
@@ -414,6 +481,58 @@ function handleAnalysis(request: FixtureRequest): FixtureResponse | null {
       return envelope(404, 'SAVED_ANALYSIS_NOT_FOUND', '저장된 분석 결과가 없습니다.');
     }
     return { status: 200, body: savedAnalysis };
+  }
+
+  const evidenceMatch = /^\/api\/v1\/analyses\/([^/?]+)\/evidence/.exec(request.path);
+  if (evidenceMatch && request.method === 'GET') {
+    if (!isAuthorized(request)) return envelopeless401();
+    const query = new URLSearchParams(request.path.split('?')[1] ?? '');
+    const cursor = Number(query.get('cursor') ?? '0');
+    const limit = Number(query.get('limit') ?? '20');
+    const total = 47;
+    const start = Number.isFinite(cursor) ? cursor : 0;
+    const end = Math.min(start + limit, total);
+    const items = Array.from({ length: Math.max(end - start, 0) }, (_, index) => {
+      const order = start + index + 1;
+      return {
+        reviewId: 'review-' + order,
+        excerpt: '예시 근거 리뷰 ' + order + '번이에요. 실제 리뷰가 아니라 화면 확인용 문장입니다.',
+        rating: 4,
+        writtenAt: '2026-0' + ((order % 8) + 1) + '-1' + (order % 9),
+        platform: 'NAVER',
+      };
+    });
+    return { status: 200, body: { items, nextCursor: end < total ? String(end) : null } };
+  }
+
+  if (request.path === '/api/v1/me/notifications' && request.method === 'GET') {
+    if (!isAuthorized(request)) return envelopeless401();
+    const items = savedAnalysis
+      ? [
+          {
+            id: 'notification-1',
+            type: 'ANALYSIS_COMPLETED',
+            message: savedAnalysis.store.name + ' 분석이 끝났어요.',
+            createdAt: savedAnalysis.metadata.analyzedAt,
+          },
+        ]
+      : [];
+    return { status: 200, body: items };
+  }
+
+  if (request.path === '/api/v1/me/notification-settings') {
+    if (!isAuthorized(request)) return envelopeless401();
+    if (request.method === 'GET') {
+      return { status: 200, body: { analysisResultEnabled: notificationsEnabled } };
+    }
+    if (request.method === 'PATCH') {
+      const body = readBody(request);
+      if (typeof body.analysisResultEnabled !== 'boolean') {
+        return envelope(400, 'INVALID_INPUT', '설정 값을 확인해 주세요.');
+      }
+      notificationsEnabled = body.analysisResultEnabled;
+      return { status: 200, body: { analysisResultEnabled: notificationsEnabled } };
+    }
   }
 
   const replaceMatch = /^\/api\/v1\/me\/saved-analysis\/([^/]+)$/.exec(request.path);

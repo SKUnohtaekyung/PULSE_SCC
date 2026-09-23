@@ -291,22 +291,22 @@ loading / empty / error / normal
 
 | 컴포넌트 | 책임 | 경로 |
 |---|---|---|
-| AuthMethodSelector | Google 로그인과 서비스 자체 로그인 진입 선택 | 미구현 — Google 로그인이 Slice 밖 |
-| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·전화번호 입력과 오류·제출 상태 | 로그인만 `frontend/mobile/src/features/auth/LoginScreen.tsx` (입력 한 칸은 `components/ui/TextField.tsx`). 가입은 미구현 |
+| AuthMethodSelector | Google 로그인과 서비스 자체 로그인 진입 선택 | 미구현 — Google 로그인은 앱 식별자·OAuth 설정이 정해진 뒤(§13) |
+| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·전화번호 입력과 오류·제출 상태 | `frontend/mobile/src/features/auth/LoginScreen.tsx`·`SignupScreen.tsx` (입력 한 칸은 `components/ui/TextField.tsx`, 동의는 `components/ui/CheckRow.tsx`) |
 | StoreInput | 가게 이름·업종·네이버 가게 URL 입력과 검증 안내 | `frontend/mobile/src/features/analysis/AnalyzeScreen.tsx` |
 | StoreConfirmation | 입력값과 URL에서 확인한 매장 정보 대조 | 미구현 — API 없음(SCREEN_STATES §4.3) |
 | AnalysisProgress | 수집·분석 단계와 현재 상태 표시 | `frontend/mobile/src/components/ui/ProgressList.tsx` |
 | InsightSummary | 선택한 페르소나의 4개 관점 결과 요약 | `frontend/mobile/src/features/result/ResultView.tsx` |
-| EvidenceReviewList | 대표 근거 1~2개와 작성자 정보 없는 전체 근거 리뷰 표시 | 대표 근거만 `ResultView.tsx`. 전체 근거 화면(SC-005)은 미구현 |
+| EvidenceReviewList | 대표 근거 1~2개와 작성자 정보 없는 전체 근거 리뷰 표시 | 대표 근거는 `ResultView.tsx`, 전체 목록은 `frontend/mobile/src/features/result/EvidenceScreen.tsx`(cursor 방식) |
 | FactInterpretationBlock | `리뷰에서 확인`과 `AI 해석`을 별도 카드·배지·제목으로 구분 | `frontend/mobile/src/features/result/ResultView.tsx` |
 | PersonaCard | 손님 유형, 관찰 특성, 근거와 한계 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
 | PersonaImage | AI 생성 이미지와 고지·대체 상태 표시 | `frontend/mobile/src/features/result/ResultView.tsx` (조회 실패 대체 포함) |
 | AdviceCard | 리뷰 사실·검토할 행동 기본 노출과 AI 해석·지식 펼쳐보기 | `frontend/mobile/src/features/result/ResultView.tsx` (지식 참고는 서버가 아직 빈 배열) |
 | DataLimitNotice | 리뷰 부족·편향·대표성 한계 안내 | `frontend/mobile/src/components/ui/Notice.tsx` + `ResultView.tsx` |
 | ResultMetadata | 플랫폼, 리뷰 수, 수집·분석 시점 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
-| AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | 첫 저장만 `frontend/mobile/src/features/analysis/FirstSaveScreen.tsx`. 교체·유지는 다음 Slice |
+| AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | 첫 저장은 `frontend/mobile/src/features/analysis/FirstSaveScreen.tsx`, 교체·유지는 `features/result/PreviewResultScreen.tsx`(확인 대화상자는 `components/ui/ConfirmDialog.tsx`) |
 | BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 화면 안 오렌지 주요 버튼과 경쟁하지 않게 한다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | `frontend/mobile/src/components/ui/BottomNavigation.tsx` |
-| PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | 미구현 — 마이페이지가 Slice 밖 |
+| PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | `frontend/mobile/src/features/mypage/MyPageScreen.tsx` |
 | ErrorState | 오류 이유와 재시도 가능 행동 표시 | `frontend/mobile/src/components/ui/Notice.tsx` + 화면별 버튼 |
 
 ### 5.4 버튼
@@ -470,5 +470,5 @@ UI 변경은 `.claude/skills/visual-qa/SKILL.md` 절차를 읽고 실제 렌더�
 | ~~아이콘 공급원 — 라이브러리 채택 여부와 라이선스 기록~~ | 2026-09-22 Step 7에서 해소 — 아이콘 라이브러리를 쓰지 않는다. 필요한 아이콘(홈·마이페이지·분석하기·체크·경고)은 `View` 도형으로 그려 `components/ui`에 둔다. 추적할 외부 라이선스가 생기지 않고 색·굵기를 토큰으로 맞출 수 있다. 도형으로 표현하기 어려운 아이콘이 필요해지면 그때 다시 정한다 |
 | ~~로딩 자리표시·이미지 실패·빈 포디움 슬롯의 시각 구분~~ | 2026-09-22 Step 5 합성으로 해소 — 빈 칸은 점선 테두리, 로딩과 조회 실패는 같은 영역에 아이콘·문장·버튼으로 구분 |
 | 오프라인 안내의 표현(오류인지 안내인지) | 오프라인 정책 확정 후(SCREEN_STATES §11). 인증 만료(`AUTH-EXPIRED`)는 2026-09-22 Step 7에서 해소 — 오류가 아니라 `warning` 안내로 로그인 화면 위에 이유와 다음 행동을 표시한다 |
-| 하단 내비게이션 일시 비활성(`NAV-DISABLED-TRANSITION`), 알림 설정 토글의 상태 표현 | 해당 공용 컴포넌트 구현 전. 버튼 loading·disabled는 2026-09-22 Step 7에서 §5.4로 확정 |
+| 하단 내비게이션 일시 비활성(`NAV-DISABLED-TRANSITION`) | 해당 공용 컴포넌트 구현 전. 버튼 loading·disabled는 2026-09-22 Step 7에서 §5.4로 확정. ~~알림 설정 토글의 상태 표현~~은 2026-09-23 Step 9에서 해소 — 스위치 옆에 `켜짐`·`꺼짐` 글자를 함께 두고, 바꾸는 중에는 조작을 막고 `바꾸는 중`을 표시한다(`components/ui/ToggleRow.tsx`) |
 | ~~되돌릴 수 없는 행동의 버튼 색 토큰~~ | 2026-09-22 `colors.destructive`로 해소 |

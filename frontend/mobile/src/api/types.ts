@@ -146,3 +146,47 @@ export type SavedAnalysisReplaced = {
   analysisId: string;
   savedAt: string;
 };
+
+// ── 9단계에서 더한 계약 ────────────────────────────────────────────────────
+// 정본은 docs/architecture/API.md와 실제 백엔드 코드다.
+// `GET /api/v1/legal-documents`는 이 저장소 API.md 표에 없고 SCREEN_STATES §3.2에만 있다.
+// 원격 `feat/TASK-011-authentication`의 컨트롤러에는 있으므로 그 모양을 따른다(FRONTEND_STRUCTURE §2.3).
+
+export type LegalDocuments = {
+  termsVersion: string;
+  privacyVersion: string;
+  /** 백엔드는 legallyReviewed도 주지만 판별 기준이 미정이라 쓰지 않는다(SCREEN_STATES §3.2). */
+  legallyReviewed?: boolean;
+};
+
+export type RegisterRequest = {
+  email: string;
+  password: string;
+  phoneNumber: string;
+  termsVersion: string;
+  privacyVersion: string;
+};
+
+export type EvidenceItem = {
+  reviewId: string;
+  excerpt: string;
+  rating?: number | null;
+  writtenAt: string;
+  platform?: string;
+};
+
+export type EvidencePage = {
+  items: EvidenceItem[];
+  nextCursor: string | null;
+};
+
+export type NotificationItem = {
+  id: string;
+  type: 'ANALYSIS_COMPLETED' | 'ANALYSIS_FAILED' | string;
+  message: string;
+  createdAt: string;
+};
+
+export type NotificationSettings = {
+  analysisResultEnabled: boolean;
+};

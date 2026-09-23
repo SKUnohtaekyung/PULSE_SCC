@@ -1,19 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ApiClient } from '@/api/client';
-import { isFixtureMode } from '@/api/config';
 import { personaImageSource } from '@/api/personaImages';
 import type { AnalysisResult, PerspectiveKey, PodiumSlot } from '@/api/types';
 import { Notice } from '@/components/ui/Notice';
+import { PersonaImageBlock } from '@/components/ui/PersonaImageBlock';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
 // 결과 표시. 읽는 순서는 DESIGN_SYSTEM §4.1을 따른다.
 // 1) 무엇을 얼마나 분석했는가 → 2) 3칸 포디움 → 3) 선택한 유형의 4관점 → 4) 대표 근거 → 5) AI 해석 → 6) 검토할 행동
 // 상태 판정은 SCREEN_STATES §6.1: FILLED 개수 3 / 1~2 / 0 = RESULT-NORMAL / PARTIAL / NO-PERSONA.
-
-/** 페르소나 이미지 영역 높이. 로딩·실패·자리표시도 같은 높이를 쓴다. */
-const imageHeight = spacing[24] * 2 + spacing[2];
 
 const perspectiveOrder: { key: PerspectiveKey; label: string; why: string }[] = [
   { key: 'priority', label: '먼저 볼 것', why: '반복된 리뷰가 가장 많아 먼저 확인할 항목이에요.' },
@@ -30,7 +27,22 @@ const formatDate = (value: string) => {
   ).padStart(2, '0')}`;
 };
 
-export function ResultView({ result, client }: { result: AnalysisResult; client: ApiClient }) {
+export type OpenEvidence = (args: {
+  analysisId: string;
+  personaId: string;
+  personaLabel: string;
+  perspective: string;
+}) => void;
+
+export function ResultView({
+  result,
+  client,
+  onOpenEvidence,
+}: {
+  result: AnalysisResult;
+  client: ApiClient;
+  onOpenEvidence?: OpenEvidence;
+}) {
   const filled = useMemo(
     () => result.podium.filter((slot) => slot.status === 'FILLED' && slot.persona),
     [result.podium],
@@ -70,7 +82,13 @@ export function ResultView({ result, client }: { result: AnalysisResult; client:
       ) : null}
 
       {selected?.persona ? (
-        <PersonaDetail client={client} key={selected.rank} slot={selected} />
+        <PersonaDetail
+          analysisId={result.analysisId}
+          client={client}
+          key={selected.rank}
+          onOpenEvidence={onOpenEvidence}
+          slot={selected}
+        />
       ) : null}
 
       <LimitationsBlock result={result} />
@@ -135,20 +153,21 @@ function PodiumCard({
   );
 }
 
-function PersonaDetail({ slot, client }: { slot: PodiumSlot; client: ApiClient }) {
+function PersonaDetail({
+  slot,
+  client,
+  analysisId,
+  onOpenEvidence,
+}: {
+  slot: PodiumSlot;
+  client: ApiClient;
+  analysisId: string;
+  onOpenEvidence?: OpenEvidence;
+}) {
   const persona = slot.persona;
-  const [imageFailed, setImageFailed] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
   const source = persona ? personaImageSource(client, persona.image) : null;
 
   if (!persona) return null;
-
-  const retryImage = () => {
-    setImageFailed(false);
-    setImageLoading(true);
-    setRetryCount((count) => count + 1);
-  };
 
   return (
     <View style={styles.section}>
@@ -158,61 +177,7 @@ function PersonaDetail({ slot, client }: { slot: PodiumSlot; client: ApiClient }
       <Text style={styles.personaSummary}>{persona.summary}</Text>
       {persona.caveat ? <Text style={styles.personaCaveat}>{persona.caveat}</Text> : null}
 
-      <View style={styles.imageBlock}>
-        {source?.kind === 'remote' && !imageFailed ? (
-          <View>
-            <Image
-              accessibilityLabel={persona.image.altText}
-              key={retryCount}
-              onError={() => {
-                setImageLoading(false);
-                setImageFailed(true);
-              }}
-              onLoadEnd={() => setImageLoading(false)}
-              source={source.source}
-              style={styles.image}
-            />
-            {imageLoading ? (
-              // IMAGE-LOADING — 같은 크기 영역에 문장을 둬 레이아웃이 흔들리지 않게 한다(DESIGN_SYSTEM §3.6).
-              <View style={[styles.imageFallback, styles.imageOverlay]}>
-                <Text style={styles.imageFallbackBody}>손님 유형 이미지를 불러오고 있어요.</Text>
-              </View>
-            ) : null}
-          </View>
-        ) : source?.kind === 'fixture' ? (
-          <View style={styles.imageFallback}>
-            <Text style={styles.imageFallbackTitle}>지금은 예시 화면이라 이미지가 없어요</Text>
-            <Text style={styles.imageFallbackBody}>
-              실제 서버에 연결하면 여기에 손님 유형 이미지가 나와요. 설명: {persona.image.altText}
-            </Text>
-          </View>
-        ) : (
-          // IMAGE-LOAD-ERROR — 유형 정보는 그대로 두고 이미지만 다시 불러온다(SCREEN_STATES §6.4).
-          <View accessibilityLiveRegion="polite" style={styles.imageFallback}>
-            <Text style={styles.imageFallbackTitle}>이미지를 불러오지 못했어요</Text>
-            <Text style={styles.imageFallbackBody}>
-              손님 유형 내용은 그대로 볼 수 있어요. 설명: {persona.image.altText}
-            </Text>
-            {isFixtureMode ? (
-              // 가상 서버에는 다시 불러올 이미지가 없다. 눌러도 아무 일이 없는 버튼을 두지 않는다.
-              <Text style={styles.imageFallbackBody}>예시 화면이라 다시 불러올 수 없어요.</Text>
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                onPress={retryImage}
-                style={({ pressed }) => [styles.imageRetry, pressed && styles.pressed]}
-              >
-                <Text style={styles.imageRetryText}>이미지 다시 불러오기</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-        <Text style={styles.imageNotice}>
-          {source?.kind === 'remote' && !imageFailed
-            ? '이 이미지는 리뷰 패턴을 설명하려고 AI가 만든 그림이에요. 실제 손님 사진이 아니에요.'
-            : '손님 유형 이미지는 리뷰 패턴을 설명하려고 AI가 만드는 그림이에요. 실제 손님 사진이 아니에요.'}
-        </Text>
-      </View>
+      {source ? <PersonaImageBlock altText={persona.image.altText} source={source} /> : null}
 
       {perspectiveOrder.map((item) => {
         const block = persona.perspectives[item.key];
@@ -240,6 +205,22 @@ function PersonaDetail({ slot, client }: { slot: PodiumSlot; client: ApiClient }
                 <Text style={styles.evidenceCount}>
                   이 관점에 연결된 근거 리뷰 {block.evidenceCount}건 가운데 대표 {block.evidencePreview.length}건이에요.
                 </Text>
+                {onOpenEvidence ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      onOpenEvidence({
+                        analysisId,
+                        personaId: persona.id,
+                        personaLabel: persona.label,
+                        perspective: item.key.toUpperCase(),
+                      })
+                    }
+                    style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.disclosureText}>근거 리뷰 전체 보기</Text>
+                  </Pressable>
+                ) : null}
               </View>
             ) : (
               // INSIGHT-LIMITED — 없는 근거를 채워 넣지 않고 한계를 적는다(SCREEN_STATES §6.2).
@@ -431,52 +412,6 @@ const styles = StyleSheet.create({
   },
   personaCaveat: {
     ...typography.body7,
-    color: colors.text.secondary,
-  },
-  imageBlock: {
-    gap: spacing[2],
-  },
-  image: {
-    width: '100%',
-    height: imageHeight,
-    borderRadius: radii.panel,
-    resizeMode: 'cover',
-  },
-  // 로딩·조회 실패·자리표시는 이미지와 같은 높이에서 시작한다(DESIGN_SYSTEM §3.6).
-  // 고정 높이가 아니라 최소 높이다. 글자 크기를 키우면 상자가 늘어나 내용이 잘리지 않는다(§8.1).
-  imageFallback: {
-    alignItems: 'center',
-    backgroundColor: colors.background.emphasized,
-    borderRadius: radii.panel,
-    gap: spacing[2],
-    justifyContent: 'center',
-    minHeight: imageHeight,
-    padding: spacing[5],
-  },
-  imageOverlay: {
-    ...StyleSheet.absoluteFill,
-  },
-  imageRetry: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: layout.touchTargetMin,
-    paddingHorizontal: spacing[4],
-  },
-  imageRetryText: {
-    ...typography.body6,
-    color: colors.text.brand,
-  },
-  imageFallbackTitle: {
-    ...typography.body6,
-    color: colors.text.primary,
-  },
-  imageFallbackBody: {
-    ...typography.body7,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  imageNotice: {
-    ...typography.caption,
     color: colors.text.secondary,
   },
   card: {

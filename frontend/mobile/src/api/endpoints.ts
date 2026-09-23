@@ -3,8 +3,13 @@ import type {
   AnalysisResult,
   ApiUser,
   CreateJobRequest,
+  EvidencePage,
   JobCreated,
   JobStatus,
+  LegalDocuments,
+  NotificationItem,
+  NotificationSettings,
+  RegisterRequest,
   SavedAnalysisReplaced,
   SessionResponse,
 } from '@/api/types';
@@ -64,3 +69,46 @@ export function createIdempotencyKey() {
   const time = Date.now().toString(16).padStart(12, '0').slice(-12);
   return [hex(8), hex(4), '4' + hex(3), ((8 + Math.floor(Math.random() * 4)).toString(16) + hex(3)), time].join('-');
 }
+
+// ── 9단계에서 더한 호출 ────────────────────────────────────────────────────
+
+export const getLegalDocuments = (client: ApiClient) =>
+  client.requestPublic<LegalDocuments>({ method: 'GET', path: '/api/v1/legal-documents' });
+
+export const register = (client: ApiClient, request: RegisterRequest) =>
+  client.requestPublic<SessionResponse>({
+    method: 'POST',
+    path: '/api/v1/auth/register',
+    body: request,
+  });
+
+export const getEvidence = (
+  client: ApiClient,
+  analysisId: string,
+  query: { personaId: string; perspective: string; cursor?: string | null; limit?: number },
+) => {
+  const params = new URLSearchParams({
+    personaId: query.personaId,
+    perspective: query.perspective,
+  });
+  if (query.cursor) params.set('cursor', query.cursor);
+  if (query.limit) params.set('limit', String(query.limit));
+  return client.request<EvidencePage>({
+    method: 'GET',
+    path: `/api/v1/analyses/${analysisId}/evidence?${params.toString()}`,
+  });
+};
+
+// 실제 백엔드(MyPageController)는 배열을 그대로 돌려준다. 감싸는 객체가 아니다.
+export const getNotifications = (client: ApiClient) =>
+  client.request<NotificationItem[]>({ method: 'GET', path: '/api/v1/me/notifications' });
+
+export const getNotificationSettings = (client: ApiClient) =>
+  client.request<NotificationSettings>({ method: 'GET', path: '/api/v1/me/notification-settings' });
+
+export const updateNotificationSettings = (client: ApiClient, analysisResultEnabled: boolean) =>
+  client.request<NotificationSettings>({
+    method: 'PATCH',
+    path: '/api/v1/me/notification-settings',
+    body: { analysisResultEnabled },
+  });

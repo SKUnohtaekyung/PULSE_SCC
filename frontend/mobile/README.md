@@ -53,9 +53,13 @@ npm run android:device
 |---|---|---|
 | `/` | 앱 시작·세션 복원 후 분기 | `APP-BOOTING`, `AUTH-RESTORING`, `APP-READY`, `APP-FIRST-ANALYSIS-REQUIRED` |
 | `/login` | 자체 계정 로그인 | `AUTH-INITIAL`·`AUTH-EDITING`·`AUTH-FIELD-ERROR`·`AUTH-SUBMITTING`·`AUTH-INVALID-CREDENTIALS`·`AUTH-EXPIRED` 안내 |
+| `/signup` | 이메일 가입 | `AUTH-LEGAL-*`·`AUTH-SIGNUP-*`·`AUTH-CONSENT-OUTDATED` |
 | `/analyze` | 가게 정보 입력과 분석 진행 | `STORE-*`, `ANALYSIS-*` |
 | `/first-save` | 첫 저장 완료 | `SAVE-FIRST-SUCCESS` |
 | `/home` | 저장된 결과 | `HOME-LOADING`·`RESULT-*` |
+| `/preview-result` | 새 결과 미리보기와 저장 선택 | `RESULT-UNSAVED-PREVIEW`·`SAVE-CHOICE-REQUIRED`·`SAVE-REPLACING`·`SAVE-KEEPING` |
+| `/evidence` | 근거 리뷰 전체 보기 | `EVIDENCE-*` |
+| `/mypage` | 마이페이지 | `MYPAGE-*`·`NOTIFICATION-*`·`SETTING-*`·`LOGOUT-*` |
 | `/foundation` | Design Foundation 견본 | — |
 | `/prototype-result`, `/flow`, `/preview` | Step 5·6 디자인 프로토타입(가상 데이터) | — |
 
