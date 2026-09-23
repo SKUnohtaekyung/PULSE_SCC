@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
-import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
+import { Screen } from '@/components/ui/Screen';
+import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
 import { FixtureBanner } from '@/features/dev/FixtureBanner';
 
 // SAVE-FIRST-SUCCESS. 첫 결과는 서버가 작업 완료와 같은 트랜잭션에서 저장하므로
@@ -21,9 +21,6 @@ export function FirstSaveScreen({
   personaCount: number | null;
 }) {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const horizontalPadding = width >= layout.breakpoint.medium ? spacing[6] : spacing[4];
-
   const summary = [
     validReviewCount === null ? null : `분석에 쓴 리뷰 ${validReviewCount}건`,
     personaCount === null ? null : `손님 유형 ${personaCount}개`,
@@ -32,53 +29,30 @@ export function FirstSaveScreen({
     .join(' · ');
 
   return (
-    <View style={styles.screen}>
+    <Screen centered verticalEdges={['top', 'bottom']}>
       <StatusBar style="dark" />
-      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.body, { paddingHorizontal: horizontalPadding }]}>
-            <FixtureBanner />
 
-            <View aria-hidden style={styles.mark}>
-              <Text style={styles.markText}>✓</Text>
-            </View>
-            <Text accessibilityRole="header" style={styles.title}>
-              첫 분석 결과를 저장했어요
-            </Text>
-            <Text style={styles.body1}>홈에서 언제든 다시 볼 수 있어요.</Text>
+      <FixtureBanner />
 
-            <View style={styles.summary}>
-              <Text style={styles.summaryName}>{storeName}</Text>
-              {summary ? <Text style={styles.summaryMeta}>{summary}</Text> : null}
-            </View>
+      <View aria-hidden style={styles.mark}>
+        <Text style={styles.markText}>✓</Text>
+      </View>
+      <Text accessibilityRole="header" style={styles.title}>
+        첫 분석 결과를 저장했어요
+      </Text>
+      <Text style={styles.body1}>홈에서 언제든 다시 볼 수 있어요.</Text>
 
-            <Button label="결과 보기" onPress={() => router.replace('/home')} />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+      <View style={styles.summary}>
+        <Text style={styles.summaryName}>{storeName}</Text>
+        {summary ? <Text style={styles.summaryMeta}>{summary}</Text> : null}
+      </View>
+
+      <Button label="결과 보기" onPress={() => router.replace('/home')} />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background.canvas,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: spacing[10],
-  },
-  body: {
-    width: '100%',
-    maxWidth: layout.readingMaxWidth,
-    alignSelf: 'center',
-    gap: spacing[4],
-  },
   mark: {
     alignItems: 'center',
     backgroundColor: colors.brand.primary,

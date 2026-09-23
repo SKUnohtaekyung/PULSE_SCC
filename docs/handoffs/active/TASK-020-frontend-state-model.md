@@ -2,11 +2,20 @@
 
 ## Status
 
-Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
+Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
 `role:product` — 미배정
+
+**소유 영역 밖 수정(AGENTS 5장 규칙 4·5).** PR 본문에 적고 해당 역할을 리뷰어로 지정한다.
+
+| 파일 | 소유 역할 | 이유 |
+|---|---|---|
+| `docs/architecture/FRONTEND_STRUCTURE.md`(신설)·`docs/architecture/ARCHITECTURE.md` | `role:platform` | Step 8 구조 검증 기록 |
+| `docs/design/**`(DESIGN_SYSTEM·evidence·synthesis·figma) | `role:design-system` | Step 3~8 토큰·컴포넌트·검증 기록 |
+| `frontend/mobile/src/design/**`·`src/components/ui/**` | `role:design-system` | 토큰과 공용 컴포넌트 |
+| `docs/product/requirements/SCREEN_STATES.md` | `role:product` | 상태 모델 갱신 |
 
 ## Branch
 
@@ -31,6 +40,7 @@ Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API �
 - (Step 6) 이 세션에 Figma 연결이 없어 사용자 선택에 따라 팀 Figma import용 SVG 보드 8장(IA·Flow, Foundation, Components, Assets, Final UI 4장)을 토큰에서 생성했다. Step 5에서 넘긴 결정 4개를 정해 합성안·프로토타입·보드와 SCREEN_STATES·DESIGN_SYSTEM에 반영했다(키보드 가림은 가설 — Step 7에서 확인).
 - (Step 5) 사용자 선택(한 화면 입력·쌓이는 진행 목록 — 가설 1, 첫 저장 완료 화면 — 가설 2, 새 결과 미리보기 — 상태 보드 ③)을 합성하고, 위임받은 저장 선택 시점(처음부터 하단 고정 + 교체 확인)과 실패 배치·결과 상태 표현을 정했다.
 - (Step 7) SCREEN_STATES §10의 첫 Vertical Slice를 구현했다. 계약 타입·HTTP 클라이언트(봉투 없는 401 → 단일 갱신 → 재전송)·엔드포인트·가상 서버, 안전 저장소 기반 세션, 로그인·가게 입력·진행·첫 저장·홈 결과 화면, 공용 UI 컴포넌트 9종을 만들었다. Android에서 정상 흐름과 실패 경계 7가지를 실행해 캡처 23장으로 남겼다.
+- (Step 8) Component·State·API·Env·오류 처리·반응형 여섯 축으로 Step 7 구조가 전체 구현까지 버티는지 확인했다. 화면 골격 공통화(`components/ui/Screen`), 요청 timeout, 오류 문구 공통 규칙(`api/errorMessage`)을 보완하고, 결정이 필요한 5건을 `docs/architecture/FRONTEND_STRUCTURE.md`에 남겼다.
 - PRD·기능명세·User Flow·Result IA를 다시 대조해 회원가입, 새 결과 미리보기, 저장 오류, 결과 한계, 마이페이지 상태 누락을 보완했다.
 
 ## Changed
@@ -50,6 +60,7 @@ Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API �
 - (Step 6) `SCREEN_STATES.md` §5.1 뒤 문단(멈춘 행)·§9 `NAV-ANALYSIS-ACTIVE`, `DESIGN_SYSTEM.md` §5.3 BottomNavigation 행 — 결정 2·3 반영
 - (Step 5) `frontend/mobile/src/prototypes/flow/FlowPrototype.tsx`, `src/app/flow.tsx`, `src/app/preview.tsx`, `ResultPrototype.tsx`(미리보기 모드·저장 선택·확인 대화상자·하단 내비게이션 연결) — Android 합성 프로토타입
 - (Step 5) `docs/design/evidence/TASK-020/step5-*.png` — Android 실행 캡처
+- (Step 8) `docs/architecture/FRONTEND_STRUCTURE.md` 신설 + `ARCHITECTURE.md` 링크 / `frontend/mobile/src/components/ui/Screen.tsx`·`api/errorMessage.ts` 신설 / `api/transport.ts` timeout / 화면 5개를 공통 골격으로 이동 / evidence `step8-*.png`
 - (Step 7) `frontend/mobile/src/api/**` — 계약 타입, 오류 봉투 해석, HTTP/가상 서버 전송, 인증 클라이언트, 엔드포인트, 페르소나 이미지 source, fixtures(고정 결과 데이터 + 상황 12종)
 - (Step 7) `frontend/mobile/src/session/**` — `expo-secure-store` 토큰 저장과 `SessionProvider`(앱 시작·세션 복원·만료)
 - (Step 7) `frontend/mobile/src/components/ui/**` — Button, TextField, Chip, Notice, LoadingBlock, ProgressList, ScreenHeader, BottomNavigation(프로토타입에서 옮김)
@@ -85,6 +96,11 @@ Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API �
 19. (Step 7, 리뷰 반영) fixture 모드에서는 페르소나 이미지를 코드로 그린 자리표시로 대신한다. 프로토타입 전용 에셋을 제품 화면에 쓰지 않는다(DESIGN_SYSTEM §3.6).
 20. (Step 7, 리뷰 반영) 가상 데이터로 그린 화면에는 첫 저장·홈에도 안내를 둔다(`features/dev/FixtureBanner`).
 
+21. (Step 8) 화면 골격·좌우 여백·읽기 폭은 `components/ui/Screen`에서만 정한다. 화면은 본문만 그린다. 목록 화면은 `scroll={false}`로 자기 스크롤을 갖는다.
+22. (Step 8) 전역 상태 라이브러리를 도입하지 않는다. 서버가 정본이므로 화면 사이에는 id만 넘기고 다시 조회한다.
+23. (Step 8) 분석 polling은 두 번째 사용처가 생길 때 hook으로 뽑는다. polling 정책이 미정이라 지금 추상화하지 않는다.
+24. (Step 8) 문구는 두 곳에 둔다. 일반 문구(연결·세션·원인 미상)는 `api`, 코드별 문구는 `features`가 갖는다.
+
 ## Verification
 
 - `SC-AUTH`, `SC-001`~`SC-012` 추적: PASS — 13/13
@@ -105,6 +121,9 @@ Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API �
 - (Step 7) 독립 Reviewer: 1차 FAIL(P1 2·P2 4) → 지적 사항 반영 후 재검토. 반영 내용: fixture 안내 누락(P1), 프로토타입 에셋 제품 사용(P1), TextField 중복(P2), IMAGE-LOAD-ERROR 재조회·크기(P2), DESIGN_SYSTEM §3.6↔§13 모순(P2), 갱신 실패 판정 범위(P2), 그리고 P3 중 하단 내비게이션 노출·401 코드 처리·주의 테두리 대비·미처리 rejection·§11 계약 차이 기록
 - (Step 7) 1차 수정 후 재검증: `verify:tokens`·`lint`·`typecheck`·`export:android` PASS, Android에서 첫 저장·홈·이미지 자리표시·이미지 조회 실패·제안 펼침 재확인(`step7-06`·`07`·`19`·`20`·`21`)
 - (Step 7) 2차 독립 Reviewer: 새 P2 1건(이미지 대체 영역 고정 높이 → 큰 글자에서 넘침 위험, 200% 캡처가 수정 전 것) 지적. 최소 높이로 되돌리고 200%를 다시 찍어 확인(`step7-17`·`22`·`23`), 홈 기반 캡처(`step7-15`·`16`)도 배너 반영본으로 교체
+- (Step 8) `verify:tokens`·`lint`·`typecheck`·`export:android`: PASS (2026-09-23, 구조 변경 후 재실행)
+- (Step 8) Android 회귀·반응형: PASS — 화면 5개를 공통 골격으로 옮긴 뒤 로그인 → 입력 → 진행 → 첫 저장 → 홈 재실행, 가로 화면과 글자 크기 200%를 다시 확인(`step8-01`~`step8-04`). 컷아웃 기기·태블릿은 미실행
+- (Step 8) 독립 Reviewer: 1차 FAIL(P2 1건 — 구조 문서의 의존 서술이 코드와 불일치, P3 11건) → 문서 정정과 `Screen`의 목록·컷아웃·가운데 정렬 보완 후 재검토
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved
@@ -132,4 +151,4 @@ Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API �
 
 ## Last Verified Commit
 
-`6fc4ff4` — Step 7 첫 Vertical Slice 구현과 독립 Reviewer PASS(3차)를 반영한 커밋.
+`b92195e` — Step 7 게이트 통과 기록 커밋. Step 8 변경은 이 커밋 이후 작업 트리에 있다.

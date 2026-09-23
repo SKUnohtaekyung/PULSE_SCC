@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { usePagePadding } from '@/components/ui/Screen';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
 // 화면 위쪽 네이비 헤더. Step 5 합성에서 입력·진행 화면의 헤더를 네이비로 정했다.
@@ -15,8 +16,8 @@ export function ScreenHeader({
   badge?: string;
   right?: ReactNode;
 }) {
-  const { fontScale, width } = useWindowDimensions();
-  const horizontalPadding = width >= layout.breakpoint.medium ? spacing[6] : spacing[4];
+  const { fontScale } = useWindowDimensions();
+  const horizontalPadding = usePagePadding();
   const largeText = fontScale >= 1.5;
 
   return (

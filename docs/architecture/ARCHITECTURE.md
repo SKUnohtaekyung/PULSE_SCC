@@ -26,6 +26,8 @@
 | 배포 환경 | 확정 필요 |
 | 저장소 구조 | 단일 저장소의 `frontend/mobile`, `backend/spring-api`, `backend/python-analysis` 독립 프로젝트 |
 
+프론트엔드 앱 안의 계층과 Step 8 Architecture Validation 결과는 [FRONTEND_STRUCTURE.md](FRONTEND_STRUCTURE.md)에 있다.
+
 프론트엔드는 `frontend/mobile`에서 npm lockfile과 Expo Continuous Native Generation을 사용한다. `android/`·`ios/` 생성물은 커밋하지 않고 앱 설정과 config plugin으로 재생성한다. 백엔드는 각 런타임의 관례를 유지하는 독립 프로젝트로 구성하며 공통 소스 패키지를 섣불리 만들지 않는다.
 
 ### 목표 호출 흐름

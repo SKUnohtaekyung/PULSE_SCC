@@ -66,6 +66,23 @@
 
 미확인: 팀원 PC에서 열었을 때의 글꼴(각자 Gothic A1이 없으면 다시 대체된다), Figma 컴포넌트화.
 
+## Step 8 Architecture Validation
+
+- 검증일: 2026-09-23. 같은 AVD·Expo Go. 구조 변경(화면 골격 공통화·요청 timeout·오류 문구 공통 규칙) 뒤 회귀 확인
+
+| 파일 | 확인한 것 |
+|---|---|
+| `step8-01-home-after-refactor.png` | 공통 `Screen` 골격으로 옮긴 뒤의 홈 결과 — 레이아웃 변화 없음 |
+| `step8-02-home-landscape.png` | 가로 화면 — 본문이 읽기 폭 안에서 가운데 정렬되고 늘어지지 않음 |
+| `step8-03-home-200.png` | 글자 크기 200%의 홈 — 골격 변경 뒤 다시 확인, 잘림 없음 |
+| `step8-04-first-save-after-refactor.png` | 첫 저장 완료 화면 — 세로 가운데 정렬이 위쪽 여백 없이 유지됨 |
+| `step8-05-list-scroll.png` | `Screen scroll={false}` 안의 목록이 남은 높이를 채우고 스크롤됨. 임시 확인 화면이며 캡처 뒤 되돌렸다 |
+
+같은 세션에서 로그인 → 가게 입력 → 진행 → 첫 저장 → 홈까지 다시 실행해 회귀가 없음을 확인했다.
+결과 기록은 [FRONTEND_STRUCTURE.md](../../../architecture/FRONTEND_STRUCTURE.md)다.
+
+미확인: 태블릿 실기기(지원 기기 범위 미정), 요청 timeout의 실제 동작(가상 서버는 즉시 응답한다).
+
 ## Step 7 첫 Vertical Slice
 
 - 검증일: 2026-09-22. 같은 AVD(`Medium_Phone`, Android 17/API 37, 1080×2400)와 Expo Go

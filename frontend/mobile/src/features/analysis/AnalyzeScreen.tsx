@@ -1,16 +1,8 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AccessibilityInfo, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   createAnalysisJob,
@@ -26,6 +18,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
 import { Notice } from '@/components/ui/Notice';
 import { ProgressList, type ProgressRow } from '@/components/ui/ProgressList';
+import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { TextField } from '@/components/ui/TextField';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -60,8 +53,7 @@ export function AnalyzeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { client, user, setHasSavedAnalysis } = useSession();
-  const { fontScale, width } = useWindowDimensions();
-  const horizontalPadding = width >= layout.breakpoint.medium ? spacing[6] : spacing[4];
+  const { fontScale } = useWindowDimensions();
 
   const [phase, setPhase] = useState<Phase>('input');
   const [name, setName] = useState('');
@@ -367,209 +359,205 @@ export function AnalyzeScreen() {
   const largeText = fontScale >= 1.5;
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="light" />
-      <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <ScreenHeader
-            badge={user?.hasSavedAnalysis ? undefined : '첫 분석'}
-            title="우리 가게 리뷰를 분석해요"
+    <Screen
+      footer={
+        user?.hasSavedAnalysis ? (
+          <BottomNavigation
+            active="analysis"
+            bottomInset={insets.bottom}
+            onHome={() => router.replace('/home')}
           />
+        ) : null
+      }
+      header={
+        <ScreenHeader
+          badge={user?.hasSavedAnalysis ? undefined : '첫 분석'}
+          title="우리 가게 리뷰를 분석해요"
+        />
+      }
+      tone="brand"
+    >
+      <StatusBar style="light" />
 
-          <View style={[styles.body, { paddingHorizontal: horizontalPadding }]}>
-            <ScenarioPanel
-              onChange={() => {
-                resetToInput();
-                setErrors({});
-                setFormNotice(null);
-                setReturnedNotice(false);
-                idempotencyKey.current = null;
-                // 가상 서버가 저장본도 비우므로 앱의 저장 여부도 맞춘다.
-                setHasSavedAnalysis(false);
-              }}
-            />
+      <ScenarioPanel
+        onChange={() => {
+          resetToInput();
+          setErrors({});
+          setFormNotice(null);
+          setReturnedNotice(false);
+          idempotencyKey.current = null;
+          // 가상 서버가 저장본도 비우므로 앱의 저장 여부도 맞춘다.
+          setHasSavedAnalysis(false);
+        }}
+      />
 
-            {returnedNotice ? (
-              <Notice title="입력한 내용은 그대로 두었어요" message="확인한 뒤 다시 분석할 수 있어요." />
-            ) : null}
+      {returnedNotice ? (
+        <Notice title="입력한 내용은 그대로 두었어요" message="확인한 뒤 다시 분석할 수 있어요." />
+      ) : null}
 
-            {offline ? (
-              <Notice
-                alert
-                title="연결이 끊겼어요"
-                message={
-                  phase === 'progress'
-                    ? '마지막으로 확인한 단계까지 보여드리고 있어요. 연결되면 이어서 확인해요.'
-                    : '인터넷에 연결한 뒤 다시 시도해 주세요. 같은 요청으로 다시 보내요.'
-                }
-                tone="warning"
-              />
-            ) : null}
-
-            {formNotice ? (
-              <Notice alert title={formNotice.title} message={formNotice.message} tone="error" />
-            ) : null}
-
-            {completionIssue ? (
-              <Notice alert title={completionIssue.title} message={completionIssue.message} tone="warning">
-                <View style={styles.noticeActions}>
-                  <Button
-                    label="저장 결과 다시 확인"
-                    onPress={() => {
-                      if (!jobId) return;
-                      void getAnalysisJob(client, jobId)
-                        .then((job) => resolveCompletion(job))
-                        .catch(() =>
-                          setCompletionIssue({
-                            title: '저장 상태를 확인하지 못했어요',
-                            message: '연결을 확인한 뒤 다시 시도해 주세요.',
-                          }),
-                        );
-                    }}
-                    variant="ghost"
-                  />
-                  {user?.hasSavedAnalysis ? (
-                    <Button label="홈으로" onPress={() => router.replace('/home')} variant="ghost" />
-                  ) : null}
-                </View>
-              </Notice>
-            ) : null}
-
-            {locked ? (
-              <View style={styles.summaryCard}>
-                <View style={styles.summaryRow}>
-                  <Text numberOfLines={summaryOpen ? undefined : 1} style={styles.summaryText}>
-                    {name} · {category} · {url}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ expanded: summaryOpen }}
-                    hitSlop={spacing[2]}
-                    onPress={() => setSummaryOpen((open) => !open)}
-                    style={({ pressed }) => [styles.summaryToggle, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.summaryToggleText}>{summaryOpen ? '접기' : '입력 보기'}</Text>
-                  </Pressable>
-                </View>
-                {summaryOpen ? (
-                  <Text style={styles.summaryHint}>분석이 끝나기 전에는 입력을 고칠 수 없어요.</Text>
-                ) : null}
-              </View>
-            ) : (
-              <View style={styles.formCard}>
-                {activeStep === 0 || errors.name ? (
-                  <TextField
-                    error={errors.name}
-                    label="가게 이름"
-                    onChangeText={(value) => {
-                      setName(value);
-                      clearError('name');
-                    }}
-                    onSubmitEditing={confirmName}
-                    placeholder="예: 영등원조쌈밥"
-                    returnKeyType="next"
-                    value={name}
-                  />
-                ) : (
-                  <DoneRow label="가게 이름" onEdit={() => setActiveStep(0)} value={name} />
-                )}
-
-                {reachedStep >= 1 ? (
-                  activeStep === 1 || errors.category ? (
-                    <Field error={errors.category} label="업종">
-                      <View accessibilityLabel="업종" accessibilityRole="radiogroup" style={styles.chipRow}>
-                        {categories.map((item) => (
-                          <Chip
-                            key={item}
-                            label={item}
-                            onPress={() => chooseCategory(item)}
-                            radio
-                            selected={category === item}
-                          />
-                        ))}
-                      </View>
-                    </Field>
-                  ) : (
-                    <DoneRow label="업종" onEdit={() => setActiveStep(1)} value={category} />
-                  )
-                ) : null}
-
-                {reachedStep >= 2 ? (
-                  activeStep === 2 || errors.url ? (
-                    <TextField
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      error={errors.url}
-                      inputMode="url"
-                      label="네이버 가게 URL"
-                      onChangeText={(value) => {
-                        setUrl(value);
-                        clearError('url');
-                      }}
-                      placeholder="naver.me 또는 naver.com 주소"
-                      value={url}
-                    />
-                  ) : (
-                    <DoneRow label="네이버 가게 URL" onEdit={() => setActiveStep(2)} value={url} />
-                  )
-                ) : null}
-              </View>
-            )}
-
-            {rows.length > 0 ? (
-              <ProgressList
-                hint={phase === 'progress' ? '단계가 바뀌면 아래에 이어서 보여드려요.' : undefined}
-                reduceMotion={reduceMotion}
-                rows={rows}
-              />
-            ) : null}
-
-            {phase === 'input' && activeStep === 0 ? (
-              <Button label="다음" onPress={confirmName} variant="primary" />
-            ) : null}
-
-            {phase === 'input' && activeStep === 2 ? (
-              <Button
-                label={offline || returnedNotice || formNotice ? '다시 분석하기' : '분석하기'}
-                onPress={() => {
-                  if (!validate()) return;
-                  void submit({ reuseKey: offline });
-                }}
-              />
-            ) : null}
-
-            {phase === 'creating' ? (
-              <Button
-                label="분석하기"
-                loading
-                loadingLabel="분석 요청을 보내는 중이에요"
-                onPress={() => undefined}
-                reduceMotion={reduceMotion}
-              />
-            ) : null}
-
-            {phase === 'failed' && failure ? (
-              <Button label={failureActionLabel(failure)} onPress={() => runFailureAction(failure)} />
-            ) : null}
-
-            <Text style={[styles.footnote, largeText && styles.footnoteLarge]}>
-              분석은 공개된 네이버 리뷰만 사용해요.
-            </Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-      {user?.hasSavedAnalysis ? (
-        <BottomNavigation
-          active="analysis"
-          bottomInset={insets.bottom}
-          onHome={() => router.replace('/home')}
+      {offline ? (
+        <Notice
+          alert
+          title="연결이 끊겼어요"
+          message={
+            phase === 'progress'
+              ? '마지막으로 확인한 단계까지 보여드리고 있어요. 연결되면 이어서 확인해요.'
+              : '인터넷에 연결한 뒤 다시 시도해 주세요. 같은 요청으로 다시 보내요.'
+          }
+          tone="warning"
         />
       ) : null}
-    </View>
+
+      {formNotice ? (
+        <Notice alert title={formNotice.title} message={formNotice.message} tone="error" />
+      ) : null}
+
+      {completionIssue ? (
+        <Notice alert title={completionIssue.title} message={completionIssue.message} tone="warning">
+          <View style={styles.noticeActions}>
+            <Button
+              label="저장 결과 다시 확인"
+              onPress={() => {
+                if (!jobId) return;
+                void getAnalysisJob(client, jobId)
+                  .then((job) => resolveCompletion(job))
+                  .catch(() =>
+                    setCompletionIssue({
+                      title: '저장 상태를 확인하지 못했어요',
+                      message: '연결을 확인한 뒤 다시 시도해 주세요.',
+                    }),
+                  );
+              }}
+              variant="ghost"
+            />
+            {user?.hasSavedAnalysis ? (
+              <Button label="홈으로" onPress={() => router.replace('/home')} variant="ghost" />
+            ) : null}
+          </View>
+        </Notice>
+      ) : null}
+
+      {locked ? (
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <Text numberOfLines={summaryOpen ? undefined : 1} style={styles.summaryText}>
+              {name} · {category} · {url}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: summaryOpen }}
+              hitSlop={spacing[2]}
+              onPress={() => setSummaryOpen((open) => !open)}
+              style={({ pressed }) => [styles.summaryToggle, pressed && styles.pressed]}
+            >
+              <Text style={styles.summaryToggleText}>{summaryOpen ? '접기' : '입력 보기'}</Text>
+            </Pressable>
+          </View>
+          {summaryOpen ? (
+            <Text style={styles.summaryHint}>분석이 끝나기 전에는 입력을 고칠 수 없어요.</Text>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.formCard}>
+          {activeStep === 0 || errors.name ? (
+            <TextField
+              error={errors.name}
+              label="가게 이름"
+              onChangeText={(value) => {
+                setName(value);
+                clearError('name');
+              }}
+              onSubmitEditing={confirmName}
+              placeholder="예: 영등원조쌈밥"
+              returnKeyType="next"
+              value={name}
+            />
+          ) : (
+            <DoneRow label="가게 이름" onEdit={() => setActiveStep(0)} value={name} />
+          )}
+
+          {reachedStep >= 1 ? (
+            activeStep === 1 || errors.category ? (
+              <Field error={errors.category} label="업종">
+                <View accessibilityLabel="업종" accessibilityRole="radiogroup" style={styles.chipRow}>
+                  {categories.map((item) => (
+                    <Chip
+                      key={item}
+                      label={item}
+                      onPress={() => chooseCategory(item)}
+                      radio
+                      selected={category === item}
+                    />
+                  ))}
+                </View>
+              </Field>
+            ) : (
+              <DoneRow label="업종" onEdit={() => setActiveStep(1)} value={category} />
+            )
+          ) : null}
+
+          {reachedStep >= 2 ? (
+            activeStep === 2 || errors.url ? (
+              <TextField
+                autoCapitalize="none"
+                autoCorrect={false}
+                error={errors.url}
+                inputMode="url"
+                label="네이버 가게 URL"
+                onChangeText={(value) => {
+                  setUrl(value);
+                  clearError('url');
+                }}
+                placeholder="naver.me 또는 naver.com 주소"
+                value={url}
+              />
+            ) : (
+              <DoneRow label="네이버 가게 URL" onEdit={() => setActiveStep(2)} value={url} />
+            )
+          ) : null}
+        </View>
+      )}
+
+      {rows.length > 0 ? (
+        <ProgressList
+          hint={phase === 'progress' ? '단계가 바뀌면 아래에 이어서 보여드려요.' : undefined}
+          reduceMotion={reduceMotion}
+          rows={rows}
+        />
+      ) : null}
+
+      {phase === 'input' && activeStep === 0 ? (
+        <Button label="다음" onPress={confirmName} variant="primary" />
+      ) : null}
+
+      {phase === 'input' && activeStep === 2 ? (
+        <Button
+          label={offline || returnedNotice || formNotice ? '다시 분석하기' : '분석하기'}
+          onPress={() => {
+            if (!validate()) return;
+            void submit({ reuseKey: offline });
+          }}
+        />
+      ) : null}
+
+      {phase === 'creating' ? (
+        <Button
+          label="분석하기"
+          loading
+          loadingLabel="분석 요청을 보내는 중이에요"
+          onPress={() => undefined}
+          reduceMotion={reduceMotion}
+        />
+      ) : null}
+
+      {phase === 'failed' && failure ? (
+        <Button label={failureActionLabel(failure)} onPress={() => runFailureAction(failure)} />
+      ) : null}
+
+      <Text style={[styles.footnote, largeText && styles.footnoteLarge]}>
+        분석은 공개된 네이버 리뷰만 사용해요.
+      </Text>
+    </Screen>
   );
 }
 
@@ -596,26 +584,6 @@ function DoneRow({ label, value, onEdit }: { label: string; value: string; onEdi
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background.canvas,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.brand.primary,
-  },
-  content: {
-    flexGrow: 1,
-    backgroundColor: colors.background.canvas,
-    paddingBottom: spacing[10],
-  },
-  body: {
-    width: '100%',
-    maxWidth: layout.readingMaxWidth,
-    alignSelf: 'center',
-    gap: spacing[5],
-    paddingTop: spacing[6],
-  },
   formCard: {
     backgroundColor: colors.background.surface,
     borderColor: colors.border.default,
