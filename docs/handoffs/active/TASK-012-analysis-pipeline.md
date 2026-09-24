@@ -1,7 +1,7 @@
 # TASK-012 — 네이버 리뷰 수집·분석 API와 프론트 연결
 
 ## Status
-구현 진행 — 마이페이지·탈퇴 완료, 실제 PostgreSQL 실행 검증 대기
+구현 진행 — 전체 근거 조회 연결 완료, 실제 PostgreSQL 실행 검증 대기
 
 ## Owner
 `role:feature` — 미배정 (`role:platform`, `role:product`, `role:design-system` 교차 리뷰 필요)
@@ -10,8 +10,8 @@
 `feat/TASK-012-analysis-pipeline`
 
 ## Work Note
-- 원격 push와 PR 생성은 수행하지 않았다. 현재 변경은 로컬 브랜치에만 있다.
-- 최신 로컬 커밋은 `02cd854`, 분석 파이프라인 기능 구현 커밋은 `36561f6`이다.
+- 원격 브랜치는 `6a79607`까지 동기화돼 있다. 2026-09-24 전체 근거 조회 변경은 아직 커밋·push하지 않은 작업 트리 변경이다.
+- 최신 커밋은 `6a79607`, 분석 파이프라인 기능 구현 커밋은 `36561f6`이다.
 - Docker Desktop은 설치됐지만 WSL 런타임 미완료로 엔진이 시작되지 않는다. 로컬 PostgreSQL 18은 실행 중이나 테스트 계정 접속정보가 없다.
 - 채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다. 새 키는 로컬 `backend/.env`에만 설정한다.
 
@@ -34,6 +34,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 프론트 분석 불가 화면 신설 — 유효 리뷰 50건 미만은 실패·재시도와 분리해 원인·기준·다음 행동을 안내
 - 프론트 마이페이지 알림 목록과 알림 설정을 실제 API에 연결 (기존에는 로컬 state 토글만 있었다)
 - 프론트 Mock fixture를 유형 3·2·1·0개와 49건 미달 상태로 확장
+- 분석·페르소나 소유권을 확인하는 cursor 기반 전체 근거 리뷰 조회 API 구현
+- 프론트 4관점과 제안의 `근거 리뷰 전체 보기`를 실제 API에 연결하고 loading·error·다음 페이지 상태 구현
+- 분석 작업 상태를 `QUEUED`에서 `RUNNING`으로 원자적으로 선점해 중복 dispatch가 Python/OpenAI를 재호출하지 않도록 보강
+- 분석 실패 상태 변경과 실패 알림 생성을 기존 완료 저장과 같이 단일 Spring 트랜잭션으로 묶음
 
 ## Changed
 - `backend/spring-api/**` — 공개 분석 API, 내부 Python gateway, 결과 저장, 이미지 보호, Flyway V3
@@ -46,6 +50,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - Python은 DB를 쓰지 않고 완성 산출물을 내부 HTTP로 반환하며 Spring만 완료 트랜잭션과 영속화를 소유한다. ADR-009 참조.
 - 네이버 수집기는 두 HTTPS host만 허용하고 DNS 사설주소, 로그인·차단 우회를 금지한다.
 - 법률 문서는 확정본으로 표시하지 않으며 적격 법률 검토와 운영자·국외이전 정보 확정 전 운영 출시를 차단한다.
+- 근거 조회 `limit` 최대값은 별도 임의값 대신 분석당 공개 리뷰 수집 상한과 같은 120으로 제한한다.
 
 ## Verification
 
@@ -69,6 +74,13 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | Frontend test (2026-09-18) | `npm test` (`C:\PULSE_SCC_FE`) | PASS, 24 tests (기존 7 + 포디움·fixture 17) |
 | Frontend Visual QA | 실기기·에뮬레이터 렌더링 | **미실행 — 사용자 요청으로 이번 세션에서 서버·앱을 기동하지 않았다** |
 | 날짜 보강 실데이터 확인 | 로컬에 임시 저장한 실제 `m.place.naver.com` 응답 1페이지에 수집 경로 적용 | **재현 불가 — 응답 원본을 저장소에 커밋하지 않았다.** 1회 수동 확인 결과는 `written_at` 0/10건 → 10/10건, 수집 건수 후퇴 없음이었다. 저장소로 재현 가능한 근거는 위 fixture 테스트다 |
+| Spring 전체 test (2026-09-24) | `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api test --rerun-tasks` | PASS, 27 tests 중 20 PASS·7 Testcontainers SKIP |
+| Spring build (2026-09-24) | `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api build` | PASS |
+| 근거 cursor·서비스 단위 테스트 | `EvidenceCursorCodecTests`, `AnalysisServiceEvidenceTests` | PASS, malformed cursor·소유권 은닉·limit·next cursor 확인 |
+| 작업 선점·실패 원자성 단위 테스트 | `AnalysisJobRunnerTests` | PASS, 중복 dispatch 중단·실패 상태/알림 트랜잭션 확인 |
+| Frontend lint/typecheck/test (2026-09-24) | `npm run lint`, `npm run typecheck`, `npm test -- --runInBand` | PASS, 24 tests |
+| Python lint/format/test (2026-09-24) | `ruff check`, `ruff format --check`, `pytest` | PASS, 23 tests |
+| Frontend Visual QA (2026-09-24) | Expo Web + Playwright, 390x844·1440x1000 | PASS — Mock 결과의 대표 근거·전체 목록 펼침·작성자 정보 제외·가로 overflow·콘솔 오류 0 확인. 실제 API loading·error·다음 페이지와 Android 실기기는 미확인 |
 
 ## 리뷰 작성일 보강 (2026-09-18)
 
@@ -92,7 +104,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | `src/features/app/PulseApp.tsx` | 빈 포디움 슬롯, 분석 불가 화면, 알림 목록 연결 |
 | `src/mocks/__tests__/fixtures.test.ts`, `src/services/__tests__/podium.test.ts` | 포디움 불변식 테스트 17개 |
 
-`GET /api/v1/analyses/{analysisId}/evidence` 는 **백엔드 미구현**이라 전체 근거 보기를 연결하지 않았다. 현재는 결과 응답의 `evidencePreview` 로 대표 근거만 보여준다.
+`GET /api/v1/analyses/{analysisId}/evidence`를 구현해 전체 근거 보기를 연결했다. 대표 근거는 결과 응답의 `evidencePreview`로 먼저 표시하고, 펼치면 소유권을 확인하는 cursor API를 호출한다. Mock 모드에서는 fixture 근거를 같은 UI로 표시한다.
 
 ## 폐기한 중복 브랜치
 
@@ -123,14 +135,13 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | 4 | GitHub 브랜치 보호 설정 (현재 없음) | `main` 보호 |
 | 5 | Google OAuth Client ID, 약관 법률 검토, 실기기 확인 | 출시 준비 |
 
-### 에이전트가 이어서 할 것 (막는 것 없음)
+### 결정 또는 외부 준비 후 에이전트가 이어서 할 것
 
 | 순위 | 작업 | 메모 |
 |---|---|---|
-| 1 | `GET /api/v1/analyses/{analysisId}/evidence` 구현 | API.md 에 계약만 있고 controller 없음. cursor 방식. 구현 후 프론트 "근거 리뷰 더 보기" 연결 (`C:\PULSE_SCC_FE` 는 현재 `evidencePreview` 만 표시) |
-| 2 | RAG 전문 지식 검색 | 제안의 `knowledgeReferences` 가 항상 빈 배열 |
-| 3 | 내구성 있는 작업 큐 | 현재 Spring 인프로세스 비동기라 재시작 시 진행 작업 유실 |
-| 4 | `build_reviews` 의 `len < 10` 최소 글자 수 | 제품 결정 전 임의값. 결정 후 반영 |
+| 1 | RAG 전문 지식 검색 | 승인된 지식 출처·검수/승인 절차가 없어 구현 중지. 결정 후 `knowledgeReferences` 계약과 검색·인용 구현 |
+| 2 | 내구성 있는 작업 큐 | 큐 제품 또는 DB lease·재시도·다중 인스턴스 정책이 미결정. ADR 확정 후 구현 |
+| 3 | `build_reviews` 의 `len < 10` 최소 글자 수 | 제품 결정 전 임의값. 결정 후 반영 |
 
 ### 조건 충족 후 할 것
 
@@ -145,6 +156,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | **유효 리뷰 50건 기준 유지 여부** | 실측 표본에서 본문 없는 리뷰가 50%. 소규모 매장은 사실상 분석 불가 |
 | 리뷰 최소 글자 수 | 10자, 근거 없음 |
 | 작성일 모르는 리뷰의 2년 경고 | 경고 대상에서 제외 중 (PRD 미해결 질문 13) |
+| RAG 지식 출처와 승인 절차 | 승인된 운영용 마케팅 지식 베이스가 없음. `GUEST_ANALYSIS_FUNCTIONAL_SPEC.md`도 선결 결정으로 명시 |
+| 내구성 큐 방식 | 외부 브로커와 PostgreSQL lease 중 선택, lease 만료·재시도·재조정 정책 미정 |
 | `/register` 409 로 가입 여부 노출 | 노출 중 |
 | 로그인 시도 제한 | 없음 |
 
@@ -161,6 +174,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 2026-09-18 Docker Desktop 프로세스는 시작됐으나 WSL 런타임이 설치 완료 상태가 아니어서 엔진 연결 실패. 로컬 PostgreSQL 18 서비스는 실행 중이나 테스트 계정 비밀번호가 없어 실제 통합 테스트는 계속 미실행.
 - Spring 인프로세스 비동기 작업은 재시작 복구·다중 인스턴스를 지원하지 않는다. 운영 전 내구성 큐 필요.
 - RAG 전문 지식 검색은 아직 구현되지 않아 제안의 지식 참고 목록이 비어 있다.
+- 위 두 미결정 사항을 역할별 GitHub 이슈(`role:product`, `role:platform`)로 넘기려 했으나 2026-09-24 로컬 `gh` 인증이 HTTP 401을 반환해 이슈를 생성하지 못했다. 인증 복구 후 생성해야 한다.
 - 날짜 보강의 **실제 브라우저 수집 중 동작은 미검증이다.** 저장된 응답과 단위 테스트로만 확인했다. 실제 수집 시 GraphQL 응답이 몇 건의 날짜를 채우는지는 다음 E2E에서 측정해야 한다.
 - `build_reviews` 의 `len(normalized) < 10` 최소 글자 수는 제품 결정 없이 들어간 임의 임계값이다. 확정하거나 제거해야 한다.
 - 실제 네이버 응답의 필드 형태(`__typename`, `representativeVisitDateTime`)를 저장소 안의 원자료로 대조하지 못했다. 커밋된 fixture는 1회 수동 확인한 형태를 본떠 만든 합성 데이터이므로, 네이버가 필드를 바꾸면 테스트는 통과하면서 수집만 조용히 실패할 수 있다.
@@ -171,10 +185,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
 - 약관과 개인정보 처리방침은 법률 검토 전 초안이다.
 - 프론트 변경은 `C:\PULSE_SCC_FE`에만 있으며 현재 백엔드 저장소 커밋 대상이 아니다.
-- 이 브랜치는 원격에 push되지 않았고 PR도 생성되지 않았다.
+- 이 브랜치는 원격에 `6a79607`까지 push돼 있고 PR은 생성되지 않았다. 2026-09-24 작업 트리 변경은 아직 push되지 않았다.
 
 ## Next Action
-WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정보를 준비한 뒤 `AnalysisApiIntegrationTests`와 `InitialSchemaMigrationTests`의 6개 Testcontainers 테스트를 실제 실행한다. 이후 새 OpenAI 키를 로컬 `backend/.env`에만 설정하고 전체 E2E를 수행한다.
+2026-09-24 작업 트리의 전체 근거 조회와 작업 선점·실패 트랜잭션 변경을 독립 리뷰한 뒤 커밋한다. `gh auth` 복구 후 RAG 지식 출처/승인 절차는 `role:product`, 내구성 큐 방식은 `role:platform` 이슈로 생성한다. WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정보를 준비하면 `AnalysisApiIntegrationTests`와 `InitialSchemaMigrationTests`의 7개 Testcontainers 테스트를 실제 실행한다. 이후 새 OpenAI 키를 로컬 `backend/.env`에만 설정하고 전체 E2E를 수행한다.
 
 ## Claude Continuation
 
@@ -194,4 +208,4 @@ WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정
 
 ## Last Verified Commit
 
-`02cd854` — 리뷰 작성일 보강과 충돌 처리까지 위 Verification이 유효하다. 분석 파이프라인 본체의 직전 검증 기준 커밋은 `36561f6` — 마이페이지 알림·설정, 회원 탈퇴·삭제, 분석 전체 흐름 통합 테스트 코드와 문서를 대상으로 컴파일·테스트·빌드 검증 수행
+`6a79607` + 2026-09-24 미커밋 작업 트리 — 전체 근거 조회 API·프론트 연결·작업 원자 선점·실패 트랜잭션·문서에 대해 위 검증을 수행했다. 커밋 기준 검증 SHA는 독립 리뷰와 커밋 후 갱신해야 한다. 분석 파이프라인 본체의 직전 검증 기준 커밋은 `36561f6`이다.

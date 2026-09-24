@@ -33,7 +33,9 @@ public class AnalysisJobRunner {
         if (context == null) {
             return;
         }
-        repository.markRunning(jobId);
+        if (!repository.markRunning(jobId)) {
+            return;
+        }
         try {
             WorkerResponse response = gateway.analyze(new WorkerRequest(
                     context.jobId().toString(),
@@ -42,9 +44,14 @@ public class AnalysisJobRunner {
                     context.naverPlaceUrl()));
             transactions.executeWithoutResult(status -> repository.saveCompleted(context, response));
         } catch (AnalysisException exception) {
-            repository.markFailed(jobId, exception.code(), exception.retryable());
+            markFailed(jobId, exception.code(), exception.retryable());
         } catch (RuntimeException exception) {
-            repository.markFailed(jobId, "ANALYSIS_OUTPUT_INVALID", true);
+            markFailed(jobId, "ANALYSIS_OUTPUT_INVALID", true);
         }
+    }
+
+    private void markFailed(UUID jobId, String errorCode, boolean retryable) {
+        transactions.executeWithoutResult(
+                status -> repository.markFailed(jobId, errorCode, retryable));
     }
 }

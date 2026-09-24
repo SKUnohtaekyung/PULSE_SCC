@@ -22,6 +22,7 @@ import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerInsight;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerPersona;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerReview;
+import kr.co.scc.api.analysis.application.EvidenceCursorCodec.Cursor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.core.JacksonException;
@@ -127,8 +128,8 @@ public class AnalysisRepository {
                 .optional();
     }
 
-    public void markRunning(UUID jobId) {
-        jdbc.sql("""
+    public boolean markRunning(UUID jobId) {
+        return jdbc.sql("""
                         UPDATE analysis_jobs
                         SET status = 'RUNNING', progress_step = 'COLLECTING_REVIEWS',
                             message_code = 'COLLECTING_REVIEWS', started_at = CURRENT_TIMESTAMP,
@@ -136,7 +137,7 @@ public class AnalysisRepository {
                         WHERE id = :jobId AND status = 'QUEUED'
                         """)
                 .param("jobId", jobId)
-                .update();
+                .update() == 1;
     }
 
     public void markFailed(UUID jobId, String code, boolean retryable) {
@@ -294,6 +295,68 @@ public class AnalysisRepository {
                 .query((rs, rowNum) -> new ImageRecord(
                         rs.getString("storage_key"), rs.getString("alt_text")))
                 .optional();
+    }
+
+    public boolean ownsPersona(UUID userId, UUID analysisId, UUID personaId) {
+        return jdbc.sql("""
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM personas p
+                            JOIN analyses a ON a.id = p.analysis_id
+                            WHERE p.id = :personaId
+                              AND p.analysis_id = :analysisId
+                              AND a.user_id = :userId
+                        )
+                        """)
+                .param("personaId", personaId)
+                .param("analysisId", analysisId)
+                .param("userId", userId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    public List<EvidenceRecord> findEvidence(
+            UUID analysisId,
+            UUID personaId,
+            String perspective,
+            Cursor cursor,
+            int fetchSize) {
+        return jdbc.sql("""
+                        SELECT el.id, el.sort_order, r.id AS review_id, el.excerpt,
+                               r.rating, r.written_at, r.platform
+                        FROM evidence_links el
+                        JOIN reviews r
+                          ON r.id = el.review_id AND r.analysis_id = el.analysis_id
+                        LEFT JOIN insights i
+                          ON i.id = el.insight_id AND i.analysis_id = el.analysis_id
+                        LEFT JOIN advice ad
+                          ON ad.id = el.advice_id AND ad.analysis_id = el.analysis_id
+                        JOIN personas p ON p.id = COALESCE(i.persona_id, ad.persona_id)
+                        WHERE el.analysis_id = :analysisId
+                          AND p.id = :personaId
+                          AND ((:perspective = 'ADVICE' AND el.advice_id IS NOT NULL)
+                            OR (:perspective <> 'ADVICE' AND i.kind = :perspective))
+                          AND (CAST(:cursorOrder AS integer) IS NULL
+                            OR (el.sort_order, el.id) > (
+                                CAST(:cursorOrder AS integer), CAST(:cursorId AS uuid)))
+                        ORDER BY el.sort_order, el.id
+                        LIMIT :fetchSize
+                        """)
+                .param("analysisId", analysisId)
+                .param("personaId", personaId)
+                .param("perspective", perspective)
+                .param("cursorOrder", cursor == null ? null : cursor.sortOrder())
+                .param("cursorId", cursor == null ? null : cursor.evidenceLinkId())
+                .param("fetchSize", fetchSize)
+                .query((rs, rowNum) -> new EvidenceRecord(
+                        rs.getObject("id", UUID.class),
+                        rs.getInt("sort_order"),
+                        rs.getObject("review_id", UUID.class),
+                        rs.getString("excerpt"),
+                        rs.getBigDecimal("rating"),
+                        rs.getObject("written_at", java.time.LocalDate.class),
+                        rs.getString("platform")))
+                .list();
     }
 
     private List<UUID> insertReviews(JobContext context, UUID analysisId, WorkerResponse response) {
@@ -509,7 +572,7 @@ public class AnalysisRepository {
                             "id", item.id().toString(), "text", item.worker().reviewFact())),
                     "aiInterpretations", List.of(Map.of(
                             "id", item.id().toString(), "text", item.worker().aiInterpretation())),
-                    "evidencePreview", item.evidence(),
+                    "evidencePreview", item.evidence().stream().limit(2).toList(),
                     "evidenceCount", item.evidence().size()));
         }
         List<Map<String, Object>> advice = value.advice().stream()
@@ -520,7 +583,8 @@ public class AnalysisRepository {
                         "details", Map.of(
                                 "aiInterpretation", item.worker().aiInterpretation(),
                                 "knowledgeReferences", List.of()),
-                        "evidencePreview", item.evidence()))
+                        "evidencePreview", item.evidence().stream().limit(2).toList(),
+                        "evidenceCount", item.evidence().size()))
                 .toList();
         Map<String, Object> publicPersona = new LinkedHashMap<>();
         publicPersona.put("id", value.id().toString());
@@ -599,6 +663,16 @@ public class AnalysisRepository {
     }
 
     public record ImageRecord(String storageKey, String altText) {
+    }
+
+    public record EvidenceRecord(
+            UUID evidenceLinkId,
+            int sortOrder,
+            UUID reviewId,
+            String excerpt,
+            java.math.BigDecimal rating,
+            java.time.LocalDate writtenAt,
+            String platform) {
     }
 
     private record PublicInsight(UUID id, WorkerInsight worker, List<Map<String, Object>> evidence) {

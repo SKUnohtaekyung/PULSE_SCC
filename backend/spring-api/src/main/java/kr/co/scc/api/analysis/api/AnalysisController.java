@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -64,6 +65,18 @@ public class AnalysisController {
     public AnalysisService.SavedAnalysis replaceSavedAnalysis(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID analysisId) {
         return service.replaceSavedResult(userId(jwt), analysisId);
+    }
+
+    @GetMapping("/analyses/{analysisId}/evidence")
+    public AnalysisService.EvidencePage evidence(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID analysisId,
+            @RequestParam UUID personaId,
+            @RequestParam String perspective,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer limit) {
+        return service.evidence(
+                userId(jwt), analysisId, personaId, perspective, cursor, limit);
     }
 
     private static UUID userId(Jwt jwt) {

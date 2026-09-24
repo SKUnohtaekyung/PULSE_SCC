@@ -100,15 +100,66 @@ class AnalysisApiIntegrationTests {
         JsonNode statusBody = awaitCompleted(jobId);
         assertThat(statusBody.get("status").stringValue()).isEqualTo("COMPLETED");
 
-        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", jobId).with(userJwt()))
+        String resultBody = mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", jobId).with(userJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.store.name").value("통합 테스트 식당"))
-                .andExpect(jsonPath("$.podium[0].status").value("FILLED"));
+                .andExpect(jsonPath("$.podium[0].status").value("FILLED"))
+                .andReturn().getResponse().getContentAsString();
+        JsonNode result = objectMapper.readTree(resultBody);
+        UUID analysisId = UUID.fromString(result.get("analysisId").stringValue());
+        UUID personaId = UUID.fromString(result.at("/podium/0/persona/id").stringValue());
+        mockMvc.perform(get("/api/v1/analyses/{analysisId}/evidence", analysisId)
+                        .with(userJwt())
+                        .queryParam("personaId", personaId.toString())
+                        .queryParam("perspective", "POSITIVE")
+                        .queryParam("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].excerpt").value("맛있고 빨라요"))
+                .andExpect(jsonPath("$.items[0].platform").value("NAVER"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
         mockMvc.perform(get("/api/v1/me/notifications").with(userJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].type").value("ANALYSIS_COMPLETED"));
         assertThat(jdbc.sql("SELECT count(*) FROM analyses WHERE user_id = :userId")
                 .param("userId", userId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void evidenceRejectsAnInvalidCursorAndAnotherUsersPersona() throws Exception {
+        String body = mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType("application/json")
+                        .content("""
+                                {"storeName":"통합 테스트 식당","category":"한식",\
+                                "naverPlaceUrl":"https://map.naver.com/p/entry/place/1234567890"}
+                                """))
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        UUID jobId = UUID.fromString(objectMapper.readTree(body).get("jobId").stringValue());
+        JsonNode completed = awaitCompleted(jobId);
+        UUID analysisId = UUID.fromString(completed.get("analysisId").stringValue());
+        String resultBody = mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", jobId)
+                        .with(userJwt()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        UUID personaId = UUID.fromString(
+                objectMapper.readTree(resultBody).at("/podium/0/persona/id").stringValue());
+
+        mockMvc.perform(get("/api/v1/analyses/{analysisId}/evidence", analysisId)
+                        .with(userJwt())
+                        .queryParam("personaId", personaId.toString())
+                        .queryParam("perspective", "POSITIVE")
+                        .queryParam("cursor", "not-a-cursor"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_EVIDENCE_CURSOR"));
+
+        mockMvc.perform(get("/api/v1/analyses/{analysisId}/evidence", analysisId)
+                        .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString())))
+                        .queryParam("personaId", personaId.toString())
+                        .queryParam("perspective", "POSITIVE"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_NOT_FOUND"));
     }
 
     @Test

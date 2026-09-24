@@ -2,8 +2,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **설계 계약 v0.4 — 인증·분석·마이페이지 API 구현** |
-| 기준일 | 2026-09-18 |
+| 상태 | **설계 계약 v0.5 — 인증·분석·근거·마이페이지 API 구현** |
+| 기준일 | 2026-09-24 |
 | 소유 역할 | `role:platform` |
 | 제품 요구사항 | [PRD.md](../product/PRD.md) |
 | 상세 기능명세 | [GUEST_ANALYSIS_FUNCTIONAL_SPEC.md](../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
@@ -131,12 +131,12 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | POST | `/api/v1/analysis-jobs` | 가게 정보 검증 후 비동기 분석 작업 생성 |
 | GET | `/api/v1/analysis-jobs/{jobId}` | 작업 상태·진행 단계·실패 정보 조회 |
 | GET | `/api/v1/analysis-jobs/{jobId}/result` | 완료된 작업의 분석 결과 조회 |
-| GET | `/api/v1/analyses/{analysisId}/evidence` | 결과에 연결된 전체 근거 리뷰를 cursor 방식으로 조회 — **미구현.** 설계 계약만 있고 controller가 없다 |
+| GET | `/api/v1/analyses/{analysisId}/evidence` | 결과에 연결된 전체 근거 리뷰를 cursor 방식으로 조회 |
 | GET | `/api/v1/persona-images/{imageId}` | 요청 사용자 소유 결과의 페르소나 이미지 조회 |
 | GET | `/api/v1/me/saved-analysis` | 현재 계정의 저장 분석 1개 조회 |
 | PUT | `/api/v1/me/saved-analysis/{analysisId}` | 저장 분석을 새 결과로 교체 |
 
-`/analyses/{analysisId}/evidence`는 아직 구현되지 않았다. 앱은 결과 응답의 `evidencePreview`로 대표 근거만 보여주며, 전체 근거 보기는 이 endpoint가 생긴 뒤에 연결한다.
+`/analyses/{analysisId}/evidence`는 요청 사용자 소유 분석과 해당 분석의 페르소나를 함께 확인한다. 앱은 결과 응답의 `evidencePreview`를 대표 근거로 먼저 보여주고, 전체 보기에서 이 endpoint를 호출한다.
 
 Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Spring Boot에 준비 완료를 알린다. Spring Boot는 결과 소유권과 필수 산출물을 확인하고 하나의 완료 트랜잭션에서 작업을 `COMPLETED`로 전이하고, 저장본이 없는 계정에는 첫 결과를 저장하며, 알림 설정이 켜진 경우에만 완료 알림을 멱등하게 생성한다. 중간에 실패하면 작업은 공개 `COMPLETED`가 되지 않으며 같은 작업을 안전하게 재조정할 수 있어야 한다. 저장본이 있는 사용자가 새 결과를 유지하지 않기로 선택하면 교체 API를 호출하지 않는다.
 
@@ -424,9 +424,26 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 | `personaId` | 요청 분석에 속한 페르소나만 허용 |
 | `perspective` | `POSITIVE`, `NEGATIVE`, `PERCEPTION`, `PRIORITY`, `ADVICE` |
 | `cursor` | 불투명 cursor. 클라이언트가 내부 ID 구조를 해석하지 않음 |
-| `limit` | 기본 20, 최대값은 구현 전 확정 |
+| `limit` | 기본 20, 최대 120. 한 분석의 공개 리뷰 수집 상한과 동일 |
 
 응답에는 작성자 식별정보 없이 `reviewId`, `excerpt`, `rating`, `writtenAt`, `platform`만 포함한다.
+
+```json
+{
+  "items": [
+    {
+      "reviewId": "review-...",
+      "excerpt": "점심에 갔는데 금방 나와서 좋았어요.",
+      "rating": 5,
+      "writtenAt": "2026-08-01",
+      "platform": "NAVER"
+    }
+  ],
+  "nextCursor": "opaque-cursor-or-null"
+}
+```
+
+정렬은 근거 연결 순서와 내부 식별자의 안정된 순서를 사용한다. `nextCursor`는 다음 항목이 있을 때만 반환하며 클라이언트는 값을 해석하지 않고 그대로 다음 요청에 전달한다. 잘못된 cursor는 `400 INVALID_EVIDENCE_CURSOR`, 지원하지 않는 관점이나 범위를 벗어난 `limit`은 `400 INVALID_EVIDENCE_REQUEST`다. 다른 사용자의 분석 또는 요청 분석에 속하지 않은 페르소나는 리소스 존재 여부를 노출하지 않도록 `404 ANALYSIS_NOT_FOUND`로 응답한다.
 
 ---
 
@@ -485,9 +502,8 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 2. 전화번호 인증·복구·탈퇴 API
 3. 동시 분석 작업 수와 재분석 cooldown
 4. 기존 결과 유지 시 미저장 결과의 접근 범위·최대 보관 시간
-5. 근거 리뷰 pagination 최대 크기
-6. 분석 목표 처리 시간과 timeout
-7. 내부 서비스 자격 증명의 저장·회전 방식
-8. 객체 저장소 선택과 이미지 private cache·서명 URL 수명
+5. 분석 목표 처리 시간과 timeout
+6. 내부 서비스 자격 증명의 저장·회전 방식
+7. 객체 저장소 선택과 이미지 private cache·서명 URL 수명
 
 미확정 값을 구현자가 임의로 채우지 않는다. 결정 후 ADR과 OpenAPI/schema/types에 반영한다.
