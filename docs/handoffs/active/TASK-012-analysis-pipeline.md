@@ -167,6 +167,46 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 이 조합으로 2026-09-19 Spring `bootRun` 과 인증 API 실동작을 확인했다(상세는 TASK-011 핸드오프).
 - 명령은 PowerShell 기준으로 안내한다. Git Bash 경로(`/c/...`)는 사용자 터미널에서 실패했다.
 
+## 2026-09-24 전체 E2E 성공과 환경 문제 3건 수정
+
+### 처음으로 전체 파이프라인이 끝까지 돌았다
+
+실제 매장(`https://map.naver.com/p/entry/place/2080629959`)으로 `COMPLETED` 까지 확인했다. 소요 약 230초.
+
+| 구간 | 결과 |
+|---|---|
+| 네이버 공개 리뷰 수집 | 120건 (유효 120건) |
+| 손님 유형 도출 | 3개 — 56건·50건·40건 근거 |
+| 4관점 | 4개 모두 생성 |
+| 근거 리뷰 | 실제 리뷰 원문 인용 확인 |
+| 페르소나 이미지 | 3장 생성, 1.5~1.8MB PNG, `backend/storage/personas/<analysisId>/` 에 저장 |
+| 이미지 접근 제어 | 인증 있으면 200, 없으면 401 |
+| 저장 분석 조회 | `GET /me/saved-analysis` 200 |
+| Testcontainers | Docker 기동 후 skip 0 |
+
+### 수정한 문제 3건 (커밋 `d30dd30`)
+
+두 서비스를 함께 띄워야만 드러나는 문제였다. 단위 테스트로는 잡히지 않는다.
+
+1. **Playwright 가 서버 안에서 죽던 문제** — uvicorn 은 reload 를 켜면 Windows 에서 `SelectorEventLoop` 를 고르는데(`loops/asyncio.py`), 이 루프는 asyncio 서브프로세스를 지원하지 않아 `NotImplementedError` 가 났다. 스크립트로는 되고 서버에서만 실패하던 원인이다. uvicorn 이 지원하는 커스텀 루프 팩토리(`asyncio:ProactorEventLoop`)로 고정했다.
+2. **Spring → Python 호출이 422 로 거부되던 문제** — JDK HttpClient 기본 버전이 HTTP/2 라 평문 연결에서 `Upgrade: h2c` 를 보냈고, HTTP/1.1 만 처리하는 uvicorn 이 이를 거부하면서 chunked 본문이 유실됐다. Python 은 필드 없는 요청으로 보고 422 를 냈다. 내부 호출을 HTTP/1.1 로 고정했다. **본문 자체는 처음부터 정상이었다.**
+3. **기본 저장 경로로 기동조차 못 하던 문제** — Spring 의 String → Path 변환기가 `..` 로 시작하는 값을 리소스 경로로 해석해 거부했다. 문자열로 바인딩하고 `imageStorageDirectory()` 에서 변환한다.
+
+### 검증
+
+| 검증 | 결과 |
+|---|---|
+| Spring test | PASS — 30개, **skip 0** (Testcontainers 7개 포함) |
+| Python lint·format | PASS |
+| Python test | PASS — 26개 |
+| 전체 E2E | PASS — 위 표 |
+
+### 남은 것
+
+- `.env.example` 의 `ANALYSIS_IMAGE_STORAGE_PATH=../storage/personas` 는 이제 정상 동작하지만, 배포 환경에서는 절대 경로 사용을 권한다.
+- 디버깅 중 `SCC_SERVICE_TOKEN` 값이 로그에 노출됐다. localhost 전용 로컬 토큰이지만 교체를 권한다(Spring `ANALYSIS_SERVICE_TOKEN` 과 Python `SCC_SERVICE_TOKEN` 을 같은 새 값으로).
+- OpenAI 실제 호출 비용이 발생한다. 반복 E2E 시 `SCC_REVIEW_COLLECTION_LIMIT` 를 낮추면 50건 게이트에서 막혀 모델 호출 없이 수집만 검증할 수 있다.
+
 ## Unresolved
 - 네이버 정책은 원칙적으로 자동 수집을 금지한다. 명시적 승인 또는 공식 API/robots 허용 확인 전 운영 활성화 금지.
 - 실제 OpenAI API 호출을 포함한 전체 분석 E2E는 미실행. 채팅에 노출된 키는 사용하지 않고 폐기·재발급이 필요하다.
