@@ -18,7 +18,7 @@ public class PersonaImageStorage {
     private final Path root;
 
     public PersonaImageStorage(AnalysisServiceProperties properties) {
-        this.root = properties.imageStoragePath().toAbsolutePath().normalize();
+        this.root = properties.imageStorageDirectory();
     }
 
     public String save(UUID analysisId, UUID imageId, String contentBase64) {
