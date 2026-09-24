@@ -1,7 +1,8 @@
 # TASK-012 — 네이버 리뷰 수집·분석 API와 프론트 연결
 
 ## Status
-구현 진행 — 전체 근거 조회 연결 완료, 실제 PostgreSQL 실행 검증 대기
+구현 완료, 리뷰·병합 대기 — 전체 파이프라인이 실제 환경에서 끝까지 동작한다.
+회원가입부터 페르소나 이미지 생성까지 E2E 확인, Testcontainers 포함 전체 테스트 skip 0.
 
 ## Owner
 `role:feature` — 미배정 (`role:platform`, `role:product`, `role:design-system` 교차 리뷰 필요)
@@ -10,10 +11,10 @@
 `feat/TASK-012-analysis-pipeline`
 
 ## Work Note
-- 2026-09-24 전체 근거 조회와 작업 선점·실패 트랜잭션 변경은 `c35c342`에 커밋했다. 이 인수인계 갱신 커밋과 함께 원격 작업 브랜치에 push한다.
-- 최신 커밋은 `6a79607`, 분석 파이프라인 기능 구현 커밋은 `36561f6`이다.
-- Docker Desktop은 설치됐지만 WSL 런타임 미완료로 엔진이 시작되지 않는다. 로컬 PostgreSQL 18은 실행 중이나 테스트 계정 접속정보가 없다.
-- 채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다. 새 키는 로컬 `backend/.env`에만 설정한다.
+- 원격 작업 브랜치에 push 완료. PR 은 아직 만들지 않았다.
+- 분석 파이프라인 기능 구현 커밋은 `36561f6`이다. 이후 변경은 아래 날짜별 절을 본다.
+- **Docker 정상 동작.** WSL2 백엔드로 붙어 Testcontainers 가 실제로 돈다.
+- **OpenAI 키 설정 완료.** 실제 분석·이미지 생성까지 확인했다. 디버깅 중 `SCC_SERVICE_TOKEN` 이 로그에 노출됐으므로 교체를 권한다(localhost 전용 로컬 토큰).
 
 ## Goal
 Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실제 분석 상태·결과 조회와 오류 복구를 제공하고 약관 동의 이력을 기록한다. 관련 이슈: 미생성. 관련 요구사항: PRD FR-001~FR-011.
@@ -111,6 +112,13 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 `feat/TASK-012-naver-review-collector` (커밋 `739c516`) 는 같은 TASK 번호·같은 `collection/` 패키지·같은 ADR-009 번호로 수집 계층을 중복 구현한 브랜치다. 이 브랜치를 정본으로 유지하기로 결정하고 해당 브랜치는 개발을 중단했다. ref 는 삭제하지 않고 남겨 두었다. 위 날짜 보강은 그 브랜치에서 옮겨 온 유일한 항목이다.
 
 ## 2026-09-22 세션 종료 — 다음 세션이 이어받을 것
+
+> **이 절의 상당 부분은 2026-09-24 에 해소됐다.** 아래 두 절을 먼저 읽는다.
+> 해소된 항목: WSL·Docker(완료), OpenAI 키(설정 완료), Testcontainers 실행(skip 0),
+> 내구성 있는 작업 큐(구현 완료, [ADR-011](../../decisions/ADR-011-durable-analysis-job-queue.md)),
+> 전체 근거 조회(구현 완료).
+> **아직 유효한 항목**: 브랜치 관계와 인증 충돌 해결 지침, PR #27 리뷰어 지정,
+> 브랜치 보호 설정, 법률 검토, 실기기 확인, RAG, 제품 결정 목록(큐 방식 제외).
 
 ### 브랜치 관계 (가장 먼저 읽을 것)
 
@@ -290,44 +298,57 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 재시도가 3회 모두 실패하면 `ANALYSIS_TIMEOUT` 으로 마감한다. 사용자에게 보여줄 문구를 제품이 확정해야 한다.
 
 ## Unresolved
-- 네이버 정책은 원칙적으로 자동 수집을 금지한다. 명시적 승인 또는 공식 API/robots 허용 확인 전 운영 활성화 금지.
-- 실제 OpenAI API 호출을 포함한 전체 분석 E2E는 미실행. 채팅에 노출된 키는 사용하지 않고 폐기·재발급이 필요하다.
-- Docker Desktop 4.91.0과 WSL/VirtualMachinePlatform 기능은 설치·활성화했으나 재부팅 전이라 Flyway V3와 PostgreSQL 저장 통합 테스트는 미실행.
-- 2026-09-18 Docker Desktop 프로세스는 시작됐으나 WSL 런타임이 설치 완료 상태가 아니어서 엔진 연결 실패. 로컬 PostgreSQL 18 서비스는 실행 중이나 테스트 계정 비밀번호가 없어 실제 통합 테스트는 계속 미실행.
-- Spring 인프로세스 비동기 작업은 재시작 복구·다중 인스턴스를 지원하지 않는다. 운영 전 내구성 큐 필요.
-- RAG 전문 지식 검색은 아직 구현되지 않아 제안의 지식 참고 목록이 비어 있다.
-- 위 두 미결정 사항을 역할별 GitHub 이슈(`role:product`, `role:platform`)로 넘기려 했으나 2026-09-24 로컬 `gh` 인증이 HTTP 401을 반환해 이슈를 생성하지 못했다. 인증 복구 후 생성해야 한다.
-- 날짜 보강의 **실제 브라우저 수집 중 동작은 미검증이다.** 저장된 응답과 단위 테스트로만 확인했다. 실제 수집 시 GraphQL 응답이 몇 건의 날짜를 채우는지는 다음 E2E에서 측정해야 한다.
-- `build_reviews` 의 `len(normalized) < 10` 최소 글자 수는 제품 결정 없이 들어간 임의 임계값이다. 확정하거나 제거해야 한다.
-- 실제 네이버 응답의 필드 형태(`__typename`, `representativeVisitDateTime`)를 저장소 안의 원자료로 대조하지 못했다. 커밋된 fixture는 1회 수동 확인한 형태를 본떠 만든 합성 데이터이므로, 네이버가 필드를 바꾸면 테스트는 통과하면서 수집만 조용히 실패할 수 있다.
-- DOM 텍스트 앞에 별점 등 접두어가 붙으면 본문 매칭이 실패해 날짜가 비는 열화가 발생한다. 실제 수집에서 발생률을 측정해야 한다.
-- 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전 정보가 미완료다. 탈퇴·연계 데이터 삭제 코드는 구현됐지만 실제 PostgreSQL 검증은 남아 있다.
+
+### 제품·법무 결정
+
+- 네이버 정책은 원칙적으로 자동 수집을 금지한다. 명시적 승인 또는 공식 API/robots 허용 확인 전 운영 활성화 금지. 근거와 경위는 [ADR-002](../../decisions/ADR-002-review-collection.md).
+- **유효 리뷰 50건 기준을 유지할지.** 실측 표본에서 본문 없는 별점 리뷰가 약 50%다. 소규모 매장은 현재 기준으로 사실상 분석이 불가능하다.
+- `build_reviews` 의 `len(normalized) < 10` 최소 글자 수는 제품 결정 없이 들어간 임의 임계값이다.
+- 작성일을 알 수 없는 리뷰의 2년 경고 처리(PRD 미결 질문 13). 현재는 경고 대상에서 제외한다.
+- 재시도 3회를 모두 쓴 작업을 사용자에게 어떻게 표현할지.
+- RAG 지식 출처와 검수·승인 절차가 없어 `knowledgeReferences` 가 비어 있다. 승인된 지식 베이스가 선결 조건이다.
+- 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전 정보가 미완료다.
+- 위 미결정 사항을 역할별 GitHub 이슈로 넘기려 했으나 2026-09-24 로컬 `gh` 인증이 HTTP 401 을 반환해 생성하지 못했다. 인증 복구 후 생성해야 한다.
+
+### 기술적으로 남은 것
+
+- **수집 안정성이 실측되지 않았다.** 커밋된 fixture 는 1회 수동 확인한 형태를 본뜬 합성 데이터다. 네이버가 필드를 바꾸면 테스트는 통과하면서 수집만 조용히 실패할 수 있다.
+- DOM 텍스트 앞에 별점 등 접두어가 붙으면 본문 매칭이 실패해 날짜가 비는 열화가 있다. 실제 수집에서 발생률을 측정해야 한다.
+- 큐는 at-least-once 다. 임대 만료 직후 원 워커가 되살아나면 수집·모델 호출 비용이 두 번 발생할 수 있다([ADR-011](../../decisions/ADR-011-durable-analysis-job-queue.md) Consequences).
+- 폴링 주기·임대 시간·재시도 횟수는 로컬 실측 기준값이다. 운영 부하를 보고 조정한다.
+- 내부 호출 read timeout 15m 은 동기 호출 구조를 전제한 값이다. 작업을 더 쪼개면 줄일 수 있다.
+- Visual QA 미실행. 빈 포디움 슬롯·분석 불가 화면·알림 목록을 실기기에서 확인해야 한다.
+- 회원 탈퇴의 실제 PostgreSQL 삭제 검증은 통합 테스트 코드로만 확인했다.
 
 ## Do Not Assume
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
 - 약관과 개인정보 처리방침은 법률 검토 전 초안이다.
 - 프론트 변경은 `C:\PULSE_SCC_FE`에만 있으며 현재 백엔드 저장소 커밋 대상이 아니다.
-- 이 브랜치는 2026-09-24 변경까지 원격 작업 브랜치에 push하며 PR은 아직 생성하지 않았다.
+- 이 브랜치는 원격에 push 했지만 PR 은 아직 없다. PR 전에 PR #27 병합과 인증 충돌 수동 병합이 필요하다.
+- E2E 가 성공했다고 네이버 selector 안정성이 증명된 것은 아니다. 1개 매장·2회 성공이 전부다.
+- 큐의 재시작 복구는 실제로 검증했지만 다중 인스턴스 동시 운영은 검증하지 않았다.
 
 ## Next Action
-`c35c342` 변경을 독립 리뷰한 뒤 PR을 생성한다. `gh auth` 복구 후 RAG 지식 출처/승인 절차는 `role:product`, 내구성 큐 방식은 `role:platform` 이슈로 생성한다. WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정보를 준비하면 `AnalysisApiIntegrationTests`와 `InitialSchemaMigrationTests`의 7개 Testcontainers 테스트를 실제 실행한다. 이후 새 OpenAI 키를 로컬 `backend/.env`에만 설정하고 전체 E2E를 수행한다.
+
+1. **사람**: PR #27 에 `role:product`·`role:platform` 리뷰어를 지정하고 병합한다.
+2. 병합 후 이 브랜치에 `main` 을 merge commit 으로 연결한다. **인증 파일 충돌은 손으로 합친다**(2026-09-22 절 참조). force push 금지.
+3. 합친 뒤 Spring test 전체와 로컬 DB `bootRun` + 가입·로그인·회전 호출로 재확인한다.
+4. 독립 Reviewer 검토 후 PR 을 만든다.
+5. **사람**: GitHub 브랜치 보호 설정(현재 없음), Visual QA 용 Expo Go 준비.
+6. 제품 결정(위 Unresolved)을 받아 최소 글자 수·50건 기준·실패 문구를 확정한다.
 
 ## Claude Continuation
 
-1. `git status --short`, `git log -3 --oneline`으로 로컬 브랜치와 변경 유무를 확인한다. 원격 push는 사용자가 별도로 요청하기 전까지 하지 않는다.
-2. Docker를 사용할 경우 `wsl --status`와 `docker info`부터 확인한다. 현재 `docker info`는 `docker_engine` 파이프 연결 실패 상태다.
-3. 로컬 PostgreSQL을 사용할 경우 운영 DB가 아닌 별도 테스트 DB와 계정을 준비한다. 비밀번호를 문서나 커밋에 넣지 않는다.
-4. 다음 명령으로 실제 통합 테스트를 실행한다.
-   - `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api test --tests "kr.co.scc.api.database.InitialSchemaMigrationTests" --rerun-tasks`
-   - `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api test --tests "kr.co.scc.api.analysis.AnalysisApiIntegrationTests" --rerun-tasks`
-5. 통합 테스트가 PASS하면 전체 `test`와 `build`를 다시 실행하고 이 문서의 SKIP 수·검증 결과·`Last Verified Commit`을 갱신한다.
-6. 집중 확인 파일:
-   - `backend/spring-api/src/main/java/kr/co/scc/api/mypage/**`
-   - `backend/spring-api/src/test/java/kr/co/scc/api/analysis/AnalysisApiIntegrationTests.java`
-   - `backend/spring-api/src/test/java/kr/co/scc/api/database/InitialSchemaMigrationTests.java`
-   - `docs/decisions/ADR-010-account-deletion.md`
-7. 실제 DB 검증 후에는 회원 탈퇴가 `users`, 인증 세션, 약관 동의, 작업·리뷰·분석·근거·알림을 모두 제거하고 이미지 파일도 삭제하는지 반드시 확인한다.
+1. `git status --short`, `git branch -a`, `git log -3 --oneline` 으로 상태를 확인한다. **`git branch -a` 를 빼먹지 않는다** — 이전 세션이 로컬 브랜치를 못 보고 같은 TASK 를 중복 구현한 적이 있다.
+2. 환경은 준비돼 있다. Docker 정상, 로컬 PostgreSQL 18 에 `scc` DB·계정 존재, `backend/.env` 설정 완료(OpenAI 키 포함).
+3. 검증 명령
+   - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 48개, skip 0 이어야 한다
+   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest backend\python-analysis` → 26개
+4. E2E 를 돌릴 때는 **OpenAI 실제 비용이 발생한다.** 수집만 확인하려면 `SCC_REVIEW_COLLECTION_LIMIT=20` 으로 띄운다. 50건 게이트에서 막혀 모델을 호출하지 않는다.
+5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
+6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.
+7. 한글이 든 JSON 본문은 UTF-8 파일로 써서 `curl --data-binary @file` 로 보낸다. 셸 인라인은 인코딩이 깨진다.
 
 ## Last Verified Commit
 
-`c35c342` — 전체 근거 조회 API·프론트 연결·작업 원자 선점·실패 트랜잭션·문서에 대해 위 검증을 수행했다. 분석 파이프라인 본체의 직전 검증 기준 커밋은 `36561f6`이다.
+`025eb8b` — 작업 큐·페르소나 이미지 인물 포함까지. 이 커밋 기준으로 Spring 48개(skip 0)·Python 26개 통과, 전체 E2E COMPLETED, 재시작 복구를 실제로 검증했다.
