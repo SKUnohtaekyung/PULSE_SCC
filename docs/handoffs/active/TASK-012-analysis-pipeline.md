@@ -10,7 +10,7 @@
 `feat/TASK-012-analysis-pipeline`
 
 ## Work Note
-- 원격 브랜치는 `6a79607`까지 동기화돼 있다. 2026-09-24 전체 근거 조회 변경은 아직 커밋·push하지 않은 작업 트리 변경이다.
+- 2026-09-24 전체 근거 조회와 작업 선점·실패 트랜잭션 변경은 `c35c342`에 커밋했다. 이 인수인계 갱신 커밋과 함께 원격 작업 브랜치에 push한다.
 - 최신 커밋은 `6a79607`, 분석 파이프라인 기능 구현 커밋은 `36561f6`이다.
 - Docker Desktop은 설치됐지만 WSL 런타임 미완료로 엔진이 시작되지 않는다. 로컬 PostgreSQL 18은 실행 중이나 테스트 계정 접속정보가 없다.
 - 채팅에 노출된 OpenAI 키는 사용하지 않았으며 폐기·재발급해야 한다. 새 키는 로컬 `backend/.env`에만 설정한다.
@@ -185,10 +185,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
 - 약관과 개인정보 처리방침은 법률 검토 전 초안이다.
 - 프론트 변경은 `C:\PULSE_SCC_FE`에만 있으며 현재 백엔드 저장소 커밋 대상이 아니다.
-- 이 브랜치는 원격에 `6a79607`까지 push돼 있고 PR은 생성되지 않았다. 2026-09-24 작업 트리 변경은 아직 push되지 않았다.
+- 이 브랜치는 2026-09-24 변경까지 원격 작업 브랜치에 push하며 PR은 아직 생성하지 않았다.
 
 ## Next Action
-2026-09-24 작업 트리의 전체 근거 조회와 작업 선점·실패 트랜잭션 변경을 독립 리뷰한 뒤 커밋한다. `gh auth` 복구 후 RAG 지식 출처/승인 절차는 `role:product`, 내구성 큐 방식은 `role:platform` 이슈로 생성한다. WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정보를 준비하면 `AnalysisApiIntegrationTests`와 `InitialSchemaMigrationTests`의 7개 Testcontainers 테스트를 실제 실행한다. 이후 새 OpenAI 키를 로컬 `backend/.env`에만 설정하고 전체 E2E를 수행한다.
+`c35c342` 변경을 독립 리뷰한 뒤 PR을 생성한다. `gh auth` 복구 후 RAG 지식 출처/승인 절차는 `role:product`, 내구성 큐 방식은 `role:platform` 이슈로 생성한다. WSL/Docker 엔진을 정상화하거나 전용 PostgreSQL 테스트 DB 접속정보를 준비하면 `AnalysisApiIntegrationTests`와 `InitialSchemaMigrationTests`의 7개 Testcontainers 테스트를 실제 실행한다. 이후 새 OpenAI 키를 로컬 `backend/.env`에만 설정하고 전체 E2E를 수행한다.
 
 ## Claude Continuation
 
@@ -208,4 +208,4 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`6a79607` + 2026-09-24 미커밋 작업 트리 — 전체 근거 조회 API·프론트 연결·작업 원자 선점·실패 트랜잭션·문서에 대해 위 검증을 수행했다. 커밋 기준 검증 SHA는 독립 리뷰와 커밋 후 갱신해야 한다. 분석 파이프라인 본체의 직전 검증 기준 커밋은 `36561f6`이다.
+`c35c342` — 전체 근거 조회 API·프론트 연결·작업 원자 선점·실패 트랜잭션·문서에 대해 위 검증을 수행했다. 분석 파이프라인 본체의 직전 검증 기준 커밋은 `36561f6`이다.
