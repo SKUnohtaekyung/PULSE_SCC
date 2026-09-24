@@ -2,6 +2,7 @@ package kr.co.scc.api.analysis.infrastructure;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -137,6 +138,116 @@ public class AnalysisRepository {
                         WHERE id = :jobId AND status = 'QUEUED'
                         """)
                 .param("jobId", jobId)
+                .update() == 1;
+    }
+
+    /**
+     * 대기 중인 작업 하나를 원자적으로 집어 RUNNING 으로 바꾸고 임대를 건다.
+     *
+     * <p>{@code FOR UPDATE SKIP LOCKED} 로 같은 행을 두 워커가 동시에 집지 못하게 한다.
+     * 인스턴스가 여러 개여도 한 작업은 한 번만 실행된다.
+     *
+     * @return 집어온 작업 id. 대기 중인 작업이 없으면 비어 있다
+     */
+    public Optional<UUID> claimNextQueuedJob(Duration lease) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'RUNNING',
+                            progress_step = 'COLLECTING_REVIEWS',
+                            message_code = 'COLLECTING_REVIEWS',
+                            started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
+                            attempt_count = attempt_count + 1,
+                            lease_expires_at = CURRENT_TIMESTAMP + (:leaseSeconds * INTERVAL '1 second'),
+                            last_heartbeat_at = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = (
+                            SELECT id FROM analysis_jobs
+                            WHERE status = 'QUEUED'
+                            ORDER BY created_at
+                            FOR UPDATE SKIP LOCKED
+                            LIMIT 1
+                        )
+                        RETURNING id
+                        """)
+                .param("leaseSeconds", lease.toSeconds())
+                .query(UUID.class)
+                .optional();
+    }
+
+    /** 처리 중인 작업의 임대를 연장한다. 워커가 살아 있다는 신호다. */
+    public boolean extendLease(UUID jobId, Duration lease) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET lease_expires_at = CURRENT_TIMESTAMP + (:leaseSeconds * INTERVAL '1 second'),
+                            last_heartbeat_at = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :jobId AND status = 'RUNNING'
+                        """)
+                .param("leaseSeconds", lease.toSeconds())
+                .param("jobId", jobId)
+                .update() == 1;
+    }
+
+    /**
+     * 임대가 끝난 RUNNING 작업을 다시 큐에 넣는다. 워커가 죽었거나 서버가 재시작된 경우다.
+     *
+     * <p>시도 횟수가 상한에 닿은 작업은 여기서 되살리지 않는다. {@link #failExhaustedJobs}
+     * 가 실패로 마무리한다.
+     *
+     * @return 다시 큐에 넣은 작업 수
+     */
+    public int requeueExpiredLeases(int maxAttempts) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'QUEUED',
+                            progress_step = 'QUEUED',
+                            message_code = 'QUEUED',
+                            lease_expires_at = NULL,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE status = 'RUNNING'
+                          AND lease_expires_at IS NOT NULL
+                          AND lease_expires_at < CURRENT_TIMESTAMP
+                          AND attempt_count < :maxAttempts
+                        """)
+                .param("maxAttempts", maxAttempts)
+                .update();
+    }
+
+    /** 임대가 끝났고 재시도 횟수도 모두 쓴 작업을 실패로 마무리한다. */
+    public int failExhaustedJobs(int maxAttempts) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'FAILED',
+                            progress_step = 'FAILED',
+                            message_code = 'ANALYSIS_FAILED',
+                            error_code = 'ANALYSIS_TIMEOUT',
+                            retryable = true,
+                            lease_expires_at = NULL,
+                            completed_at = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE status = 'RUNNING'
+                          AND lease_expires_at IS NOT NULL
+                          AND lease_expires_at < CURRENT_TIMESTAMP
+                          AND attempt_count >= :maxAttempts
+                        """)
+                .param("maxAttempts", maxAttempts)
+                .update();
+    }
+
+    /** 재시도 가능한 실패를 다시 큐에 넣는다. 시도 횟수가 남아 있을 때만이다. */
+    public boolean requeueForRetry(UUID jobId, int maxAttempts) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'QUEUED',
+                            progress_step = 'QUEUED',
+                            message_code = 'QUEUED',
+                            error_code = NULL,
+                            lease_expires_at = NULL,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :jobId AND status = 'RUNNING' AND attempt_count < :maxAttempts
+                        """)
+                .param("jobId", jobId)
+                .param("maxAttempts", maxAttempts)
                 .update() == 1;
     }
 

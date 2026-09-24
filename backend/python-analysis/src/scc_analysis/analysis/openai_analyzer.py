@@ -15,7 +15,9 @@ SYSTEM_PROMPT = """당신은 음식점 공개 리뷰를 근거로 손님 사용 
 최대 3개의 반복 토픽을 빈도 순으로 만들고, 각 토픽마다 POSITIVE, NEGATIVE, PERCEPTION,
 PRIORITY 관점을 정확히 하나씩 작성하세요. 모든 사실과 제안은 evidence의 review_index로
 실제 리뷰에 연결되어야 합니다. 매출 상승이나 확정적인 효과를 보장하지 마세요.
-image_prompt는 실제 인물을 재현하지 않는 따뜻한 에디토리얼 일러스트로 작성하세요."""
+image_prompt는 그 토픽의 식사 장면을 사람이 등장하는 따뜻한 에디토리얼 일러스트로 작성하세요.
+사람은 특정 인물을 재현하지 않는 일반적인 모습으로 묘사하고, 나이·성별·직업을 지정하지 마세요.
+얼굴 생김새보다 무엇을 하고 있는지(덜어 담기, 함께 나눠 먹기, 메뉴판 살펴보기)를 적으세요."""
 
 
 class AnalysisConfigurationError(RuntimeError):
@@ -57,9 +59,17 @@ class OpenAiReviewAnalyzer:
         response = self.client.images.generate(
             model=self.image_model,
             prompt=(
-                "Square mobile app illustration. No text, logos, real people, "
-                "age, gender, or occupation "
-                "claims. Use the same warm editorial vector style for every image. " + prompt
+                # 페르소나 이미지이므로 사람이 등장해야 상황이 읽힌다. 다만 실제 손님을
+                # 묘사하는 것이 아니므로 특정 인물로 식별되지 않아야 하고, 나이·성별·직업을
+                # 단정하지 않는다(기능명세 IMAGE-001 비식별 가상 이미지).
+                "Square mobile app illustration in a warm editorial vector style, "
+                "identical style across every image. "
+                "Show one or two stylised people in the dining scene, drawn simply with "
+                "soft rounded shapes and minimal facial detail, seen from a slight distance "
+                "or three-quarter angle. "
+                "They must not resemble any identifiable person and must not signal a "
+                "specific age, gender, or occupation. "
+                "No text, letters, numbers, logos, or photorealism. " + prompt
             ),
             size="1024x1024",
             quality="low",

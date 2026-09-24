@@ -30,11 +30,9 @@ public class AnalysisService {
             Set.of("한식", "중식", "일식", "양식", "카페/디저트", "주점", "기타");
 
     private final AnalysisRepository repository;
-    private final AnalysisJobRunner runner;
 
-    public AnalysisService(AnalysisRepository repository, AnalysisJobRunner runner) {
+    public AnalysisService(AnalysisRepository repository) {
         this.repository = repository;
-        this.runner = runner;
     }
 
     @Transactional
@@ -80,10 +78,6 @@ public class AnalysisService {
                 "QUEUED",
                 "분석 작업을 준비하고 있습니다.",
                 Instant.now());
-    }
-
-    public void dispatch(UUID jobId) {
-        runner.run(jobId);
     }
 
     public JobStatus status(UUID userId, UUID jobId) {

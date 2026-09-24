@@ -26,7 +26,7 @@ class AnalysisServiceEvidenceTests {
     @BeforeEach
     void setUp() {
         repository = mock(AnalysisRepository.class);
-        service = new AnalysisService(repository, mock(AnalysisJobRunner.class));
+        service = new AnalysisService(repository);
         userId = UUID.randomUUID();
         analysisId = UUID.randomUUID();
         personaId = UUID.randomUUID();

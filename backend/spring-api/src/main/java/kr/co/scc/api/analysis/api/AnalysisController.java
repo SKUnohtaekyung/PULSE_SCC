@@ -42,7 +42,8 @@ public class AnalysisController {
                 userId(jwt),
                 idempotencyKey,
                 new CreateJobCommand(request.storeName(), request.category(), request.naverPlaceUrl()));
-        service.dispatch(created.jobId());
+        // 여기서 바로 실행하지 않는다. 작업은 QUEUED 로 남고 AnalysisJobQueue 가 집어간다.
+        // 요청 스레드에서 시작해 버리면 서버가 재시작될 때 그 작업을 되살릴 방법이 없다.
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(created);
     }
 
