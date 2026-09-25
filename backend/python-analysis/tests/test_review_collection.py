@@ -42,7 +42,11 @@ def test_keyword_statistics_are_not_reviews() -> None:
 
 
 def test_cafe_keyword_chips_are_not_reviews() -> None:
-    texts = ["커피가 맛있어요\n종류가 다양해요\n집중하기 좋아요", "디저트가 맛있어요\n+1"]
+    texts = [
+        "커피가 맛있어요\n종류가 다양해요\n집중하기 좋아요",
+        "디저트가 맛있어요\n+1",
+        "빵이 맛있어요\n차가 맛있어요\n반려동물과 가기 좋아요",
+    ]
 
     assert all(is_voted_keyword_text(text) for text in texts)
     assert build_reviews(texts, 10) == []
