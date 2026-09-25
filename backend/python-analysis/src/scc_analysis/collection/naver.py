@@ -37,6 +37,67 @@ AUTHOR_FIELDS = frozenset({"author", "nickname", "userIdno", "loginIdno"})
 
 _MATCH_KEY_LENGTH = 40
 
+# 네이버 "이런 점이 좋았어요" 선택형 키워드. 손님이 직접 쓴 문장이 아니라 목록에서 고른
+# 것이라 리뷰 종합에서 제외한다. 리뷰 본문 아래 칩과 매장 키워드 통계에 같은 문구가 뜬다.
+# 목록은 2026-09-25 사용자가 제공한 음식점 키워드 통계에서 옮겼다. 다른 업종의 키워드는
+# 여기 없으면 걸러지지 않는다.
+NAVER_VOTED_KEYWORDS = frozenset(
+    {
+        "음식이 맛있어요",
+        "양이 많아요",
+        "매장이 넓어요",
+        "가성비가 좋아요",
+        "재료가 신선해요",
+        "친절해요",
+        "고기 질이 좋아요",
+        "매장이 청결해요",
+        "인테리어가 멋져요",
+        "특별한 메뉴가 있어요",
+        "혼밥하기 좋아요",
+        "잡내가 적어요",
+        "메뉴 구성이 알차요",
+        "건강한 맛이에요",
+        "단체모임 하기 좋아요",
+        "반찬이 잘 나와요",
+        "음식이 빨리 나와요",
+        "아이와 가기 좋아요",
+        "아늑해요",
+        "좌석이 편해요",
+        "차분한 분위기예요",
+        "대화하기 좋아요",
+        "뷰가 좋아요",
+        "혼술하기 좋아요",
+        "환기가 잘 돼요",
+        "음악이 좋아요",
+        "화장실이 깨끗해요",
+        "기본 안주가 좋아요",
+        "특별한 날 가기 좋아요",
+        "컨셉이 독특해요",
+        "주차하기 편해요",
+        "비싼 만큼 가치있어요",
+        "현지 맛에 가까워요",
+        "직접 잘 구워줘요",
+        "향신료가 강하지 않아요",
+        "샐러드바가 잘 되어있어요",
+        "코스요리가 알차요",
+        "디저트가 맛있어요",
+        "음료가 맛있어요",
+        "포장이 깔끔해요",
+        "사진이 잘 나와요",
+        "오래 머무르기 좋아요",
+        "야외공간이 멋져요",
+        "술이 다양해요",
+        "커피가 맛있어요",
+    }
+)
+
+# 키워드 통계 옆의 스크린리더용 문구. 손님이 쓸 리 없는 문구라 목록에 없는 업종의
+# 키워드 통계도 이것으로 걸린다.
+_KEYWORD_COUNT_LABEL = "이 키워드를 선택한 인원"
+# 칩 목록 끝의 "+3" 접힘 표시.
+_CHIP_OVERFLOW = re.compile(r"\+\d+")
+_QUOTES = "\"'“”‘’"
+
 # 네이버가 화면에 표시하는 방문일은 KST 기준이다. 늦은 밤 방문은 UTC 날짜와 하루
 # 어긋나므로 표시값과 같은 기준으로 맞춘다.
 KST = timezone(timedelta(hours=9))
@@ -106,7 +167,7 @@ def build_reviews(
     reviews: list[CollectedReview] = []
     seen: set[str] = set()
     for raw in texts:
-        normalized = normalize_review_text(raw)
+        normalized = normalize_review_text(strip_voted_keywords(raw))
         if len(normalized) < 10 or len(normalized) > 4000:
             continue
         digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
@@ -118,7 +179,7 @@ def build_reviews(
                 content=normalized,
                 normalized_content=normalized,
                 content_hash=digest,
-                written_at=_written_at_for(normalized, date_index),
+                written_at=_written_at_for(normalized, date_index, raw),
             )
         )
         if len(reviews) >= limit:
@@ -126,12 +187,46 @@ def build_reviews(
     return reviews
 
 
-def _written_at_for(normalized: str, date_index: "ReviewDateIndex | None") -> date | None:
-    """Prefer the structured timestamp, then fall back to a date typed into the body."""
+def _is_chip_line(line: str) -> bool:
+    stripped = line.strip().strip(_QUOTES).strip()
+    return stripped in NAVER_VOTED_KEYWORDS or _CHIP_OVERFLOW.fullmatch(stripped) is not None
+
+
+def is_voted_keyword_text(text: str) -> bool:
+    """True when the text holds nothing but selected-keyword chips or keyword statistics."""
+    return not strip_voted_keywords(text).strip()
+
+
+def strip_voted_keywords(raw: str) -> str:
+    """Drop selected-keyword chips so only what the guest wrote is aggregated.
+
+    A chip is a whole line holding exactly one keyword, and chips sit after the body, so
+    only trailing chip lines are removed. Keywords the guest typed into a sentence, or
+    several keywords run together on one line, are their writing and stay.
+    """
+    if _KEYWORD_COUNT_LABEL in raw:
+        return ""
+    lines = raw.splitlines()
+    while lines and (not lines[-1].strip() or _is_chip_line(lines[-1])):
+        lines.pop()
+    return "\n".join(lines)
+
+
+def _written_at_for(
+    normalized: str, date_index: "ReviewDateIndex | None", raw: str | None = None
+) -> date | None:
+    """Prefer the structured timestamp, then fall back to a date typed into the body.
+
+    The structured body is never stripped of chip lines, so the original text is looked up
+    first. If a guest's own last line was taken for a chip, the stripped text could match a
+    different review's body and attach its date. Real chips never appear in the structured
+    body, so their original text misses and the stripped text is tried next.
+    """
     if date_index is not None and len(date_index):
-        matched = date_index.get(match_key(normalized))
-        if matched is not None:
-            return matched
+        for text in (raw, normalized):
+            matched = date_index.get(match_key(text)) if text else None
+            if matched is not None:
+                return matched
     return _extract_date(normalized)
 
 

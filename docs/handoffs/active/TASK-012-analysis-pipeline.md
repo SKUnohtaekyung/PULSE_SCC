@@ -297,6 +297,38 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 폴링 주기·임대·재시도 횟수는 로컬 기준값이다. 운영 부하를 보고 조정한다.
 - 재시도가 3회 모두 실패하면 `ANALYSIS_TIMEOUT` 으로 마감한다. 사용자에게 보여줄 문구를 제품이 확정해야 한다.
 
+## 2026-09-25 네이버 선택형 키워드 제외
+
+"음식이 맛있어요"·"양이 많아요" 같은 "이런 점이 좋았어요" 키워드는 손님이 목록에서 고르는 것이라 직접 쓴 리뷰가 아니다. 사용자 요청으로 리뷰 종합에서 제외한다.
+
+| 구성 | 동작 |
+|---|---|
+| `NAVER_VOTED_KEYWORDS` | 사용자가 제공한 음식점 키워드 통계의 45개 문구 |
+| `strip_voted_keywords` | `이 키워드를 선택한 인원` 문구가 있으면 통째로 버린다. 그 밖에는 끝에서부터 칩 줄(키워드 하나만 있는 줄, `+N`, 빈 줄)을 떼어 낸다. 전부 칩이면 빈 문자열이 되어 리뷰에서 빠진다 |
+| `is_voted_keyword_text` | 위 처리 후 남는 글이 없으면 키워드 텍스트로 본다 |
+
+손님이 문장 안에 직접 쓴 "가성비가 좋아요" 같은 표현, 한 줄에 키워드를 이어 쓴 "음식이 맛있어요 친절해요", 끝줄의 숫자는 본인 글이므로 남긴다. **키워드 하나만 따로 선 줄**이 본문 끝에 있을 때만 칩으로 본다.
+
+칩으로 끝줄을 떼면 방문일 매칭 키가 GraphQL `body` 와 달라질 수 있어(본문 40자 이하일 때), **떼기 전 원문 키로 먼저** 조회하고, 못 찾으면 뗀 텍스트로 조회한다. 순서를 거꾸로 하면 뗀 텍스트와 본문이 같은 다른 리뷰의 날짜가 붙는다.
+
+**실측** — 테스트 매장(`2080629959`)에서 DOM 원문 1,040건을 다시 수집해 확인했다.
+
+- 현재 셀렉터는 키워드 통계 영역과 리뷰 칩을 잡지 않았다. 키워드 통계는 `li.MHaAm` 안에, 칩은 본문(`.pui__vn15t2`) 밖에 있다. 즉 이 매장에서는 원래도 섞이지 않았고, 이번 변경은 셀렉터가 바뀌거나 넓은 fallback 셀렉터가 걸릴 때를 막는 방어선이다.
+- 필터 전후 리뷰 120건 → 120건, 제거·변경 0건.
+
+| 검증 | 결과 |
+|---|---|
+| Python lint·format | PASS |
+| Python test | PASS — 34개 (기존 26 + 키워드 8). 이 PC 에서는 `.pytest_cache` 쓰기 권한 오류로 `-p no:cacheprovider` 를 붙여 실행했다 |
+| 독립 Reviewer 1차 | FAIL — 한 줄로 이어 쓴 손님 리뷰 삭제, 끝줄 숫자 삭제, 방문일 키 비대칭, 경계 테스트 누락. 위 규칙으로 수정 |
+| 독립 Reviewer 2차 | FAIL — 뗀 텍스트 키를 먼저 조회해 다른 리뷰 날짜가 붙는 regression. 원문 키 우선으로 수정, 테스트 2개 추가 |
+
+**한계**
+
+- 목록에 없는 업종의 리뷰 칩(카페 전용 등)은 걸러지지 않는다. 통계는 `이 키워드를 선택한 인원` 문구로 목록과 무관하게 걸러진다.
+- 손님이 여러 줄로 쓰고 마지막 줄을 키워드 문구 하나로만 끝낸 경우 그 줄은 칩과 구분되지 않아 떼어진다.
+- 실측은 원문에 작성자 정보가 섞일 수 있어 저장하지 않았다. 재현 불가 수동 확인이다.
+
 ## Unresolved
 
 ### 제품·법무 결정
@@ -343,7 +375,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 2. 환경은 준비돼 있다. Docker 정상, 로컬 PostgreSQL 18 에 `scc` DB·계정 존재, `backend/.env` 설정 완료(OpenAI 키 포함).
 3. 검증 명령
    - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 48개, skip 0 이어야 한다
-   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest backend\python-analysis` → 26개
+   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 34개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
 4. E2E 를 돌릴 때는 **OpenAI 실제 비용이 발생한다.** 수집만 확인하려면 `SCC_REVIEW_COLLECTION_LIMIT=20` 으로 띄운다. 50건 게이트에서 막혀 모델을 호출하지 않는다.
 5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
 6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.

@@ -11,6 +11,7 @@ from scc_analysis.collection.naver import (
     ReviewDateIndex,
     build_date_index,
     build_reviews,
+    is_voted_keyword_text,
     match_key,
     parse_apollo_state,
     review_collection_url,
@@ -24,6 +25,85 @@ def test_normalize_and_deduplicate_reviews() -> None:
     )
     assert len(reviews) == 1
     assert reviews[0].normalized_content == "음식이 정말 맛있고 친절해요."
+
+
+def test_keyword_statistics_are_not_reviews() -> None:
+    texts = [
+        '"음식이 맛있어요"\n이 키워드를 선택한 인원8776',
+        '"특별한 메뉴가 있어요" 이 키워드를 선택한 인원 1,341',
+        "샐러드바가 잘 되어있어요",
+        "음식이 맛있어요\n가성비가 좋아요\n인테리어가 멋져요\n+3",
+        "음식이 맛있어요\n\n양이 많아요\n",
+        '"목록에 없는 새 키워드예요" 이 키워드를 선택한 인원 12',
+    ]
+
+    assert all(is_voted_keyword_text(text) for text in texts)
+    assert build_reviews(texts, 10) == []
+
+
+def test_keyword_chips_after_a_body_are_dropped() -> None:
+    reviews = build_reviews(
+        ["반찬을 마음껏 더 가져다 먹을 수 있어서 좋았어요.\n음식이 맛있어요\n친절해요\n+2"], 10
+    )
+
+    assert [r.content for r in reviews] == ["반찬을 마음껏 더 가져다 먹을 수 있어서 좋았어요."]
+
+
+def test_keyword_phrase_written_by_the_guest_is_kept() -> None:
+    body = "배부르게 먹었습니다. 음식이 전체적으로 맛있고 가성비가 좋아요 제육도 맛있어요"
+
+    assert not is_voted_keyword_text(body)
+    assert [r.content for r in build_reviews([body], 10)] == [body]
+
+
+def test_keywords_run_together_on_one_line_are_the_guests_writing() -> None:
+    bodies = ["음식이 맛있어요 친절해요 가성비가 좋아요", "음식이 맛있어요 친절해요 3"]
+
+    assert not any(is_voted_keyword_text(body) for body in bodies)
+    assert [r.content for r in build_reviews(bodies, 10)] == bodies
+
+
+def test_a_trailing_number_line_is_not_a_chip() -> None:
+    body = "국물이 진하고 반찬이 정갈해서 강추\n100"
+
+    assert [r.content for r in build_reviews([body], 10)] == [
+        "국물이 진하고 반찬이 정갈해서 강추 100"
+    ]
+
+
+def test_body_whose_last_line_looks_like_a_chip_keeps_its_visit_date() -> None:
+    body = "점심에 방문했습니다\n가성비가 좋아요"
+    index = build_date_index([{"items": [_review_node(body, "2026-09-01T03:00:00.000Z")]}])
+
+    reviews = build_reviews([body], 10, index)
+
+    assert [r.content for r in reviews] == ["점심에 방문했습니다"]
+    assert reviews[0].written_at == date(2026, 9, 1)
+
+
+def test_stripping_a_chip_line_never_borrows_another_reviews_date() -> None:
+    body = "점심에 방문했습니다\n가성비가 좋아요"
+    index = build_date_index(
+        [
+            {
+                "items": [
+                    _review_node(body, "2026-09-01T03:00:00.000Z"),
+                    _review_node("점심에 방문했습니다", "2024-01-01T03:00:00.000Z"),
+                ]
+            }
+        ]
+    )
+
+    assert build_reviews([body], 10, index)[0].written_at == date(2026, 9, 1)
+
+
+def test_chips_scraped_after_a_short_body_still_find_its_date() -> None:
+    body = "점심에 방문했습니다"
+    index = build_date_index([{"items": [_review_node(body, "2026-09-01T03:00:00.000Z")]}])
+
+    reviews = build_reviews([body + "\n음식이 맛있어요\n+2"], 10, index)
+
+    assert reviews[0].written_at == date(2026, 9, 1)
 
 
 def test_rejects_non_naver_and_non_https_urls(monkeypatch: pytest.MonkeyPatch) -> None:
