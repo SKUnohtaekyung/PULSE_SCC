@@ -303,7 +303,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 | 구성 | 동작 |
 |---|---|
-| `NAVER_VOTED_KEYWORDS` | 사용자가 제공한 음식점 키워드 통계의 45개 문구 |
+| `NAVER_VOTED_KEYWORDS` | 사용자가 제공한 키워드 통계의 47개 문구 — 음식점 45개 + 카페 전용 2개(`종류가 다양해요`·`집중하기 좋아요`). 카페 통계 20개 중 18개는 음식점 목록과 겹쳤다 |
 | `strip_voted_keywords` | `이 키워드를 선택한 인원` 문구가 있으면 통째로 버린다. 그 밖에는 끝에서부터 칩 줄(키워드 하나만 있는 줄, `+N`, 빈 줄)을 떼어 낸다. 전부 칩이면 빈 문자열이 되어 리뷰에서 빠진다 |
 | `is_voted_keyword_text` | 위 처리 후 남는 글이 없으면 키워드 텍스트로 본다 |
 
@@ -319,13 +319,13 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | 검증 | 결과 |
 |---|---|
 | Python lint·format | PASS |
-| Python test | PASS — 34개 (기존 26 + 키워드 8). 이 PC 에서는 `.pytest_cache` 쓰기 권한 오류로 `-p no:cacheprovider` 를 붙여 실행했다 |
+| Python test | PASS — 35개 (기존 26 + 키워드 9, 카페 1개 포함). 이 PC 에서는 `.pytest_cache` 쓰기 권한 오류로 `-p no:cacheprovider` 를 붙여 실행했다 |
 | 독립 Reviewer 1차 | FAIL — 한 줄로 이어 쓴 손님 리뷰 삭제, 끝줄 숫자 삭제, 방문일 키 비대칭, 경계 테스트 누락. 위 규칙으로 수정 |
 | 독립 Reviewer 2차 | FAIL — 뗀 텍스트 키를 먼저 조회해 다른 리뷰 날짜가 붙는 regression. 원문 키 우선으로 수정, 테스트 2개 추가 |
 
 **한계**
 
-- 목록에 없는 업종의 리뷰 칩(카페 전용 등)은 걸러지지 않는다. 통계는 `이 키워드를 선택한 인원` 문구로 목록과 무관하게 걸러진다.
+- 목록에 없는 업종(주점 등)의 리뷰 칩은 걸러지지 않는다. 음식점·카페 목록은 사용자가 준 키워드 통계를 옮긴 것이라, 그 통계에 나오지 않은 키워드는 빠져 있을 수 있다(#33). 통계는 `이 키워드를 선택한 인원` 문구로 목록과 무관하게 걸러진다.
 - 손님이 여러 줄로 쓰고 마지막 줄을 키워드 문구 하나로만 끝낸 경우 그 줄은 칩과 구분되지 않아 떼어진다.
 - 실측은 원문에 작성자 정보가 섞일 수 있어 저장하지 않았다. 재현 불가 수동 확인이다.
 
@@ -378,7 +378,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 2. 환경은 준비돼 있다. Docker 정상, 로컬 PostgreSQL 18 에 `scc` DB·계정 존재, `backend/.env` 설정 완료(OpenAI 키 포함).
 3. 검증 명령
    - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 48개, skip 0 이어야 한다
-   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 34개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
+   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 35개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
 4. E2E 를 돌릴 때는 **OpenAI 실제 비용이 발생한다.** 수집만 확인하려면 `SCC_REVIEW_COLLECTION_LIMIT=20` 으로 띄운다. 50건 게이트에서 막혀 모델을 호출하지 않는다.
 5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
 6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.
