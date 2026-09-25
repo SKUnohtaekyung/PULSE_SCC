@@ -17,7 +17,7 @@
 - **OpenAI 키 설정 완료.** 실제 분석·이미지 생성까지 확인했다. 디버깅 중 `SCC_SERVICE_TOKEN` 이 로그에 노출됐으므로 교체를 권한다(localhost 전용 로컬 토큰).
 
 ## Goal
-Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실제 분석 상태·결과 조회와 오류 복구를 제공하고 약관 동의 이력을 기록한다. 관련 이슈: 미생성. 관련 요구사항: PRD FR-001~FR-011.
+Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실제 분석 상태·결과 조회와 오류 복구를 제공하고 약관 동의 이력을 기록한다. 관련 이슈: TASK 자체 이슈 미생성, 후속 제품·정책 결정은 #28~#33. 관련 요구사항: PRD FR-001~FR-011.
 
 ## Completed
 - Spring 분석 작업 생성·상태·결과·저장 결과 교체·인증 이미지 조회 API 구현
@@ -296,6 +296,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 - 폴링 주기·임대·재시도 횟수는 로컬 기준값이다. 운영 부하를 보고 조정한다.
 - 재시도가 3회 모두 실패하면 `ANALYSIS_TIMEOUT` 으로 마감한다. 사용자에게 보여줄 문구를 제품이 확정해야 한다.
+  > 정정(2026-09-26): `ANALYSIS_TIMEOUT` 마감은 임대 만료 경로에만 해당한다. 작업 안에서 난 실패는 3회째에 원래 오류 코드로 마감된다. 자세한 경로는 "기술적으로 남은 것".
 
 ## 2026-09-25 네이버 선택형 키워드 제외
 
@@ -354,30 +355,62 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ### 기술적으로 남은 것
 
-- **수집 안정성이 실측되지 않았다.** 커밋된 fixture 는 1회 수동 확인한 형태를 본뜬 합성 데이터다. 네이버가 필드를 바꾸면 테스트는 통과하면서 수집만 조용히 실패할 수 있다.
+- **수집 안정성 실측은 매장 2곳뿐이다.** 음식점 `2080629959`(E2E 포함)와 카페 `2045844114`(수집만, 2026-09-26)에서 120건 수집을 확인했다. 커밋된 fixture 는 1회 수동 확인한 형태를 본뜬 합성 데이터다. 네이버가 필드를 바꾸면 테스트는 통과하면서 수집만 조용히 실패할 수 있다.
 - DOM 텍스트 앞에 별점 등 접두어가 붙으면 본문 매칭이 실패해 날짜가 비는 열화가 있다. 실제 수집에서 발생률을 측정해야 한다.
 - 큐는 at-least-once 다. 임대 만료 직후 원 워커가 되살아나면 수집·모델 호출 비용이 두 번 발생할 수 있다([ADR-011](../../decisions/ADR-011-durable-analysis-job-queue.md) Consequences).
 - 폴링 주기·임대 시간·재시도 횟수는 로컬 실측 기준값이다. 운영 부하를 보고 조정한다.
 - 내부 호출 read timeout 15m 은 동기 호출 구조를 전제한 값이다. 작업을 더 쪼개면 줄일 수 있다.
 - Visual QA 미실행. 빈 포디움 슬롯·분석 불가 화면·알림 목록을 실기기에서 확인해야 한다.
 - 회원 탈퇴의 실제 PostgreSQL 삭제 검증은 통합 테스트 코드로만 확인했다.
+- **임대 만료로 재시도 횟수를 다 쓴 작업에는 실패 알림이 생기지 않는다.** 재시도 소진에는 두 경로가 있다.
+  - 작업 안에서 실패(Python 이 재시도 가능한 오류를 반환하는 등): `AnalysisJobRunner.finishFailure` → `requeueForRetry` 가 `attempt_count < maxAttempts` 조건에 걸려 false → `markFailed` 가 원래 오류 코드로 마감하고 **알림을 만든다.**
+  - 임대 만료(워커 종료·하트비트 끊김): `AnalysisJobQueue.recoverAbandonedJobs` → `failExhaustedJobs` 가 `ANALYSIS_TIMEOUT` 으로 FAILED 처리하는 UPDATE 뿐이다. **알림이 빠지는 건 이 경로다.** 알림 설정이 켜져 있어도 마이페이지에 아무것도 뜨지 않는다.
+  - 2026-09-26 인수인계 검토에서 코드를 읽어 확인했다. 실행 재현은 하지 않았다. 코드 미수정.
 
 ## Do Not Assume
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
 - 약관과 개인정보 처리방침은 법률 검토 전 초안이다.
 - 프론트 변경은 `C:\PULSE_SCC_FE`에만 있으며 현재 백엔드 저장소 커밋 대상이 아니다.
 - 이 브랜치는 원격에 push 했지만 PR 은 아직 없다. PR 전에 PR #27 병합과 인증 충돌 수동 병합이 필요하다.
-- E2E 가 성공했다고 네이버 selector 안정성이 증명된 것은 아니다. 1개 매장·2회 성공이 전부다.
+- E2E 가 성공했다고 네이버 selector 안정성이 증명된 것은 아니다. 전체 E2E 는 음식점 1개 매장에서 COMPLETED 3회 이상(230초·268초·196초, 재시작 복구 1회 포함)이 전부고, 카페 1개 매장은 수집 단계만 확인했다.
+- 선택형 키워드 제외 목록(50개)은 사용자 제공 통계와 카페 1곳 실측으로 모은 것이다. 네이버 전체 선택지 목록이 아니다.
 - 큐의 재시작 복구는 실제로 검증했지만 다중 인스턴스 동시 운영은 검증하지 않았다.
 
 ## Next Action
 
+> **2026-09-26 세션 종료 시점.** 이 인수인계 갱신 직전 HEAD 는 `218d179` 이고 원격과 같았다. 이 인수인계 갱신 커밋 자체에는 코드 변경이 없다.
+> 이 세션에서 한 것: 선택형 키워드 제외(음식점·카페, 50개), 카페 매장 실측, 후속 결정 이슈 #28~#33 생성과 #33 진행 댓글 2건.
+> PR #27 은 2026-09-26 확인 시 **OPEN, 리뷰어 0명, 승인 없음**이다. 아래 1번이 풀리기 전에는 2~4번을 시작할 수 없다.
+
+### 막혀 있는 순서
+
 1. **사람**: PR #27 에 `role:product`·`role:platform` 리뷰어를 지정하고 병합한다.
 2. 병합 후 이 브랜치에 `main` 을 merge commit 으로 연결한다. **인증 파일 충돌은 손으로 합친다**(2026-09-22 절 참조). force push 금지.
 3. 합친 뒤 Spring test 전체와 로컬 DB `bootRun` + 가입·로그인·회전 호출로 재확인한다.
-4. 독립 Reviewer 검토 후 PR 을 만든다.
-5. **사람**: GitHub 브랜치 보호 설정(현재 없음), Visual QA 용 Expo Go 준비.
-6. 제품 결정(위 Unresolved)을 받아 최소 글자 수·50건 기준·실패 문구를 확정한다.
+4. 독립 Reviewer 검토 후 TASK-012 PR 을 만든다. PR 본문 관련 이슈에 #28~#33 을 후속 결정으로 연결하되 `Refs` 로 쓴다. `Closes` 를 쓰면 결정 전인 SPEC 이슈가 병합 때 닫힌다.
+
+### 사람만 할 수 있는 것 (2026-09-26 기준)
+
+- GitHub 브랜치 보호 설정 (현재 없음)
+- `SCC_SERVICE_TOKEN` 교체 — Spring `ANALYSIS_SERVICE_TOKEN` 과 Python `SCC_SERVICE_TOKEN` 을 같은 새 값으로
+- Visual QA 용 Expo Go 또는 실기기 준비 — 빈 포디움 슬롯·분석 불가 화면·알림 목록
+- Google OAuth Client ID, 약관 법률 검토, 네이버 수집 허용 확인([ADR-002](../../decisions/ADR-002-review-collection.md))
+
+### 결정을 받으면 에이전트가 할 것
+
+| 이슈 | 결정 | 반영 위치 |
+|---|---|---|
+| #28 | 유효 리뷰 50건 기준·최소 글자 수 | `build_reviews` 의 10자, Python 50건 게이트(`analysis/pipeline.py`), **DB 제약 `ck_analyses_review_counts`(V1, `valid_review_count >= 50`) — 새 Flyway migration 필요**, 프론트 분석 불가 화면. PRD FR-009 는 `role:product` 에 갱신 요청. Python 게이트만 낮추고 DB 제약을 두면 저장 단계 CHECK 위반이 재시도 가능한 실패로 처리돼 수집·OpenAI 호출이 최대 3번 반복된 뒤 실패한다(코드 흐름 추론, 미실행) |
+| #29 | 작성일 미확인 리뷰의 2년 경고 | `contains_old_reviews`. PRD FR-009 는 `role:product` 에 갱신 요청 |
+| #30 | 재시도 소진 실패 문구 | 프론트 실패 화면, 마이페이지 실패 알림. 단 임대 만료 경로(`ANALYSIS_TIMEOUT`)는 지금 알림 자체가 생성되지 않는다(위 "기술적으로 남은 것") |
+| #31 | RAG 지식 출처·승인 절차 | `knowledgeReferences` 계약과 검색·인용 구현 |
+| #32 | `/register` 409·로그인 시도 제한 | 인증 코드 (PR #27 병합 후). ADR-008·API.md 는 `role:platform` 소유 |
+| #33 | 지원 업종 범위·업종별 키워드 목록 | `NAVER_VOTED_KEYWORDS`. 주점 등 목록을 받으면 카페 때와 같이 대조·추가하고 실측한다 |
+
+### 지금 바로 할 수 있는 것 (선택)
+
+- **재시도 소진 작업의 실패 알림 누락 수정** — `failExhaustedJobs` 가 FAILED 로 바꾼 작업에도 `markFailed` 와 같은 알림을 같은 트랜잭션에서 만든다. `role:feature` 소유(`analysis/**`)라 PR #27 과 무관하게 진행할 수 있다. 문구 자체는 #30 결정 전까지 기존 실패 알림 `message_code` 를 쓴다.
+- 다른 매장(주점 등) 수집 실측. OpenAI 비용 없음. 방법은 Claude Continuation 8번.
 
 ## Claude Continuation
 
@@ -390,6 +423,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
 6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.
 7. 한글이 든 JSON 본문은 UTF-8 파일로 써서 `curl --data-binary @file` 로 보낸다. 셸 인라인은 인코딩이 깨진다.
+8. 매장 수집 실측은 서버 없이 스크래치 스크립트로 한다. 모듈 함수 `review_collection_url` 로 URL 을 만들고, `_collect_from_browser` 와 같은 순서로 `page.goto` → `validate_collection_page_url` → `NaverPublicReviewCollector._open_review_surface` → `_extract_review_texts` 를 호출한다. `build_reviews` 에는 필터를 끄는 인자가 없으므로, 필터 전 결과는 `strip_voted_keywords` 를 항등 함수로 잠시 패치해 얻고 필터 후 결과와 비교한다. 칩 문구는 `li[class*='place_apply_pui']` 항목 텍스트에서 본문(`.pui__vn15t2`)과 `반응 남기기` 사이의 짧은 `요` 줄로 모은다. **원문에는 작성자 닉네임이 섞이므로 결과는 건수·문구만 남기고 원문 파일은 지운다.**
 
 ## Last Verified Commit
 
