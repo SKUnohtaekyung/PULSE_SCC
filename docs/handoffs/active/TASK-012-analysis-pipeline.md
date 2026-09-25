@@ -393,6 +393,6 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`1b8a8bb` — 네이버 선택형 키워드 제외(`2c34663`)와 카페 키워드 추가까지. 이 커밋 기준으로 Python lint·format PASS, pytest 35개 통과, 독립 Reviewer PASS. Spring test·전체 E2E 는 이 커밋에서 재실행하지 않았다(Python 수집 모듈만 변경).
+`be2117b` — 네이버 선택형 키워드 제외(`2c34663`), 카페 키워드 추가(`1b8a8bb`), 카페 실측 키워드 3개 추가까지. 이 커밋 기준으로 Python lint·format PASS, pytest 35개 통과, 독립 Reviewer PASS. Spring test·전체 E2E 는 이 커밋에서 재실행하지 않았다(Python 수집 모듈만 변경).
 
 이전 기준 `025eb8b` — 작업 큐·페르소나 이미지 인물 포함까지. Spring 48개(skip 0)·Python 26개 통과, 전체 E2E COMPLETED, 재시작 복구를 실제로 검증했다.
