@@ -26,6 +26,7 @@ import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerPersona;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerReview;
 import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
+import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,7 @@ class AnalysisApiIntegrationTests {
     @Autowired JdbcClient jdbc;
     @Autowired ObjectMapper objectMapper;
     @Autowired PasswordEncoder passwordEncoder;
+    @Autowired AnalysisRepository repository;
     @MockitoBean AnalysisGateway gateway;
 
     private UUID userId;
@@ -160,6 +162,59 @@ class AnalysisApiIntegrationTests {
                         .queryParam("perspective", "POSITIVE"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("ANALYSIS_NOT_FOUND"));
+    }
+
+    @Test
+    void jobThatExhaustsRetriesThroughALostLeaseStillNotifiesTheOwner() throws Exception {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '임대 만료 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        // 워커가 죽어 임대가 만료된 채 시도 횟수를 모두 쓴 작업이다.
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'RUNNING', 'ANALYZING', 3,
+                            CURRENT_TIMESTAMP - INTERVAL '5 minutes', CURRENT_TIMESTAMP - INTERVAL '1 minute')
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        // 스케줄된 폴링이 먼저 처리했을 수 있으므로 반환값이 아니라 결과 상태로 확인한다.
+        repository.failExhaustedJobs(3);
+
+        assertThat(jdbc.sql("SELECT status || ':' || error_code FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo("FAILED:ANALYSIS_TIMEOUT");
+        mockMvc.perform(get("/api/v1/me/notifications").with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("ANALYSIS_FAILED"));
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id")
+                .param("id", jobId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void lostLeaseFailureRespectsADisabledNotificationSetting() {
+        jdbc.sql("UPDATE notification_settings SET analysis_result_enabled = false WHERE user_id = :userId")
+                .param("userId", userId).update();
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '알림 끈 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'RUNNING', 'ANALYZING', 3,
+                            CURRENT_TIMESTAMP - INTERVAL '5 minutes', CURRENT_TIMESTAMP - INTERVAL '1 minute')
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        repository.failExhaustedJobs(3);
+
+        assertThat(jdbc.sql("SELECT status FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo("FAILED");
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id")
+                .param("id", jobId).query(Long.class).single()).isZero();
     }
 
     @Test

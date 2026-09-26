@@ -338,7 +338,7 @@ FAILED
       "status": "EMPTY",
       "reason": {
         "code": "INSUFFICIENT_TOPIC_EVIDENCE",
-        "message": "분석에 활용할 리뷰 근거가 부족해 손님 유형을 채우지 않았습니다."
+        "message": "리뷰 수가 적어서 손님 유형이 도출되지 않았습니다."
       },
       "persona": null
     },
@@ -347,7 +347,7 @@ FAILED
       "status": "EMPTY",
       "reason": {
         "code": "INSUFFICIENT_TOPIC_EVIDENCE",
-        "message": "분석에 활용할 리뷰 근거가 부족해 손님 유형을 채우지 않았습니다."
+        "message": "리뷰 수가 적어서 손님 유형이 도출되지 않았습니다."
       },
       "persona": null
     }

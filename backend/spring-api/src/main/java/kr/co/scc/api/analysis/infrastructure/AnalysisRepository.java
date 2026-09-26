@@ -213,25 +213,45 @@ public class AnalysisRepository {
                 .update();
     }
 
-    /** 임대가 끝났고 재시도 횟수도 모두 쓴 작업을 실패로 마무리한다. */
+    /**
+     * 임대가 끝났고 재시도 횟수도 모두 쓴 작업을 실패로 마무리한다.
+     *
+     * <p>{@link #markFailed} 와 같은 실패 알림을 만든다. 이 경로는 워커가 죽은 뒤라 실패를
+     * 알릴 주체가 여기뿐이다. 상태 변경과 알림을 한 문장으로 묶어, 알림만 빠진 채
+     * FAILED 로 남는 경우가 없게 한다.
+     *
+     * @return 실패로 마감한 작업 수
+     */
     public int failExhaustedJobs(int maxAttempts) {
         return jdbc.sql("""
-                        UPDATE analysis_jobs
-                        SET status = 'FAILED',
-                            progress_step = 'FAILED',
-                            message_code = 'ANALYSIS_FAILED',
-                            error_code = 'ANALYSIS_TIMEOUT',
-                            retryable = true,
-                            lease_expires_at = NULL,
-                            completed_at = CURRENT_TIMESTAMP,
-                            updated_at = CURRENT_TIMESTAMP
-                        WHERE status = 'RUNNING'
-                          AND lease_expires_at IS NOT NULL
-                          AND lease_expires_at < CURRENT_TIMESTAMP
-                          AND attempt_count >= :maxAttempts
+                        WITH failed AS (
+                            UPDATE analysis_jobs
+                            SET status = 'FAILED',
+                                progress_step = 'FAILED',
+                                message_code = 'ANALYSIS_FAILED',
+                                error_code = 'ANALYSIS_TIMEOUT',
+                                retryable = true,
+                                lease_expires_at = NULL,
+                                completed_at = CURRENT_TIMESTAMP,
+                                updated_at = CURRENT_TIMESTAMP
+                            WHERE status = 'RUNNING'
+                              AND lease_expires_at IS NOT NULL
+                              AND lease_expires_at < CURRENT_TIMESTAMP
+                              AND attempt_count >= :maxAttempts
+                            RETURNING id, user_id
+                        ), notified AS (
+                            INSERT INTO notifications (id, user_id, job_id, type, message_code)
+                            SELECT gen_random_uuid(), f.user_id, f.id, 'ANALYSIS_FAILED', 'ANALYSIS_FAILED'
+                            FROM failed f
+                            JOIN notification_settings s ON s.user_id = f.user_id
+                            WHERE s.analysis_result_enabled = true
+                            ON CONFLICT (job_id, type) DO NOTHING
+                        )
+                        SELECT count(*)::int FROM failed
                         """)
                 .param("maxAttempts", maxAttempts)
-                .update();
+                .query(Integer.class)
+                .single();
     }
 
     /** 재시도 가능한 실패를 다시 큐에 넣는다. 시도 횟수가 남아 있을 때만이다. */
@@ -664,7 +684,7 @@ public class AnalysisRepository {
                         "status", "EMPTY",
                         "reason", Map.of(
                                 "code", "INSUFFICIENT_TOPIC_EVIDENCE",
-                                "message", "분석에 활용할 리뷰 근거가 부족해 손님 유형을 채우지 않았습니다.")));
+                                "message", "리뷰 수가 적어서 손님 유형이 도출되지 않았습니다.")));
             } else {
                 podium.add(publicPersona(persona));
             }

@@ -337,6 +337,43 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 손님이 여러 줄로 쓰고 마지막 줄을 키워드 문구 하나로만 끝낸 경우 그 줄은 칩과 구분되지 않아 떼어진다.
 - 실측은 원문에 작성자 정보가 섞일 수 있어 저장하지 않았다. 재현 불가 수동 확인이다.
 
+## 2026-09-27 임대 만료 실패 알림, 토픽 수 규칙, 빈 슬롯 문구
+
+### 사용자 결정 (2026-09-27)
+
+- **유효 리뷰 50건 기준은 유지한다.** #28 의 50건 부분은 결정됐다. 최소 글자 수(10자)는 아직 미정이다.
+- **토픽 수 규칙**: 분석 후 반복 토픽이 1개면 1개, 2개면 2개의 페르소나만 만들고, 나머지 슬롯에는 "리뷰 수가 적어서 도출되지 않았다"를 표시한다. 여러 개면 상위(top) 3개를 도출한다. 기능명세 PERSONA-002·PERSONA-007·RESULT-013 과 PRD FR-003 의 기존 규칙과 같다. 이번에 바뀐 것은 문구와 순위 기준이다.
+
+### 변경
+
+| 위치 | 내용 |
+|---|---|
+| `AnalysisRepository.failExhaustedJobs` | 임대 만료로 재시도를 다 쓴 작업을 FAILED 로 바꾸면서 `markFailed` 와 같은 실패 알림을 만든다. 상태 변경과 알림 생성을 데이터 변경 CTE 한 문장으로 묶었다. 알림 설정이 꺼져 있으면 만들지 않고, `ON CONFLICT (job_id, type) DO NOTHING` 으로 중복을 막는다 |
+| `openai_analyzer.SYSTEM_PROMPT` | 반복 확인되는 토픽만 만들고 3개를 채우려고 근거가 적은 토픽을 만들지 말라고 지시한다. 3개보다 많으면 근거 리뷰가 많은 상위 3개만 남긴다 |
+| `StructuredAnalysis` 검증 | 순위를 모델이 매긴 값 대신 `topic_review_count` 내림차순으로 다시 매긴다. 수가 같으면 모델 순위를 따른다 |
+| 빈 슬롯 문구 | 서버 `INSUFFICIENT_TOPIC_EVIDENCE` 메시지와 API.md 예시를 "리뷰 수가 적어서 손님 유형이 도출되지 않았습니다." 로 바꿨다. 프론트(`C:\PULSE_SCC_FE`, Git 범위 밖) 빈 슬롯 라벨·안내·접근성 문구도 같은 표현으로 바꿨다 |
+
+### 검증
+
+| 검증 | 결과 |
+|---|---|
+| Python lint·format | PASS |
+| Python test | PASS — 39개 (기존 35 + 토픽 순위 4) |
+| Spring test (`--rerun-tasks`) | **부분 실행** — 50개 중 40개 통과·실패 0, **10개 SKIP**. Docker Desktop 이 기동되지 않아 Testcontainers 테스트가 건너뛰어졌다. **새 알림 통합 테스트 2개도 SKIP 이라 새 SQL 은 아직 실행으로 확인하지 못했다** |
+| Frontend typecheck·lint·test | PASS — 24개 |
+| 새 SQL 직접 실행 (독립 Reviewer) | PASS — 로컬 PostgreSQL 18.4 임시 클러스터에 V1~V4 를 적용하고 CTE 를 실행. 시도 3회 만료 작업만 FAILED, 알림 켜짐 1건·꺼짐 0건·설정 행 없음 0건, 기존 알림은 ON CONFLICT 로 1건 유지, 두 세션 동시 실행 시 한쪽만 처리. 테스트 이미지 버전(18.6)과 JdbcClient 런타임 매핑은 미확인 |
+| 독립 Reviewer | PASS (비차단 지적 반영: 4개 초과 거부 테스트가 목록 길이 제한을 실제로 검사하도록 수정, 아래 남은 것 2건 추가) |
+
+### 남은 것
+
+- Docker Desktop 기동 후 Spring test 를 다시 돌려 skip 0 과 새 알림 테스트 2개 통과를 확인해야 한다. 2026-09-27 에는 `Docker Desktop.exe` 를 두 번 실행해도 프로세스가 곧바로 끝났고 `docker-desktop` WSL 배포판은 `Stopped` 였다.
+- 모델이 4개 이상 토픽을 반환하면 스키마(`max_length=3`, `rank le=3`) 검증에서 실패해 재시도된다. 프롬프트로 3개 이하를 요구하지만, 넘겼을 때 상위 3개로 자르는 처리는 없다.
+- `docs/decisions/ADR-011` 31행의 "횟수를 다 쓰면 `ANALYSIS_TIMEOUT` 으로 마감"도 임대 만료 경로에만 맞는다. ADR 은 `role:platform` 소유라 고치지 않았다.
+- 실제 OpenAI 호출로 토픽 1~2개 결과가 나오는지는 확인하지 않았다(비용 발생).
+- **명세 문구 갱신 요청** — 기능명세 PERSONA-007·RESULT-013·인수조건(464행 부근), RESULT_IA, PRD FR-003 의 빈 슬롯 문구는 "리뷰 근거가 부족해 3개보다 적게 도출됐다" 이다. 사용자 결정(2026-09-27)으로 화면 문구를 "리뷰 수가 적어서 도출되지 않았다" 로 바꿨으니 `role:product` 에 명세 문구 갱신을 요청한다. 규칙 자체는 명세와 같다.
+- **소유 영역** — `docs/architecture/API.md` 는 `role:platform` 소유다. AGENTS.md 2장 7번(API 변경 시 동기화)에 따라 예시 문구를 함께 고쳤으므로 PR 본문에 명시하고 platform 리뷰어를 지정한다. ADR-011 은 결정 기록이라 고치지 않았다.
+- Docker 기동 실패 원인: `%LOCALAPPDATA%\Docker\run\sailor-ingest.sock.stale`(2026-09-19 잔여 소켓)이 남아 새 소켓 이름 변경이 실패하고 백엔드가 크래시한다(`com.docker.backend.exe.log`). 일반 권한으로는 이 파일이 지워지지 않았다("The file cannot be accessed by the system"). Windows 재시작 후 다시 실행하거나 관리자 권한으로 삭제가 필요하다.
+
 ## Unresolved
 
 ### 제품·법무 결정
@@ -362,7 +399,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 내부 호출 read timeout 15m 은 동기 호출 구조를 전제한 값이다. 작업을 더 쪼개면 줄일 수 있다.
 - Visual QA 미실행. 빈 포디움 슬롯·분석 불가 화면·알림 목록을 실기기에서 확인해야 한다.
 - 회원 탈퇴의 실제 PostgreSQL 삭제 검증은 통합 테스트 코드로만 확인했다.
-- **임대 만료로 재시도 횟수를 다 쓴 작업에는 실패 알림이 생기지 않는다.** 재시도 소진에는 두 경로가 있다.
+- ~~**임대 만료로 재시도 횟수를 다 쓴 작업에는 실패 알림이 생기지 않는다.**~~ 2026-09-27 수정(아래 절 참조, 통합 테스트 실행 확인 대기). 재시도 소진에는 두 경로가 있다.
   - 작업 안에서 실패(Python 이 재시도 가능한 오류를 반환하는 등): `AnalysisJobRunner.finishFailure` → `requeueForRetry` 가 `attempt_count < maxAttempts` 조건에 걸려 false → `markFailed` 가 원래 오류 코드로 마감하고 **알림을 만든다.**
   - 임대 만료(워커 종료·하트비트 끊김): `AnalysisJobQueue.recoverAbandonedJobs` → `failExhaustedJobs` 가 `ANALYSIS_TIMEOUT` 으로 FAILED 처리하는 UPDATE 뿐이다. **알림이 빠지는 건 이 경로다.** 알림 설정이 켜져 있어도 마이페이지에 아무것도 뜨지 않는다.
   - 2026-09-26 인수인계 검토에서 코드를 읽어 확인했다. 실행 재현은 하지 않았다. 코드 미수정.
@@ -400,16 +437,16 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 | 이슈 | 결정 | 반영 위치 |
 |---|---|---|
-| #28 | 유효 리뷰 50건 기준·최소 글자 수 | `build_reviews` 의 10자, Python 50건 게이트(`analysis/pipeline.py`), **DB 제약 `ck_analyses_review_counts`(V1, `valid_review_count >= 50`) — 새 Flyway migration 필요**, 프론트 분석 불가 화면. PRD FR-009 는 `role:product` 에 갱신 요청. Python 게이트만 낮추고 DB 제약을 두면 저장 단계 CHECK 위반이 재시도 가능한 실패로 처리돼 수집·OpenAI 호출이 최대 3번 반복된 뒤 실패한다(코드 흐름 추론, 미실행) |
+| #28 | ~~50건 기준~~(2026-09-27 유지 결정)·최소 글자 수 | `build_reviews` 의 10자, Python 50건 게이트(`analysis/pipeline.py`), **DB 제약 `ck_analyses_review_counts`(V1, `valid_review_count >= 50`) — 새 Flyway migration 필요**, 프론트 분석 불가 화면. PRD FR-009 는 `role:product` 에 갱신 요청. Python 게이트만 낮추고 DB 제약을 두면 저장 단계 CHECK 위반이 재시도 가능한 실패로 처리돼 수집·OpenAI 호출이 최대 3번 반복된 뒤 실패한다(코드 흐름 추론, 미실행) |
 | #29 | 작성일 미확인 리뷰의 2년 경고 | `contains_old_reviews`. PRD FR-009 는 `role:product` 에 갱신 요청 |
-| #30 | 재시도 소진 실패 문구 | 프론트 실패 화면, 마이페이지 실패 알림. 단 임대 만료 경로(`ANALYSIS_TIMEOUT`)는 지금 알림 자체가 생성되지 않는다(위 "기술적으로 남은 것") |
+| #30 | 재시도 소진 실패 문구 | 프론트 실패 화면, 마이페이지 실패 알림. 임대 만료 경로 알림 누락은 2026-09-27 수정 |
 | #31 | RAG 지식 출처·승인 절차 | `knowledgeReferences` 계약과 검색·인용 구현 |
 | #32 | `/register` 409·로그인 시도 제한 | 인증 코드 (PR #27 병합 후). ADR-008·API.md 는 `role:platform` 소유 |
 | #33 | 지원 업종 범위·업종별 키워드 목록 | `NAVER_VOTED_KEYWORDS`. 주점 등 목록을 받으면 카페 때와 같이 대조·추가하고 실측한다 |
 
 ### 지금 바로 할 수 있는 것 (선택)
 
-- **재시도 소진 작업의 실패 알림 누락 수정** — `failExhaustedJobs` 가 FAILED 로 바꾼 작업에도 `markFailed` 와 같은 알림을 같은 트랜잭션에서 만든다. `role:feature` 소유(`analysis/**`)라 PR #27 과 무관하게 진행할 수 있다. 문구 자체는 #30 결정 전까지 기존 실패 알림 `message_code` 를 쓴다.
+- ~~재시도 소진 작업의 실패 알림 누락 수정~~ — 2026-09-27 완료. Docker 기동 후 통합 테스트 실행 확인만 남았다.
 - 다른 매장(주점 등) 수집 실측. OpenAI 비용 없음. 방법은 Claude Continuation 8번.
 
 ## Claude Continuation
@@ -427,6 +464,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`be2117b` — 네이버 선택형 키워드 제외(`2c34663`), 카페 키워드 추가(`1b8a8bb`), 카페 실측 키워드 3개 추가까지. 이 커밋 기준으로 Python lint·format PASS, pytest 35개 통과, 독립 Reviewer PASS. Spring test·전체 E2E 는 이 커밋에서 재실행하지 않았다(Python 수집 모듈만 변경).
+`eefa2b6` — 임대 만료 실패 알림, 토픽 수 규칙·순위 재부여, 빈 슬롯 문구까지. 이 커밋 기준으로 Python lint·format PASS·pytest 39개, Spring test 50개 중 40개 통과·실패 0·**10개 SKIP**(Docker 미기동, 새 알림 통합 테스트 2개 포함), Frontend typecheck·lint·test 24개 PASS, 독립 Reviewer PASS(새 SQL 은 로컬 PG 18.4 에서 직접 실행 확인). 전체 E2E 는 재실행하지 않았다.
+
+이전 기준 `be2117b` — 네이버 선택형 키워드 제외·카페 키워드까지. Python pytest 35개.
 
 이전 기준 `025eb8b` — 작업 큐·페르소나 이미지 인물 포함까지. Spring 48개(skip 0)·Python 26개 통과, 전체 E2E COMPLETED, 재시작 복구를 실제로 검증했다.

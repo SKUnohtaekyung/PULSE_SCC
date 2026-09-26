@@ -71,7 +71,12 @@ class StructuredAnalysis(BaseModel):
         ranks = sorted(item.rank for item in value)
         if ranks != list(range(1, len(value) + 1)):
             raise ValueError("Persona ranks must be contiguous from one")
-        return sorted(value, key=lambda item: item.rank)
+        # 순위는 근거 리뷰 수로 정한다(PERSONA-002 상위 토픽). 모델이 매긴 순위가 이와
+        # 어긋나면 리뷰 수 순으로 다시 매긴다. 수가 같으면 모델 순위를 따른다.
+        ordered = sorted(value, key=lambda item: (-item.topic_review_count, item.rank))
+        return [
+            item.model_copy(update={"rank": rank}) for rank, item in enumerate(ordered, start=1)
+        ]
 
 
 class PersonaImage(BaseModel):
