@@ -464,7 +464,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`eefa2b6` — 임대 만료 실패 알림, 토픽 수 규칙·순위 재부여, 빈 슬롯 문구까지. 이 커밋 기준으로 Python lint·format PASS·pytest 39개, Spring test 50개 중 40개 통과·실패 0·**10개 SKIP**(Docker 미기동, 새 알림 통합 테스트 2개 포함), Frontend typecheck·lint·test 24개 PASS, 독립 Reviewer PASS(새 SQL 은 로컬 PG 18.4 에서 직접 실행 확인). 전체 E2E 는 재실행하지 않았다.
+`ebcf9bf` — 임대 만료 실패 알림, 토픽 수 규칙·순위 재부여, 빈 슬롯 문구까지. 이 커밋 기준으로 Python lint·format PASS·pytest 39개, Spring test 50개 중 40개 통과·실패 0·**10개 SKIP**(Docker 미기동, 새 알림 통합 테스트 2개 포함), Frontend typecheck·lint·test 24개 PASS, 독립 Reviewer PASS(새 SQL 은 로컬 PG 18.4 에서 직접 실행 확인). 전체 E2E 는 재실행하지 않았다.
 
 이전 기준 `be2117b` — 네이버 선택형 키워드 제외·카페 키워드까지. Python pytest 35개.
 
