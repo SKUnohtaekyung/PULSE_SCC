@@ -106,6 +106,9 @@ class AnalysisApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.store.name").value("통합 테스트 식당"))
                 .andExpect(jsonPath("$.podium[0].status").value("FILLED"))
+                .andExpect(jsonPath("$.podium[1].status").value("EMPTY"))
+                .andExpect(jsonPath("$.podium[1].reason.message").value("리뷰 수가 적어서 손님 유형이 도출되지 않았습니다."))
+                .andExpect(jsonPath("$.metadata.reviewsWithoutWrittenDateCount").value(1))
                 .andReturn().getResponse().getContentAsString();
         JsonNode result = objectMapper.readTree(resultBody);
         UUID analysisId = UUID.fromString(result.get("analysisId").stringValue());
@@ -119,6 +122,11 @@ class AnalysisApiIntegrationTests {
                 .andExpect(jsonPath("$.items[0].excerpt").value("맛있고 빨라요"))
                 .andExpect(jsonPath("$.items[0].platform").value("NAVER"))
                 .andExpect(jsonPath("$.nextCursor").doesNotExist());
+        // 첫 결과는 자동 저장된다. 저장본 조회도 같은 결과 문서를 돌려준다.
+        mockMvc.perform(get("/api/v1/me/saved-analysis").with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysisId").value(analysisId.toString()))
+                .andExpect(jsonPath("$.metadata.reviewsWithoutWrittenDateCount").value(1));
         mockMvc.perform(get("/api/v1/me/notifications").with(userJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].type").value("ANALYSIS_COMPLETED"));
@@ -247,13 +255,15 @@ class AnalysisApiIntegrationTests {
 
     private WorkerResponse workerResponse() {
         WorkerReview review = new WorkerReview("맛있고 빨라요", "맛있고 빨라요", "hash-1", BigDecimal.valueOf(5), LocalDate.now());
+        // 작성일을 확인하지 못한 리뷰. 2년 경고 판정에서 빠지고 건수로만 안내된다.
+        WorkerReview undated = new WorkerReview("양이 넉넉해요", "양이 넉넉해요", "hash-2", BigDecimal.valueOf(4), null);
         List<WorkerInsight> insights = List.of("POSITIVE", "NEGATIVE", "PERCEPTION", "PRIORITY").stream()
                 .map(kind -> new WorkerInsight(kind, "반복 리뷰 사실", "AI 해석", List.of(new WorkerEvidence(0, "맛있고 빨라요"))))
                 .toList();
         WorkerPersona persona = new WorkerPersona(1, 50, "빠른 식사 손님", "빠른 제공을 중요하게 봐요", "실제 개인이 아닙니다", "prompt", "AI 생성 이미지", insights,
                 List.of(new WorkerAdvice("빠른 제공 칭찬", "대기 시간을 안내해 보세요", "불확실성을 줄일 수 있습니다", List.of(new WorkerEvidence(0, "맛있고 빨라요")))));
         Instant now = Instant.now();
-        return new WorkerResponse("job", 50, 50, false, now, now, List.of(review),
+        return new WorkerResponse("job", 50, 50, false, now, now, List.of(review, undated),
                 new WorkerAnalysis(List.of(persona), List.of()),
                 List.of(new WorkerImage(1, "aGVsbG8=", "image/png")), Map.of("analysis", "test"), "1");
     }

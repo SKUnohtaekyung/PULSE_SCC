@@ -669,6 +669,11 @@ public class AnalysisRepository {
                 "collectedAt", response.collectedAt().toString(),
                 "analyzedAt", response.analyzedAt().toString(),
                 "containsReviewsOlderThanTwoYears", response.containsOldReviews(),
+                // 작성일을 모르는 리뷰는 2년 경고 판정에서 빠진다. 몇 건이 빠졌는지 따로
+                // 알린다(#29, 2026-09-27 결정).
+                "reviewsWithoutWrittenDateCount", response.reviews().stream()
+                        .filter(review -> review.writtenAt() == null)
+                        .count(),
                 "modelVersions", response.modelVersions()));
         List<Map<String, String>> limitations = response.analysis().limitations().stream()
                 .map(message -> Map.of("code", "ANALYSIS_LIMITATION", "message", message))

@@ -341,7 +341,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ### 사용자 결정 (2026-09-27)
 
-- **유효 리뷰 50건 기준은 유지한다.** #28 의 50건 부분은 결정됐다. 최소 글자 수(10자)는 아직 미정이다.
+- **유효 리뷰 50건 기준은 유지한다.** #28 의 50건 부분은 결정됐다. 최소 글자 수도 10자 유지로 결정됐고 #28 을 닫았다(2026-09-27).
 - **토픽 수 규칙**: 분석 후 반복 토픽이 1개면 1개, 2개면 2개의 페르소나만 만들고, 나머지 슬롯에는 "리뷰 수가 적어서 도출되지 않았다"를 표시한다. 여러 개면 상위(top) 3개를 도출한다. 기능명세 PERSONA-002·PERSONA-007·RESULT-013 과 PRD FR-003 의 기존 규칙과 같다. 이번에 바뀐 것은 문구와 순위 기준이다.
 
 ### 변경
@@ -366,22 +366,43 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ### 남은 것
 
-- Docker Desktop 기동 후 Spring test 를 다시 돌려 skip 0 과 새 알림 테스트 2개 통과를 확인해야 한다. 2026-09-27 에는 `Docker Desktop.exe` 를 두 번 실행해도 프로세스가 곧바로 끝났고 `docker-desktop` WSL 배포판은 `Stopped` 였다.
+- (이전 기록) 이 작업 직후에는 `Docker Desktop.exe` 를 두 번 실행해도 프로세스가 곧바로 끝났고 `docker-desktop` WSL 배포판은 `Stopped` 여서 Testcontainers 테스트를 돌리지 못했다.
+- (해소) 같은 날 Docker 가 정상 기동해 Spring test skip 0 과 새 알림 테스트 2개 통과를 확인했다(아래 #29 절 검증 표).
 - 모델이 4개 이상 토픽을 반환하면 스키마(`max_length=3`, `rank le=3`) 검증에서 실패해 재시도된다. 프롬프트로 3개 이하를 요구하지만, 넘겼을 때 상위 3개로 자르는 처리는 없다.
 - `docs/decisions/ADR-011` 31행의 "횟수를 다 쓰면 `ANALYSIS_TIMEOUT` 으로 마감"도 임대 만료 경로에만 맞는다. ADR 은 `role:platform` 소유라 고치지 않았다.
 - 실제 OpenAI 호출로 토픽 1~2개 결과가 나오는지는 확인하지 않았다(비용 발생).
 - **명세 문구 갱신 요청** — 기능명세 PERSONA-007·RESULT-013·인수조건(464행 부근), RESULT_IA, PRD FR-003 의 빈 슬롯 문구는 "리뷰 근거가 부족해 3개보다 적게 도출됐다" 이다. 사용자 결정(2026-09-27)으로 화면 문구를 "리뷰 수가 적어서 도출되지 않았다" 로 바꿨으니 `role:product` 에 명세 문구 갱신을 요청한다. 규칙 자체는 명세와 같다.
 - **소유 영역** — `docs/architecture/API.md` 는 `role:platform` 소유다. AGENTS.md 2장 7번(API 변경 시 동기화)에 따라 예시 문구를 함께 고쳤으므로 PR 본문에 명시하고 platform 리뷰어를 지정한다. ADR-011 은 결정 기록이라 고치지 않았다.
-- Docker 기동 실패 원인: `%LOCALAPPDATA%\Docker\run\sailor-ingest.sock.stale`(2026-09-19 잔여 소켓)이 남아 새 소켓 이름 변경이 실패하고 백엔드가 크래시한다(`com.docker.backend.exe.log`). 일반 권한으로는 이 파일이 지워지지 않았다("The file cannot be accessed by the system"). Windows 재시작 후 다시 실행하거나 관리자 권한으로 삭제가 필요하다.
+- Docker 기동 실패 원인: `%LOCALAPPDATA%\Docker\run\sailor-ingest.sock.stale`(2026-09-19 잔여 소켓)이 남아 새 소켓 이름 변경이 실패하고 백엔드가 크래시한다(`com.docker.backend.exe.log`). 일반 권한으로는 이 파일이 지워지지 않았다("The file cannot be accessed by the system"). 같은 날 이후 Docker 29.8.0 이 정상 기동했는데, **그때도 `.stale` 파일은 그대로 남아 있었다.** 따라서 이 파일이 진짜 원인이 아니었을 수 있다. 어떤 조치로 풀렸는지는 이 세션에서 확인하지 못했다. 같은 증상이 다시 나면 `com.docker.backend.exe.log` 의 `backend crashed` 줄부터 본다.
+
+### #29 작성일을 모르는 리뷰 안내 (2026-09-27)
+
+**사용자 결정: 3번.** 작성일을 모르는 리뷰는 지금처럼 2년 경고 판정에서 제외하고, 몇 건이 제외됐는지 결과 화면에 따로 안내한다.
+
+| 위치 | 내용 |
+|---|---|
+| `AnalysisRepository.buildPublicResult` | 결과 `metadata.reviewsWithoutWrittenDateCount` 추가. 결과를 저장할 때 Python 응답의 리뷰 중 `writtenAt` 이 없는 것을 센다. Python `contains_old_reviews` 가 제외하는 리뷰와 같은 집합이다. 결과 조회와 저장본 조회(`/me/saved-analysis`)가 같은 결과 문서를 쓴다. Python 은 바꾸지 않았다 |
+| `docs/architecture/API.md` | 필드 예시와 의미, 이전 저장 결과에는 없으므로 0 으로 본다는 규칙 |
+| 프론트(`C:\PULSE_SCC_FE`, Git 범위 밖) | `reviewsWithoutDateCount` 타입·매핑(없으면 0), 1건 이상일 때 안내 "작성일을 모르는 리뷰가 N건 있어요 / 작성일을 확인할 수 없어 오래된 리뷰인지 판단할 때는 제외했어요.", Mock fixture 8건, 매핑 테스트 2개 |
+
+| 검증 | 결과 |
+|---|---|
+| Spring test (`--rerun-tasks`, Docker 기동) | PASS — **50개, skip 0.** 임대 만료 알림 테스트 2개(`jobThatExhausts…`, `lostLeaseFailure…`)와 결과 응답 통합 테스트(빈 슬롯 문구, 결과·저장본 조회 모두 `reviewsWithoutWrittenDateCount` = 1)가 실제로 실행됐다 |
+| 독립 Reviewer | PASS (권고 반영: 저장본 조회 검증 추가, Docker 원인 서술 보정) |
+| Frontend typecheck·lint·test | PASS — 26개 (기존 24 + 매핑 2) |
+| Python | 변경 없음 |
+
+- PRD 13장 Open Question 13 과 FR-009 는 `role:product` 소유라 고치지 않았다. 결정 내용을 반영하도록 요청이 필요하다.
+- Visual QA 로 안내 문구가 실제 화면에 어떻게 보이는지는 확인하지 않았다.
 
 ## Unresolved
 
 ### 제품·법무 결정
 
 - 네이버 정책은 원칙적으로 자동 수집을 금지한다. 명시적 승인 또는 공식 API/robots 허용 확인 전 운영 활성화 금지. 근거와 경위는 [ADR-002](../../decisions/ADR-002-review-collection.md).
-- **유효 리뷰 50건 기준을 유지할지.** 실측 표본에서 본문 없는 별점 리뷰가 약 50%다. 소규모 매장은 현재 기준으로 사실상 분석이 불가능하다.
-- `build_reviews` 의 `len(normalized) < 10` 최소 글자 수는 제품 결정 없이 들어간 임의 임계값이다.
-- 작성일을 알 수 없는 리뷰의 2년 경고 처리(PRD 미결 질문 13). 현재는 경고 대상에서 제외한다.
+- ~~**유효 리뷰 50건 기준을 유지할지.**~~ 2026-09-27 유지 결정(#28 종료). 실측 표본에서 본문 없는 별점 리뷰가 약 50%다. 소규모 매장은 현재 기준으로 사실상 분석이 불가능하다.
+- ~~`build_reviews` 의 `len(normalized) < 10` 최소 글자 수는 제품 결정 없이 들어간 임의 임계값이다.~~ 2026-09-27 10자 유지 결정(#28 종료).
+- ~~작성일을 알 수 없는 리뷰의 2년 경고 처리(PRD 미결 질문 13).~~ 2026-09-27 결정: 제외 유지 + 건수 안내(#29). 현재는 경고 대상에서 제외한다.
 - 재시도 3회를 모두 쓴 작업을 사용자에게 어떻게 표현할지.
 - RAG 지식 출처와 검수·승인 절차가 없어 `knowledgeReferences` 가 비어 있다. 승인된 지식 베이스가 선결 조건이다.
 - 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전 정보가 미완료다.
@@ -437,8 +458,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 | 이슈 | 결정 | 반영 위치 |
 |---|---|---|
-| #28 | ~~50건 기준~~(2026-09-27 유지 결정)·최소 글자 수 | `build_reviews` 의 10자, Python 50건 게이트(`analysis/pipeline.py`), **DB 제약 `ck_analyses_review_counts`(V1, `valid_review_count >= 50`) — 새 Flyway migration 필요**, 프론트 분석 불가 화면. PRD FR-009 는 `role:product` 에 갱신 요청. Python 게이트만 낮추고 DB 제약을 두면 저장 단계 CHECK 위반이 재시도 가능한 실패로 처리돼 수집·OpenAI 호출이 최대 3번 반복된 뒤 실패한다(코드 흐름 추론, 미실행) |
-| #29 | 작성일 미확인 리뷰의 2년 경고 | `contains_old_reviews`. PRD FR-009 는 `role:product` 에 갱신 요청 |
+| ~~#28~~ | 종료 (2026-09-27) — 50건·10자 모두 유지, 코드 변경 없음 | 기준을 다시 바꿀 때는 `build_reviews` 10자, Python 50건 게이트(`analysis/pipeline.py`), DB 제약 `ck_analyses_review_counts`(새 Flyway migration), PRD FR-009 를 함께 바꾼다 |
+| #29 | 2026-09-27 구현 — 제외 유지 + `reviewsWithoutWrittenDateCount` 안내 | PRD Open Question 13·FR-009 문구는 `role:product` 에 반영 요청 |
 | #30 | 재시도 소진 실패 문구 | 프론트 실패 화면, 마이페이지 실패 알림. 임대 만료 경로 알림 누락은 2026-09-27 수정 |
 | #31 | RAG 지식 출처·승인 절차 | `knowledgeReferences` 계약과 검색·인용 구현 |
 | #32 | `/register` 409·로그인 시도 제한 | 인증 코드 (PR #27 병합 후). ADR-008·API.md 는 `role:platform` 소유 |
@@ -446,7 +467,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ### 지금 바로 할 수 있는 것 (선택)
 
-- ~~재시도 소진 작업의 실패 알림 누락 수정~~ — 2026-09-27 완료. Docker 기동 후 통합 테스트 실행 확인만 남았다.
+- ~~재시도 소진 작업의 실패 알림 누락 수정~~ — 2026-09-27 완료, 통합 테스트 실행 확인까지 끝났다.
 - 다른 매장(주점 등) 수집 실측. OpenAI 비용 없음. 방법은 Claude Continuation 8번.
 
 ## Claude Continuation

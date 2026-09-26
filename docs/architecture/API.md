@@ -301,7 +301,8 @@ FAILED
     "validReviewCount": 67,
     "collectedAt": "2026-09-15T12:30:30Z",
     "analyzedAt": "2026-09-15T12:32:00Z",
-    "containsReviewsOlderThanTwoYears": true
+    "containsReviewsOlderThanTwoYears": true,
+    "reviewsWithoutWrittenDateCount": 12
   },
   "limitations": [
     {
@@ -354,6 +355,8 @@ FAILED
   ]
 }
 ```
+
+`metadata.reviewsWithoutWrittenDateCount` 는 작성일을 확인하지 못한 리뷰 수다. 이 리뷰들은 `containsReviewsOlderThanTwoYears` 판정에서 제외되며, 화면은 1건 이상일 때 제외 사실을 안내한다. 이 필드가 생기기 전(2026-09-27 이전)에 저장된 결과에는 없으므로 클라이언트는 없으면 0으로 본다.
 
 `podium` 배열은 항상 1·2·3위 슬롯 세 개를 반환한다. 유효 토픽이 0개면 세 슬롯이 모두 `EMPTY`이고 선택할 페르소나 콘텐츠가 없다. 하나 이상이면 가장 낮은 `rank`가 최초 선택 대상이다.
 
