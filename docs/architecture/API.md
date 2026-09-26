@@ -279,6 +279,13 @@ FAILED
 | `IMAGE_GENERATION_FAILED` | true | 도출된 페르소나 이미지 생성 실패 |
 | `ANALYSIS_TIMEOUT` | true | 목표 시간 초과 |
 | `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE` | true | 내부 분석 서비스 연결 실패 |
+| `ANALYSIS_RETRY_EXHAUSTED` | false | 서버가 자동 재시도(최대 3회)를 모두 썼다. 원인 코드는 서버에만 남는다. 앱은 즉시 재시도 버튼 없이 가게 정보로 돌아가 나중에 다시 요청하도록 안내한다 |
+
+위 표의 `retryable` 열은 서버가 그 원인을 자동으로 다시 시도하는지를 뜻한다. `true` 인 원인은 서버가 최대 3회까지 다시 시도하고, 다 쓰면 원인과 관계없이 `ANALYSIS_RETRY_EXHAUSTED` 로 끝난다. 예외로, 작업 정보 자체를 찾지 못한 경우는 재시도 없이 `ANALYSIS_OUTPUT_INVALID` 로 끝난다.
+
+작업 상태 응답(`GET /api/v1/analysis-jobs/{jobId}`)의 `retryable` 은 사용자가 그 작업을 곧바로 다시 시도할 수 있는지를 뜻하며, `FAILED` 작업이면 항상 `false` 다. 이 규칙 이전에 `true` 로 저장된 실패 작업도 응답에서는 `false` 로 내보낸다. 공통 오류 응답(2.1절)의 `retryable` 은 같은 요청을 다시 보내도 되는지를 뜻한다. 앱의 재시도 버튼은 요청 전송·상태 조회 같은 네트워크 오류에만 쓴다.
+
+인앱 실패 알림도 같은 기준의 문구를 쓴다. 앱은 오류 코드를 화면에 표시하지 않는다.
 
 ---
 

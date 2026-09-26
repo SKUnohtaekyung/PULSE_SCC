@@ -107,9 +107,12 @@ public class MyPageRepository {
     }
 
     private static String messageFor(String code) {
-        return "ANALYSIS_COMPLETED".equals(code)
-                ? "리뷰 분석이 완료되었습니다."
-                : "리뷰 분석을 완료하지 못했습니다.";
+        return switch (String.valueOf(code)) {
+            case "ANALYSIS_COMPLETED" -> "리뷰 분석이 완료되었습니다.";
+            // 자동 재시도를 모두 쓴 실패. 분석 화면과 같은 기준으로 바로 다시 요청하지 않게 안내한다.
+            case "ANALYSIS_RETRY_EXHAUSTED" -> "여러 번 시도했지만 리뷰 분석을 완료하지 못했습니다. 잠시 뒤에 다시 요청해 주세요.";
+            default -> "리뷰 분석을 완료하지 못했습니다.";
+        };
     }
 
     private static Instant instant(OffsetDateTime value) {

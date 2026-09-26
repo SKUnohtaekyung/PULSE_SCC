@@ -395,6 +395,37 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - PRD 13장 Open Question 13 과 FR-009 는 `role:product` 소유라 고치지 않았다. 결정 내용을 반영하도록 요청이 필요하다.
 - Visual QA 로 안내 문구가 실제 화면에 어떻게 보이는지는 확인하지 않았다.
 
+### #30 재시도를 모두 쓴 실패 표시 (2026-09-27)
+
+**사용자 결정: 3번 + 오류 코드 숨김.** 자동 재시도를 모두 쓴 실패는 "여러 번 시도했다"고 구분해 알리고, 즉시 재시도 버튼 없이 가게 정보로 돌아가게 한다. 곧바로 다시 요청하면 수집·OpenAI 호출이 또 최대 3번 반복되기 때문이다. 모든 실패 화면에서 오류 코드를 뺀다.
+
+| 위치 | 내용 |
+|---|---|
+| `AnalysisRepository.RETRY_EXHAUSTED` | 공개 오류 코드이자 `message_code` 값 `ANALYSIS_RETRY_EXHAUSTED` |
+| `AnalysisRepository.markRetryExhausted` | 분석 중 오류 경로. 원인 코드는 `error_code` 에 남기고 `message_code = ANALYSIS_RETRY_EXHAUSTED`, 같은 코드로 실패 알림. **시도 횟수가 상한(`MAX_ATTEMPTS`)에 닿은 작업만 마감한다** — 임대가 끝나 다른 워커가 다시 가져간 작업을 원래 워커가 잘못 마감하지 않게 한다. `markFailed` 와 SQL 을 공유한다 |
+| `AnalysisRepository.markFailed` | `retryable` 인자를 없앴다. 실패 작업은 항상 `retryable = false` 로 저장된다. 실제로 상태를 바꾼 경우에만 실패 알림을 만든다 |
+| `AnalysisRepository.failExhaustedJobs` | 임대 만료 경로. `error_code = ANALYSIS_TIMEOUT` 은 그대로, `message_code = ANALYSIS_RETRY_EXHAUSTED`, `retryable = false`(이전에는 `true`) |
+| `AnalysisRepository.mapStatus` | `FAILED` 작업은 저장값과 관계없이 `retryable = false` 로 응답한다(규칙 이전에 `true` 로 저장된 행 호환). `message_code` 가 재시도 소진이면 공개 `error.code` 를 `ANALYSIS_RETRY_EXHAUSTED` 로 바꾸고 문구 "여러 번 시도했지만 분석을 완료하지 못했습니다. 잠시 뒤에 가게 정보에서 다시 요청해 주세요." |
+| `AnalysisJobRunner.finishFailure` | 재시도 불가 실패 → `markFailed`, 다시 큐에 넣지 못한 재시도 가능 실패 → `markRetryExhausted(…, MAX_ATTEMPTS)` |
+| `MyPageRepository.messageFor` | 알림 문구 "여러 번 시도했지만 리뷰 분석을 완료하지 못했습니다. 잠시 뒤에 다시 요청해 주세요." |
+| `API.md` 5.3 | `ANALYSIS_RETRY_EXHAUSTED` 추가. 표의 `retryable` 열(서버 자동 재시도 여부)과 작업 상태 응답의 `retryable`(즉시 재시도 가능 여부, FAILED 면 항상 false), 공통 오류 응답(2.1절)의 `retryable` 을 구분해 적었다. 작업 정보를 찾지 못한 `ANALYSIS_OUTPUT_INVALID` 예외도 적었다 |
+| 프론트(`C:\PULSE_SCC_FE`, Git 범위 밖) | `src/features/analysis/failure.ts` 의 `failureTitle`·`canRetryNow`. 재시도 소진이면 제목 "분석을 완료하지 못했어요", 재시도 버튼 없음. 실패 화면에서 `{error.code} ·` 제거. 코드를 빼면서 상단 설명 줄과 안내 상자에 같은 문장이 두 번 나오게 돼 오류일 때 상단 설명 줄을 숨겼다. 테스트 4개 |
+
+**동작 변화**: 이제 `FAILED` 작업의 `retryable` 은 항상 `false` 다. 재시도 가능한 원인은 서버가 먼저 자동 재시도하기 때문이다. 앱의 "분석 다시 시도" 버튼은 요청 전송·상태 조회 같은 네트워크 오류(`NETWORK_ERROR`, 5xx)에만 나온다.
+
+| 검증 | 결과 |
+|---|---|
+| Spring test (`--rerun-tasks`, Docker) | PASS — 53개, skip 0. 임대 만료 경로(상태 API `retryable=false`·`ANALYSIS_RETRY_EXHAUSTED`·문구, 알림 문구), 분석 중 오류 경로(원인 코드 보존, 상태·알림 문구), 시도 횟수가 남은 작업은 마감하지 않음, 규칙 이전 `retryable=true` 실패 행도 `false` 로 응답 — 통합 테스트 포함 |
+| 독립 Reviewer | 1차 PASS(권고 6건) → 권고 반영(경쟁 상황 가드, 이전 행 호환, `markFailed` 인자 제거, 화면 중복 문장, API.md 서술, 테스트 공백) → 재검토 PASS(2026-09-27). 재검토 권고였던 `finishFailure` 로그 구분도 반영 |
+| 범위 밖 발견 | 앱에서 상태 조회가 5xx 로 실패하면 재시도 버튼이 기존 작업을 이어 조회하지 않고 새 작업을 만든다(`PulseApp.tsx` 의 `resume = code === 'NETWORK_ERROR'`). 서버 작업이 아직 도는 중이면 비용이 중복될 수 있다. 이번 변경 전부터 있던 문제라 별도 이슈로 다룬다 |
+| Frontend typecheck·lint·test | PASS — 30개 (기존 26 + 실패 표시 4) |
+
+- 경쟁 상황: 임대가 끝나 작업이 QUEUED 로 돌아갔거나 다른 워커가 다시 가져간 뒤 원래 워커가 실패하면 `requeueForRetry` 가 false 를 돌려준다. 이때 `markRetryExhausted` 는 시도 횟수가 상한 미만이면 아무것도 바꾸지 않는다. 다만 다른 워커가 세 번째 시도로 가져간 뒤라면(시도 횟수 3) 원래 워커가 그 작업을 마감할 수 있다. 워커 소유권 식별이 없는 at-least-once 큐의 기존 한계다(ADR-011).
+- **비용 방지 효과의 한계**: "가게 정보로 돌아가기" 뒤 확인 화면에서 "리뷰 분석 시작"을 한 번 더 누르면 새 작업이 만들어져 다시 최대 3회 시도한다. 사용자가 고른 안(즉시 재시도 버튼만 없앰)의 범위다.
+- 문서 동기화: `docs/architecture/DATA_MODEL.md` 는 `error_code` 를 "공개 가능한 표준 오류 코드"로 설명하지만, 재시도 소진이면 공개 코드는 `message_code` 로 정해진다. `role:platform` 소유라 고치지 않았다. `C:\PULSE_SCC_FE\docs\architecture\API.md` 사본도 병합 후 동기화가 필요하다.
+- 재시도 불가(`retryable=false`)지만 사용자 입력 문제가 아닌 실패(예: 작업 정보를 찾지 못한 `ANALYSIS_OUTPUT_INVALID`)도 제목이 "입력 또는 설정 확인이 필요해요" 로 나온다. 드문 경로라 이번 범위에서 나누지 않았다.
+- Visual QA 미실행.
+
 ## Unresolved
 
 ### 제품·법무 결정
@@ -403,7 +434,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - ~~**유효 리뷰 50건 기준을 유지할지.**~~ 2026-09-27 유지 결정(#28 종료). 실측 표본에서 본문 없는 별점 리뷰가 약 50%다. 소규모 매장은 현재 기준으로 사실상 분석이 불가능하다.
 - ~~`build_reviews` 의 `len(normalized) < 10` 최소 글자 수는 제품 결정 없이 들어간 임의 임계값이다.~~ 2026-09-27 10자 유지 결정(#28 종료).
 - ~~작성일을 알 수 없는 리뷰의 2년 경고 처리(PRD 미결 질문 13).~~ 2026-09-27 결정: 제외 유지 + 건수 안내(#29). 현재는 경고 대상에서 제외한다.
-- 재시도 3회를 모두 쓴 작업을 사용자에게 어떻게 표현할지.
+- ~~재시도 3회를 모두 쓴 작업을 사용자에게 어떻게 표현할지.~~ 2026-09-27 결정·구현(#30).
 - RAG 지식 출처와 검수·승인 절차가 없어 `knowledgeReferences` 가 비어 있다. 승인된 지식 베이스가 선결 조건이다.
 - 정식 법률 검토, 운영자 정보, 보유기간, 국외 이전 정보가 미완료다.
 - 위 미결정 사항은 2026-09-25 역할별 GitHub 이슈로 넘겼다(2026-09-24 에는 `gh` 인증 401 로 생성하지 못했었다).
@@ -460,7 +491,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 |---|---|---|
 | ~~#28~~ | 종료 (2026-09-27) — 50건·10자 모두 유지, 코드 변경 없음 | 기준을 다시 바꿀 때는 `build_reviews` 10자, Python 50건 게이트(`analysis/pipeline.py`), DB 제약 `ck_analyses_review_counts`(새 Flyway migration), PRD FR-009 를 함께 바꾼다 |
 | #29 | 2026-09-27 구현 — 제외 유지 + `reviewsWithoutWrittenDateCount` 안내 | PRD Open Question 13·FR-009 문구는 `role:product` 에 반영 요청 |
-| #30 | 재시도 소진 실패 문구 | 프론트 실패 화면, 마이페이지 실패 알림. 임대 만료 경로 알림 누락은 2026-09-27 수정 |
+| #30 | 2026-09-27 구현 — 재시도 소진은 `ANALYSIS_RETRY_EXHAUSTED`·즉시 재시도 불가, 오류 코드 숨김 | 기능명세 오류 상태 표에 반영하도록 `role:product` 요청 |
 | #31 | RAG 지식 출처·승인 절차 | `knowledgeReferences` 계약과 검색·인용 구현 |
 | #32 | `/register` 409·로그인 시도 제한 | 인증 코드 (PR #27 병합 후). ADR-008·API.md 는 `role:platform` 소유 |
 | #33 | 지원 업종 범위·업종별 키워드 목록 | `NAVER_VOTED_KEYWORDS`. 주점 등 목록을 받으면 카페 때와 같이 대조·추가하고 실측한다 |

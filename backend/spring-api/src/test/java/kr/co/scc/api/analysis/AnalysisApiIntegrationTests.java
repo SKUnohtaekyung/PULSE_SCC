@@ -191,13 +191,97 @@ class AnalysisApiIntegrationTests {
         // 스케줄된 폴링이 먼저 처리했을 수 있으므로 반환값이 아니라 결과 상태로 확인한다.
         repository.failExhaustedJobs(3);
 
+        // 원인 코드는 DB 에 남고, 앱에는 재시도 소진으로 알리며 바로 다시 시도하지 못하게 한다.
         assertThat(jdbc.sql("SELECT status || ':' || error_code FROM analysis_jobs WHERE id = :id")
                 .param("id", jobId).query(String.class).single()).isEqualTo("FAILED:ANALYSIS_TIMEOUT");
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.retryable").value(false))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_RETRY_EXHAUSTED"))
+                .andExpect(jsonPath("$.error.message").value("여러 번 시도했지만 분석을 완료하지 못했습니다. 잠시 뒤에 가게 정보에서 다시 요청해 주세요."));
         mockMvc.perform(get("/api/v1/me/notifications").with(userJwt()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].type").value("ANALYSIS_FAILED"));
+                .andExpect(jsonPath("$[0].type").value("ANALYSIS_FAILED"))
+                .andExpect(jsonPath("$[0].message").value("여러 번 시도했지만 리뷰 분석을 완료하지 못했습니다. 잠시 뒤에 다시 요청해 주세요."));
         assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id")
                 .param("id", jobId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void failureAfterTheLastRetryKeepsItsCauseButBlocksAnImmediateRetry() throws Exception {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '재시도 소진 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'RUNNING', 'ANALYZING', 3,
+                            CURRENT_TIMESTAMP - INTERVAL '1 minute', CURRENT_TIMESTAMP + INTERVAL '1 minute')
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        // 분석 도중 난 재시도 가능한 실패가 세 번째 시도에서도 났을 때다.
+        repository.markRetryExhausted(jobId, "REVIEW_COLLECTION_BLOCKED", 3);
+
+        assertThat(jdbc.sql("SELECT error_code FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo("REVIEW_COLLECTION_BLOCKED");
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.retryable").value(false))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_RETRY_EXHAUSTED"))
+                .andExpect(jsonPath("$.error.message").value("여러 번 시도했지만 분석을 완료하지 못했습니다. 잠시 뒤에 가게 정보에서 다시 요청해 주세요."));
+        mockMvc.perform(get("/api/v1/me/notifications").with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].message").value("여러 번 시도했지만 리뷰 분석을 완료하지 못했습니다. 잠시 뒤에 다시 요청해 주세요."));
+    }
+
+    @Test
+    void aJobWithAttemptsLeftIsNotClosedAsExhausted() {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '경합 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        // 임대가 끝나 다른 워커가 다시 가져간 작업. 원래 워커의 다시 넣기가 실패해도 시도 횟수가 남아 있다.
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'RUNNING', 'ANALYZING', 2,
+                            CURRENT_TIMESTAMP - INTERVAL '1 minute', CURRENT_TIMESTAMP + INTERVAL '1 minute')
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        repository.markRetryExhausted(jobId, "REVIEW_COLLECTION_BLOCKED", 3);
+
+        assertThat(jdbc.sql("SELECT status FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo("RUNNING");
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id")
+                .param("id", jobId).query(Long.class).single()).isZero();
+    }
+
+    @Test
+    void aFailedJobStoredAsRetryableBeforeTheRuleIsNotOfferedAnImmediateRetry() throws Exception {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '이전 실패 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        // 규칙 이전의 임대 만료 실패 행 모양이다.
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, message_code, error_code, retryable, attempt_count,
+                            started_at, completed_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'FAILED', 'FAILED', 'ANALYSIS_FAILED',
+                            'ANALYSIS_TIMEOUT', true, 3, CURRENT_TIMESTAMP - INTERVAL '5 minutes', CURRENT_TIMESTAMP)
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.retryable").value(false));
     }
 
     @Test

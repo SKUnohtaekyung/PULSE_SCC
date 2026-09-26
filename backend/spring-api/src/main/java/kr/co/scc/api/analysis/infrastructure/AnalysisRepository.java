@@ -33,6 +33,9 @@ import tools.jackson.databind.ObjectMapper;
 @Repository
 public class AnalysisRepository {
 
+    /** 자동 재시도를 모두 쓴 실패의 메시지 코드이자 앱에 보내는 공개 오류 코드. */
+    public static final String RETRY_EXHAUSTED = "ANALYSIS_RETRY_EXHAUSTED";
+
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
     private final PersonaImageStorage imageStorage;
@@ -216,7 +219,11 @@ public class AnalysisRepository {
     /**
      * 임대가 끝났고 재시도 횟수도 모두 쓴 작업을 실패로 마무리한다.
      *
-     * <p>{@link #markFailed} 와 같은 실패 알림을 만든다. 이 경로는 워커가 죽은 뒤라 실패를
+     * <p>자동 재시도를 모두 썼으므로 {@link #markRetryExhausted} 와 같이 사용자 재시도를
+     * 막고({@code retryable = false}) 재시도 소진 문구로 알린다. 원인 코드
+     * {@code ANALYSIS_TIMEOUT} 은 {@code error_code} 에 남긴다.
+     *
+     * <p>{@link #markFailed} 와 같은 규칙으로 실패 알림을 만든다. 이 경로는 워커가 죽은 뒤라 실패를
      * 알릴 주체가 여기뿐이다. 상태 변경과 알림을 한 문장으로 묶어, 알림만 빠진 채
      * FAILED 로 남는 경우가 없게 한다.
      *
@@ -228,9 +235,9 @@ public class AnalysisRepository {
                             UPDATE analysis_jobs
                             SET status = 'FAILED',
                                 progress_step = 'FAILED',
-                                message_code = 'ANALYSIS_FAILED',
+                                message_code = 'ANALYSIS_RETRY_EXHAUSTED',
                                 error_code = 'ANALYSIS_TIMEOUT',
-                                retryable = true,
+                                retryable = false,
                                 lease_expires_at = NULL,
                                 completed_at = CURRENT_TIMESTAMP,
                                 updated_at = CURRENT_TIMESTAMP
@@ -241,7 +248,7 @@ public class AnalysisRepository {
                             RETURNING id, user_id
                         ), notified AS (
                             INSERT INTO notifications (id, user_id, job_id, type, message_code)
-                            SELECT gen_random_uuid(), f.user_id, f.id, 'ANALYSIS_FAILED', 'ANALYSIS_FAILED'
+                            SELECT gen_random_uuid(), f.user_id, f.id, 'ANALYSIS_FAILED', 'ANALYSIS_RETRY_EXHAUSTED'
                             FROM failed f
                             JOIN notification_settings s ON s.user_id = f.user_id
                             WHERE s.analysis_result_enabled = true
@@ -271,21 +278,52 @@ public class AnalysisRepository {
                 .update() == 1;
     }
 
-    public void markFailed(UUID jobId, String code, boolean retryable) {
-        jdbc.sql("""
+    /**
+     * 작업을 실패로 마감한다.
+     *
+     * <p>실패한 작업은 사용자가 곧바로 다시 시도할 대상이 아니므로 {@code retryable} 은 항상
+     * {@code false} 다. 재시도할 수 있는 원인은 서버가 먼저 자동으로 다시 시도한다.
+     */
+    public void markFailed(UUID jobId, String code) {
+        fail(jobId, code, "ANALYSIS_FAILED", 0);
+    }
+
+    /**
+     * 자동 재시도를 모두 쓴 작업을 실패로 마감한다.
+     *
+     * <p>원인 코드는 {@code error_code} 에 남기고, 사용자에게는 재시도 소진으로 알린다.
+     * 앱이 곧바로 다시 요청하면 수집·모델 호출이 또 최대 {@code MAX_ATTEMPTS} 번 반복되므로
+     * {@code retryable} 을 끈다(#30, 2026-09-27 결정).
+     */
+    public boolean markRetryExhausted(UUID jobId, String causeCode, int maxAttempts) {
+        // 시도 횟수가 상한에 닿은 작업만 마감한다. 임대가 끝나 다른 워커가 이 작업을 다시
+        // 가져간 뒤라면 다시 넣기가 실패해도 시도 횟수가 남아 있으므로 건드리지 않는다.
+        return fail(jobId, causeCode, RETRY_EXHAUSTED, maxAttempts);
+    }
+
+    /** @return 이 호출이 작업을 실패로 바꿨는지 */
+    private boolean fail(UUID jobId, String code, String messageCode, int minAttempts) {
+        int updated = jdbc.sql("""
                         UPDATE analysis_jobs
-                        SET status = 'FAILED', progress_step = 'FAILED', message_code = 'ANALYSIS_FAILED',
-                            error_code = :code, retryable = :retryable,
+                        SET status = 'FAILED', progress_step = 'FAILED', message_code = :messageCode,
+                            error_code = :code, retryable = false,
                             completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                         WHERE id = :jobId AND status IN ('QUEUED', 'RUNNING')
+                          AND attempt_count >= :minAttempts
                         """)
                 .param("jobId", jobId)
                 .param("code", code)
-                .param("retryable", retryable)
+                .param("messageCode", messageCode)
+                .param("minAttempts", minAttempts)
                 .update();
+        if (updated == 0) {
+            // 이미 끝났거나 다른 워커가 처리 중인 작업이다. 이 호출이 실패시킨 것이 아니므로
+            // 알림도 만들지 않는다.
+            return false;
+        }
         jdbc.sql("""
                         INSERT INTO notifications (id, user_id, job_id, type, message_code)
-                        SELECT :id, j.user_id, j.id, 'ANALYSIS_FAILED', 'ANALYSIS_FAILED'
+                        SELECT :id, j.user_id, j.id, 'ANALYSIS_FAILED', :messageCode
                         FROM analysis_jobs j
                         JOIN notification_settings s ON s.user_id = j.user_id
                         WHERE j.id = :jobId AND j.status = 'FAILED'
@@ -294,7 +332,9 @@ public class AnalysisRepository {
                         """)
                 .param("id", UUID.randomUUID())
                 .param("jobId", jobId)
+                .param("messageCode", messageCode)
                 .update();
+        return true;
     }
 
     public UUID saveCompleted(JobContext context, WorkerResponse response) {
@@ -743,13 +783,16 @@ public class AnalysisRepository {
 
     private JobStatus mapStatus(ResultSet rs, int rowNum) throws SQLException {
         String status = rs.getString("status");
-        String errorCode = rs.getString("error_code");
+        String messageCode = rs.getString("message_code");
+        // 재시도 소진은 원인과 무관하게 같은 공개 코드로 알린다. 원인은 error_code 에 남아 있다.
+        String errorCode = RETRY_EXHAUSTED.equals(messageCode) ? RETRY_EXHAUSTED : rs.getString("error_code");
         return new JobStatus(
                 rs.getObject("id", UUID.class),
                 status,
                 rs.getString("progress_step"),
-                messageFor(rs.getString("message_code"), errorCode),
-                rs.getBoolean("retryable"),
+                messageFor(messageCode, errorCode),
+                // 이 규칙 이전에 retryable = true 로 저장된 실패 작업도 즉시 재시도 대상으로 보이지 않게 한다.
+                !"FAILED".equals(status) && rs.getBoolean("retryable"),
                 rs.getObject("analysis_id", UUID.class),
                 errorCode == null ? null : new JobError(errorCode, messageFor(null, errorCode)),
                 rs.getObject("created_at", OffsetDateTime.class).toInstant(),
@@ -763,6 +806,7 @@ public class AnalysisRepository {
                 case "INSUFFICIENT_VALID_REVIEWS" -> "분석 가능한 리뷰가 50건보다 적습니다.";
                 case "REVIEW_COLLECTION_BLOCKED" -> "현재 네이버 공개 리뷰를 가져올 수 없습니다.";
                 case "ANALYSIS_CONFIGURATION_MISSING" -> "분석 서비스 설정이 완료되지 않았습니다.";
+                case RETRY_EXHAUSTED -> "여러 번 시도했지만 분석을 완료하지 못했습니다. 잠시 뒤에 가게 정보에서 다시 요청해 주세요.";
                 default -> "분석을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.";
             };
         }

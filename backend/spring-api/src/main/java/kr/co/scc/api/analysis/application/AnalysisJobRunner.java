@@ -46,7 +46,7 @@ public class AnalysisJobRunner {
         JobContext context = repository.findContext(jobId).orElse(null);
         if (context == null) {
             log.warn("집어온 작업의 정보를 찾지 못했습니다. jobId={}", jobId);
-            markFailed(jobId, "ANALYSIS_OUTPUT_INVALID", false);
+            markFailed(jobId, "ANALYSIS_OUTPUT_INVALID");
             return;
         }
         try {
@@ -65,11 +65,24 @@ public class AnalysisJobRunner {
     }
 
     private void finishFailure(UUID jobId, String errorCode, boolean retryable) {
-        if (retryable && requeue(jobId)) {
+        if (!retryable) {
+            markFailed(jobId, errorCode);
+            return;
+        }
+        if (requeue(jobId)) {
             log.info("재시도 가능한 실패라 작업을 다시 큐에 넣었습니다. jobId={} code={}", jobId, errorCode);
             return;
         }
-        markFailed(jobId, errorCode, retryable);
+        // 재시도할 수 있는 실패인데 다시 넣지 못했다. 시도 횟수를 다 썼거나, 임대가 끝나
+        // 이 작업이 이미 다른 워커에게 넘어간 경우다.
+        boolean closed = Boolean.TRUE.equals(transactions.execute(status -> repository.markRetryExhausted(
+                jobId, errorCode, AnalysisJobQueue.MAX_ATTEMPTS)));
+        if (closed) {
+            log.warn("재시도 횟수를 모두 써서 실패로 마감했습니다. jobId={} code={}", jobId, errorCode);
+        } else {
+            log.warn("다시 넣지 못했지만 시도 횟수가 남았거나 이미 끝난 작업이라 그대로 둡니다. jobId={} code={}",
+                    jobId, errorCode);
+        }
     }
 
     private boolean requeue(UUID jobId) {
@@ -77,8 +90,8 @@ public class AnalysisJobRunner {
                 status -> repository.requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS)));
     }
 
-    private void markFailed(UUID jobId, String errorCode, boolean retryable) {
+    private void markFailed(UUID jobId, String errorCode) {
         transactions.executeWithoutResult(
-                status -> repository.markFailed(jobId, errorCode, retryable));
+                status -> repository.markFailed(jobId, errorCode));
     }
 }

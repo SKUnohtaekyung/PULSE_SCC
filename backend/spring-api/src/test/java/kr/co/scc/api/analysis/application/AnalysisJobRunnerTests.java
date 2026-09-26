@@ -72,7 +72,7 @@ class AnalysisJobRunnerTests {
 
         runner.runClaimed(jobId);
 
-        verify(repository).markFailed(jobId, "ANALYSIS_OUTPUT_INVALID", false);
+        verify(repository).markFailed(jobId, "ANALYSIS_OUTPUT_INVALID");
         verifyNoInteractions(gateway);
     }
 
@@ -84,7 +84,7 @@ class AnalysisJobRunnerTests {
         runner.runClaimed(jobId);
 
         verify(transactions).executeWithoutResult(any());
-        verify(repository).markFailed(jobId, "COLLECTION_BLOCKED", false);
+        verify(repository).markFailed(jobId, "COLLECTION_BLOCKED");
     }
 
     @Test
@@ -95,7 +95,7 @@ class AnalysisJobRunnerTests {
         runner.runClaimed(jobId);
 
         verify(repository, never()).requeueForRetry(any(), anyInt());
-        verify(repository).markFailed(jobId, "INSUFFICIENT_VALID_REVIEWS", false);
+        verify(repository).markFailed(jobId, "INSUFFICIENT_VALID_REVIEWS");
     }
 
     @Test
@@ -107,7 +107,7 @@ class AnalysisJobRunnerTests {
         runner.runClaimed(jobId);
 
         verify(repository).requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS);
-        verify(repository, never()).markFailed(any(), any(), anyBooleanArg());
+        verify(repository, never()).markFailed(any(), any());
     }
 
     @Test
@@ -118,7 +118,9 @@ class AnalysisJobRunnerTests {
 
         runner.runClaimed(jobId);
 
-        verify(repository).markFailed(jobId, "REVIEW_COLLECTION_BLOCKED", true);
+        // 앱이 곧바로 다시 요청하지 않도록 재시도 소진으로 마감한다. 원인 코드는 남긴다.
+        verify(repository).markRetryExhausted(jobId, "REVIEW_COLLECTION_BLOCKED", AnalysisJobQueue.MAX_ATTEMPTS);
+        verify(repository, never()).markFailed(any(), any());
     }
 
     @Test
@@ -130,9 +132,5 @@ class AnalysisJobRunnerTests {
         runner.runClaimed(jobId);
 
         verify(repository).requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS);
-    }
-
-    private static boolean anyBooleanArg() {
-        return org.mockito.ArgumentMatchers.anyBoolean();
     }
 }
