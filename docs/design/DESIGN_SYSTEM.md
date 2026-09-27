@@ -98,7 +98,8 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 | `primary-tint` | `#002B7A1A` | 선택·정보 배경 |
 | `primary-stripe` | `#002B7A0D` | 아주 연한 구분 배경 |
 | `action-source-overlay` | `#FF5A36CC` | 기존 PULSE의 반투명 값 보존. 단독 CTA 배경으로 쓰지 않음 |
-| `action-primary` | `#FF5A36` | 분석 시작·재시도 등 행동 CTA의 불투명 배경 |
+| `action-primary` | `#FF5A36` | 저장 완료 표시·하단 내비게이션 중앙 버튼처럼 작고 결정적인 지점. **넓은 버튼 배경으로 쓰지 않는다**(2026-09-27) |
+| `focus-orange` | `#E03E16` | 입력 포커스 링과 진행 단계 표시. `action-primary`는 화면 배경 위에서 2.89:1이라 비텍스트 기준 3:1을 넘지 못해 따로 둔다 |
 | `action-bg` | `#FF5A361A` | 행동 관련 연한 배경 |
 | `action-hover` | `#FF5A3633` | 기존 코드의 action hover 후보 |
 | `background-page` | `#F5F7FA` | 페이지 배경 |
@@ -118,7 +119,7 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 | `error` | `#DC2626` | 오류·부정 비텍스트 신호(`status.error`)와 입력 오류 경계(`border.error`) |
 | `error-strong` | `#B91C1C` | 오류 문장과 오류 아이콘(`status.errorText`, 아이콘 겸용), 되돌릴 수 없는 행동(`destructive`). SCC 추가 |
 
-8자리 HEX는 알파를 포함하므로 배경에 따라 대비가 바뀐다. 따라서 원래의 `#FF5A36CC`는 `sourceOverlay`로만 보존하고, 주요 CTA는 불투명 `#FF5A36` 위에 `#191F28` 텍스트를 쓴다. 자동 검증 결과 이 조합은 5.34:1이다. `neutral-400`은 비활성 표현에만 쓰고 일반 보조 본문과 placeholder는 7.58:1인 `neutral-600`을 사용한다.
+8자리 HEX는 알파를 포함하므로 배경에 따라 대비가 바뀐다. 따라서 원래의 `#FF5A36CC`는 `sourceOverlay`로만 보존한다. 주황 위에 글자나 기호를 올릴 때는 불투명 `#FF5A36` 위에 `#191F28`을 쓴다(검증 5.34:1). 2026-09-27부터 주요 버튼은 남색이므로 이 조합은 저장 완료 표시 같은 작은 지점에만 나온다. `neutral-400`은 비활성 표현에만 쓰고 일반 보조 본문과 placeholder는 7.58:1인 `neutral-600`을 사용한다.
 
 2026-09-22 화면 상태 모델([SCREEN_STATES](../product/requirements/SCREEN_STATES.md))과 대조하면서 기존 값의 한계를 계산으로 확인했다. 수치는 `verify:tokens` 출력이다.
 
@@ -135,7 +136,9 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 ### 3.3 색상 사용 규칙
 
 - `primary`는 브랜드와 분석 정보의 기본색이다.
-- `action`은 사용자가 실행하는 핵심 CTA에만 사용한다. 화면마다 오렌지 CTA를 여러 개 경쟁시키지 않는다.
+- **주요 버튼은 `brand.primary`(남색)다.** 주황을 넓은 버튼 배경에 쓰면 화면을 잡아먹어, 정작 읽어야 할 결과보다 버튼이 먼저 눈에 들어온다(2026-09-27 디자인 리뷰 #2·#7).
+- `action`(주황)은 **작고 결정적인 지점**에만 쓴다: 입력 포커스 링, 진행 중인 입력 단계 표시, 저장 완료 표시, 하단 내비게이션 중앙 버튼.
+- 초록을 넓은 면에 깔지 않는다. 완료 표시는 `status.successSubtle` 바탕에 `status.success` 기호를 올린다(2026-09-27 디자인 리뷰 #8).
 - 긍정·부정 신호에 success/error 색상을 사용할 수 있지만 반드시 아이콘·레이블·문장을 함께 둔다.
 - “리뷰에서 확인된 것”과 “AI 해석”은 색만 바꾸지 말고 제목, 배지, 카드 구조로 구분한다.
 - 경고색은 리뷰 부족, 데이터 편향, 결과 한계처럼 사용자의 판단에 필요한 주의에 사용한다.

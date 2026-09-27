@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getSavedAnalysis } from '@/api/endpoints';
@@ -14,7 +14,7 @@ import { LoadingBlock } from '@/components/ui/LoadingBlock';
 import { Notice } from '@/components/ui/Notice';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { colors, spacing, typography } from '@/design/tokens';
+import { spacing } from '@/design/tokens';
 import { FixtureBanner } from '@/features/dev/FixtureBanner';
 import { ResultView } from '@/features/result/ResultView';
 import { useSession } from '@/session/SessionProvider';
@@ -93,10 +93,9 @@ export function HomeScreen() {
           />
         )
       }
-      header={<ScreenHeader badge="저장된 결과" />}
-      tone="brand"
+      header={<ScreenHeader brand badge="저장된 결과" />}
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       <FixtureBanner />
 
@@ -123,7 +122,6 @@ export function HomeScreen() {
 
       {phase === 'ready' && result ? (
         <>
-          <Text style={styles.context}>지금 저장된 결과예요.</Text>
           <ResultView
             client={client}
             onOpenEvidence={(args) =>
@@ -148,9 +146,5 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   emptyBlock: {
     gap: spacing[4],
-  },
-  context: {
-    ...typography.caption,
-    color: colors.text.secondary,
   },
 });

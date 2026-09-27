@@ -5,11 +5,15 @@ import type { ApiClient } from '@/api/client';
 import { personaImageSource } from '@/api/personaImages';
 import type { AnalysisResult, PerspectiveKey, PodiumSlot } from '@/api/types';
 import { Notice } from '@/components/ui/Notice';
+import { PersonaAvatarNotice } from '@/components/ui/PersonaAvatar';
 import { PersonaImageBlock } from '@/components/ui/PersonaImageBlock';
+import { PodiumTop3 } from '@/components/ui/PodiumTop3';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
 // 결과 표시. 읽는 순서는 DESIGN_SYSTEM §4.1을 따른다.
-// 1) 무엇을 얼마나 분석했는가 → 2) 3칸 포디움 → 3) 선택한 유형의 4관점 → 4) 대표 근거 → 5) AI 해석 → 6) 검토할 행동
+// 1) 손님 TOP3 → 2) 선택한 유형의 4관점 → 3) 대표 근거 → 4) AI 해석 → 5) 검토할 행동 → 6) 무엇을 얼마나 분석했는가
+// 분석 수치를 맨 아래로 내린 것은 2026-09-27 디자인 리뷰 #3이다. 먼저 보여 줄 것은 손님 유형이고,
+// 리뷰 수와 수집 시점은 결과를 다 읽은 뒤 신뢰도를 판단할 때 필요하다.
 // 상태 판정은 SCREEN_STATES §6.1: FILLED 개수 3 / 1~2 / 0 = RESULT-NORMAL / PARTIAL / NO-PERSONA.
 
 const perspectiveOrder: { key: PerspectiveKey; label: string; why: string }[] = [
@@ -54,27 +58,38 @@ export function ResultView({
   );
   const [selectedRank, setSelectedRank] = useState<number | null>(filled[0]?.rank ?? null);
   const selected = filled.find((slot) => slot.rank === selectedRank) ?? filled[0] ?? null;
+  // 고지 문구가 달라진다. 실제 이미지가 한 장이라도 있으면 "AI가 만든 가상 이미지"라고 알린다.
+  const anyRemoteImage = useMemo(
+    () =>
+      filled.some((slot) =>
+          slot.persona ? personaImageSource(client, slot.persona.image).kind === 'remote' : false,
+      ),
+    [client, filled],
+  );
 
   return (
     <View style={styles.container}>
-      <MetadataBlock result={result} />
+      <Text accessibilityRole="header" style={styles.storeName}>
+        {result.store.name}
+      </Text>
 
       <View style={styles.section}>
-        <Text accessibilityRole="header" style={styles.sectionTitle}>
-          가장 많이 반복된 손님 유형
-        </Text>
-        <Text style={styles.sectionHint}>
-          분석에 사용한 리뷰 {result.metadata.validReviewCount}건 안에서 관찰된 순서예요.
-        </Text>
-        <View style={styles.podium}>
-          {podium.map((slot) => (
-            <PodiumCard
-              key={slot.rank}
-              onSelect={() => setSelectedRank(slot.rank)}
-              selected={selected?.rank === slot.rank}
-              slot={slot}
-            />
-          ))}
+        <View style={styles.sectionHead}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>
+            리뷰에 많이 나온 손님 TOP3
+          </Text>
+          <Text style={styles.sectionAside}>리뷰 수 순서</Text>
+        </View>
+        <View style={styles.podiumCard}>
+          <PodiumTop3
+            imageSource={(slot) =>
+              slot.persona ? personaImageSource(client, slot.persona.image) : { kind: 'unavailable' }
+            }
+            onSelect={setSelectedRank}
+            podium={podium}
+            selectedRank={selected?.rank ?? null}
+          />
+          <PersonaAvatarNotice anyRemote={anyRemoteImage} />
         </View>
       </View>
 
@@ -96,65 +111,44 @@ export function ResultView({
         />
       ) : null}
 
-      <LimitationsBlock result={result} />
+      <AnalysisInfoBlock result={result} />
     </View>
   );
 }
 
-function MetadataBlock({ result }: { result: AnalysisResult }) {
+// 무엇을 얼마나 분석했는지. 결과를 다 읽은 뒤 신뢰도를 판단하는 자리라 맨 아래에 둔다(2026-09-27 리뷰 #3).
+function AnalysisInfoBlock({ result }: { result: AnalysisResult }) {
   const platform = result.metadata.platform === 'NAVER' ? '네이버' : result.metadata.platform;
   return (
-    <View style={styles.metaCard}>
-      <Text accessibilityRole="header" style={styles.storeName}>
-        {result.store.name}
+    <View style={styles.section}>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
+        이 결과는 이렇게 만들었어요
       </Text>
-      <Text style={styles.metaLine}>
-        {platform} 리뷰 {result.metadata.collectedReviewCount}건을 모아 그중 {result.metadata.validReviewCount}건을
-        분석했어요.
-      </Text>
-      <Text style={styles.metaLine}>
-        수집 {formatDate(result.metadata.collectedAt)} · 분석 {formatDate(result.metadata.analyzedAt)}
-      </Text>
-    </View>
-  );
-}
-
-function PodiumCard({
-  slot,
-  selected,
-  onSelect,
-}: {
-  slot: PodiumSlot;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  if (slot.status === 'EMPTY' || !slot.persona) {
-    return (
-      <View style={[styles.podiumCard, styles.podiumEmpty]}>
-        <Text style={styles.rank}>{slot.rank}위</Text>
-        <Text style={styles.podiumEmptyText}>{slot.reason?.message ?? '채우지 못한 자리예요.'}</Text>
+      <View style={styles.metaCard}>
+        <Text style={styles.metaSource}>{platform} 공개 리뷰 기준</Text>
+        <View style={styles.metaRow}>
+          <View style={styles.metaCell}>
+            <Text style={styles.metaLabel}>분석한 리뷰</Text>
+            <Text style={styles.metaValue}>{result.metadata.validReviewCount}건</Text>
+          </View>
+          <View style={styles.metaDivider} />
+          <View style={styles.metaCell}>
+            <Text style={styles.metaLabel}>수집</Text>
+            <Text style={styles.metaValue}>{formatDate(result.metadata.collectedAt)}</Text>
+          </View>
+          <View style={styles.metaDivider} />
+          <View style={styles.metaCell}>
+            <Text style={styles.metaLabel}>분석 완료</Text>
+            <Text style={styles.metaValue}>{formatDate(result.metadata.analyzedAt)}</Text>
+          </View>
+        </View>
+        <Text style={styles.metaLine}>
+          모은 리뷰 {result.metadata.collectedReviewCount}건 가운데 겹치거나 내용이 없는 리뷰를 빼고{' '}
+          {result.metadata.validReviewCount}건을 썼어요.
+        </Text>
       </View>
-    );
-  }
-
-  return (
-    <Pressable
-      accessibilityLabel={`${slot.rank}위 ${slot.persona.label}`}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onSelect}
-      style={({ pressed }) => [
-        styles.podiumCard,
-        selected && styles.podiumSelected,
-        pressed && styles.pressed,
-      ]}
-    >
-      <Text style={styles.rank}>{slot.rank}위</Text>
-      <Text style={styles.podiumLabel}>{slot.persona.label}</Text>
-      {typeof slot.topicReviewCount === 'number' ? (
-        <Text style={styles.podiumCount}>리뷰 {slot.topicReviewCount}건</Text>
-      ) : null}
-    </Pressable>
+      <LimitationsBlock result={result} />
+    </View>
   );
 }
 
@@ -285,48 +279,64 @@ function AdviceCard({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={styles.card}>
-      <View style={styles.layer}>
-        <Text style={styles.layerBadge}>리뷰에서 확인</Text>
+    // 사실 → 제안 순서를 눈으로도 따라갈 수 있게 나눈다. 흰 카드는 리뷰에서 확인한 것,
+    // 남색 블록은 그 위에서 끌어낸 제안이다(2026-09-26 발표 시안, DESIGN_SYSTEM §4.1).
+    <View style={styles.adviceGroup}>
+      <View style={styles.card}>
+        <Text style={styles.factChip}>리뷰에서 확인</Text>
         <Text style={styles.layerText}>{reviewFact}</Text>
       </View>
-      <Text style={styles.adviceAction}>{suggestedAction}</Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        onPress={() => setOpen((value) => !value)}
-        style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
-      >
-        <Text style={styles.disclosureText}>{open ? 'AI 해석 접기' : 'AI 해석 보기'}</Text>
-      </Pressable>
-      {open ? (
-        <>
-          <View style={[styles.layer, styles.layerAi]}>
-            <Text style={styles.layerBadge}>AI 해석</Text>
-            <Text style={styles.layerText}>{aiInterpretation}</Text>
-          </View>
-          <View style={styles.layer}>
-            <Text style={styles.layerBadge}>참고한 전문 지식</Text>
-            {knowledgeReferences.length > 0 ? (
-              knowledgeReferences.map((reference) => (
-                <Text key={reference.title + reference.locator} style={styles.layerText}>
-                  {reference.title} · {reference.locator}
-                </Text>
-              ))
-            ) : (
-              // ADVICE-NO-KNOWLEDGE — 없는 출처를 지어내지 않고 없다는 사실을 적는다(SCREEN_STATES §6.5).
-              <Text style={styles.layerText}>이 제안에는 참고한 전문 지식이 없어요.</Text>
-            )}
-          </View>
-        </>
-      ) : null}
+
+      <Text aria-hidden style={styles.adviceArrow}>
+        ↓
+      </Text>
+
+      <View style={styles.adviceBlock}>
+        <Text style={styles.adviceChip}>검토해 볼 행동</Text>
+        <Text style={styles.adviceAction}>{suggestedAction}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
+          onPress={() => setOpen((value) => !value)}
+          style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
+        >
+          <Text style={styles.adviceDisclosureText}>
+            {open ? 'AI 해석·전문 지식 접기' : 'AI 해석·전문 지식 펼쳐보기'}
+          </Text>
+        </Pressable>
+        {open ? (
+          <>
+            <View style={styles.adviceDetail}>
+              <Text style={styles.adviceDetailBadge}>AI 해석</Text>
+              <Text style={styles.adviceDetailText}>{aiInterpretation}</Text>
+            </View>
+            <View style={styles.adviceDetail}>
+              <Text style={styles.adviceDetailBadge}>참고한 전문 지식</Text>
+              {knowledgeReferences.length > 0 ? (
+                knowledgeReferences.map((reference) => (
+                  <Text key={reference.title + reference.locator} style={styles.adviceDetailText}>
+                    {reference.title} · {reference.locator}
+                  </Text>
+                ))
+              ) : (
+                // ADVICE-NO-KNOWLEDGE — 없는 출처를 지어내지 않고 없다는 사실을 적는다(SCREEN_STATES §6.5).
+                <Text style={styles.adviceDetailText}>이 제안에는 참고한 전문 지식이 없어요.</Text>
+              )}
+            </View>
+          </>
+        ) : null}
+      </View>
+
+      <Text style={styles.adviceCaption}>
+        제안은 리뷰를 바탕으로 한 참고 의견이에요. 결과를 보장하지 않아요.
+      </Text>
     </View>
   );
 }
 
 function LimitationsBlock({ result }: { result: AnalysisResult }) {
   return (
-    <View style={styles.section}>
+    <View style={styles.limitations}>
       <Notice
         title="이 결과를 읽을 때 알아 둘 것"
         message="리뷰를 남긴 손님이 전체 손님을 대표하지는 않아요. 참고 자료로 봐 주세요."
@@ -381,42 +391,51 @@ const styles = StyleSheet.create({
     ...typography.body7,
     color: colors.text.secondary,
   },
-  podium: {
-    gap: spacing[3],
-  },
   podiumCard: {
     backgroundColor: colors.background.surface,
     borderColor: colors.border.default,
-    borderRadius: radii.control,
+    borderRadius: radii.panel,
     borderWidth: strokes.hairline,
-    gap: spacing[1],
-    minHeight: layout.touchTargetMin,
+    gap: spacing[3],
     padding: spacing[4],
   },
-  podiumSelected: {
-    borderColor: colors.brand.primary,
-    borderWidth: strokes.focus,
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing[3],
+    justifyContent: 'space-between',
   },
-  podiumEmpty: {
-    borderColor: colors.border.strong,
-    borderStyle: 'dashed',
-    backgroundColor: colors.background.subtle,
-  },
-  podiumEmptyText: {
-    ...typography.body7,
-    color: colors.text.secondary,
-  },
-  rank: {
-    ...typography.caption,
-    color: colors.text.brand,
-  },
-  podiumLabel: {
-    ...typography.body1,
-    color: colors.text.primary,
-  },
-  podiumCount: {
+  sectionAside: {
     ...typography.caption,
     color: colors.text.secondary,
+  },
+  metaSource: {
+    ...typography.body6,
+    color: colors.text.secondary,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing[3],
+  },
+  metaCell: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  metaDivider: {
+    width: strokes.hairline,
+    backgroundColor: colors.border.default,
+  },
+  metaLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  metaValue: {
+    ...typography.body5,
+    color: colors.text.strong,
+  },
+  limitations: {
+    gap: spacing[3],
   },
   personaSummary: {
     ...typography.body4,
@@ -451,7 +470,9 @@ const styles = StyleSheet.create({
     padding: spacing[4],
   },
   layerAi: {
-    borderColor: colors.border.brand,
+    backgroundColor: 'transparent',
+    borderColor: colors.border.strong,
+    borderStyle: 'dashed',
   },
   layerBadge: {
     ...typography.body5,
@@ -486,9 +507,62 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.text.secondary,
   },
+  adviceGroup: {
+    gap: spacing[2],
+  },
+  adviceArrow: {
+    ...typography.body6,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  adviceBlock: {
+    backgroundColor: colors.brand.primary,
+    borderRadius: radii.panel,
+    gap: spacing[3],
+    padding: spacing[5],
+  },
+  adviceChip: {
+    ...typography.caption,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.brand.onPrimary,
+    borderRadius: radii.pill,
+    color: colors.text.brand,
+    overflow: 'hidden',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+  },
   adviceAction: {
     ...typography.body2,
-    color: colors.text.primary,
+    color: colors.brand.onPrimary,
+  },
+  adviceDisclosureText: {
+    ...typography.body6,
+    color: colors.brand.onPrimary,
+  },
+  adviceDetail: {
+    gap: spacing[1],
+  },
+  adviceDetailBadge: {
+    ...typography.body5,
+    color: colors.brand.onPrimary,
+  },
+  adviceDetailText: {
+    ...typography.body7,
+    color: colors.brand.onPrimary,
+  },
+  adviceCaption: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  factChip: {
+    ...typography.caption,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.brand.tint,
+    borderRadius: radii.pill,
+    color: colors.text.brand,
+    overflow: 'hidden',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
   },
   disclosure: {
     minHeight: layout.touchTargetMin,

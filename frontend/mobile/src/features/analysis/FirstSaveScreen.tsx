@@ -53,9 +53,11 @@ export function FirstSaveScreen({
 }
 
 const styles = StyleSheet.create({
+  // 저장이 끝났다는 한 번의 신호. 주황을 쓰는 몇 안 되는 자리다(2026-09-27 디자인 리뷰 #6).
   mark: {
     alignItems: 'center',
-    backgroundColor: colors.brand.primary,
+    alignSelf: 'center',
+    backgroundColor: colors.action.primary,
     borderRadius: radii.pill,
     height: spacing[14],
     justifyContent: 'center',
@@ -63,7 +65,7 @@ const styles = StyleSheet.create({
   },
   markText: {
     ...typography.head4,
-    color: colors.text.inverse,
+    color: colors.action.onPrimary,
   },
   title: {
     ...typography.head3,

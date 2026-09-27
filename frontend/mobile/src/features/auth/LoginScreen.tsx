@@ -11,6 +11,7 @@ import { fixtureAccount } from '@/api/fixtures/server';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { Screen } from '@/components/ui/Screen';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { TextField } from '@/components/ui/TextField';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -86,8 +87,13 @@ export function LoginScreen() {
   };
 
   return (
-    <Screen header={<ScreenHeader title="가게 리뷰에서 손님을 읽어요" />} tone="brand">
-      <StatusBar style="light" />
+    <Screen header={<ScreenHeader brand />}>
+      <StatusBar style="dark" />
+
+      <PageTitle
+        title="가게 리뷰에서 손님을 읽어요"
+        description="네이버 공개 리뷰를 모아 어떤 손님이 반복해서 오는지 정리해 드려요."
+      />
 
       {expired ? (
         <Notice

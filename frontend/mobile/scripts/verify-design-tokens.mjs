@@ -84,7 +84,9 @@ const contrastChecks = [
   ['입력 경계 / 카드', colors.border.control, colors.background.surface, accessibility.contrast.nonText],
   ['입력 경계 / 화면 배경', colors.border.control, colors.background.canvas, accessibility.contrast.nonText],
   ['포커스 링 / 화면 배경', colors.focus.ring, colors.background.canvas, accessibility.contrast.nonText],
-  ['포커스 링 / CTA', colors.focus.ring, colors.action.primary, accessibility.contrast.nonText],
+  ['포커스 링 / 카드', colors.focus.ring, colors.background.surface, accessibility.contrast.nonText],
+  ['성공 아이콘 / 연한 성공 배경', colors.status.success, colors.status.successSubtle, accessibility.contrast.nonText],
+  ['강조 아이콘 / 강조 원', colors.action.onPrimary, colors.action.primary, accessibility.contrast.normalText],
   ['삭제 텍스트 / 삭제 버튼', colors.destructive.onPrimary, colors.destructive.primary, accessibility.contrast.normalText],
   ['삭제 링크 / 카드', colors.destructive.text, colors.background.surface, accessibility.contrast.normalText],
   ['삭제 링크 / 화면 배경', colors.destructive.text, colors.background.canvas, accessibility.contrast.normalText],
@@ -96,6 +98,7 @@ const knownLimits = [
   ['주의 원색 아이콘 / 화면 배경', colors.status.warning, colors.background.canvas, accessibility.contrast.nonText],
   ['주의 원색 텍스트 / 카드', colors.status.warning, colors.background.surface, accessibility.contrast.normalText],
   ['포커스 링 / 삭제 버튼 (맞닿을 때)', colors.focus.ring, colors.destructive.primary, accessibility.contrast.nonText],
+  ['포커스 링 / 브랜드 버튼 (맞닿을 때)', colors.focus.ring, colors.brand.primary, accessibility.contrast.nonText],
 ];
 
 for (const [name, foreground, background, minimum] of contrastChecks) {

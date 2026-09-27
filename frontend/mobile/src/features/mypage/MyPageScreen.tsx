@@ -185,10 +185,9 @@ export function MyPageScreen() {
           onHome={() => router.navigate('/home')}
         />
       }
-      header={<ScreenHeader badge="마이페이지" />}
-      tone="brand"
+      header={<ScreenHeader brand badge="마이페이지" />}
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       <FixtureBanner />
 

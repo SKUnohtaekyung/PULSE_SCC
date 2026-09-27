@@ -9,7 +9,10 @@ import { colors, layout, radii, spacing, strokes, typography } from '@/design/to
 // - loading: 버튼 색을 그대로 두고(방금 누른 대상이라는 연속성) 글자를 수행 중인 행동 문구로 바꾼다.
 //   앞에 작은 인디케이터를 두되, 모션 감소 설정에서는 인디케이터 없이 문구만 남긴다.
 
-export type ButtonVariant = 'action' | 'primary' | 'ghost';
+// 주요 행동은 남색(primary)이다. 주황은 넓은 버튼 배경에 쓰지 않는다 — 화면을 잡아먹어서
+// 정작 읽어야 할 내용보다 버튼이 먼저 눈에 들어온다(2026-09-27 디자인 리뷰 #2·#7).
+// 주황은 입력 포커스·저장 완료 표시처럼 작고 결정적인 지점에만 쓴다.
+export type ButtonVariant = 'primary' | 'ghost';
 
 export type ButtonProps = {
   label: string;
@@ -26,7 +29,7 @@ export type ButtonProps = {
 export function Button({
   label,
   onPress,
-  variant = 'action',
+  variant = 'primary',
   loadingLabel,
   loading = false,
   disabled = false,
@@ -61,10 +64,6 @@ export function Button({
 }
 
 const variantStyles: Record<ButtonVariant, { container: object; text: { color: string } }> = {
-  action: {
-    container: { backgroundColor: colors.action.primary },
-    text: { color: colors.action.onPrimary },
-  },
   primary: {
     container: { backgroundColor: colors.brand.primary },
     text: { color: colors.brand.onPrimary },

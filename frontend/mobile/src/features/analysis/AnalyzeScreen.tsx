@@ -17,9 +17,11 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
 import { Notice } from '@/components/ui/Notice';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { ProgressList, type ProgressRow } from '@/components/ui/ProgressList';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { StepIndicator } from '@/components/ui/StepIndicator';
 import { TextField } from '@/components/ui/TextField';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 import { progressLabel, readJobFailure, type JobFailure } from '@/features/analysis/jobOutcome';
@@ -37,6 +39,14 @@ type InputStep = 0 | 1 | 2;
 const categories = ['한식', '중식', '일식', '양식', '카페/디저트', '주점', '기타'] as const;
 
 const pollIntervalMs = 1200;
+
+// 입력은 한 화면에서 차례로 펼친다. 지금 어느 단계인지 위에서 알리고, 제목이 지금 할 일을 말한다.
+const inputSteps = ['가게 이름', '업종', '네이버 가게 주소'];
+const inputTitles = [
+  '가게 이름을 알려 주세요',
+  '어떤 업종인가요?',
+  '네이버 가게 주소를 붙여 넣어 주세요',
+];
 
 const failureActionLabel = (failure: JobFailure) => {
   if (failure.kind === 'retryable' || failure.kind === 'imageGenerationFailed') return '다시 분석하기';
@@ -379,15 +389,9 @@ export function AnalyzeScreen() {
           />
         ) : null
       }
-      header={
-        <ScreenHeader
-          badge={user?.hasSavedAnalysis ? undefined : '첫 분석'}
-          title="우리 가게 리뷰를 분석해요"
-        />
-      }
-      tone="brand"
+      header={<ScreenHeader label="분석하기" />}
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       <ScenarioPanel
         onChange={() => {
@@ -400,6 +404,18 @@ export function AnalyzeScreen() {
           setHasSavedAnalysis(false);
         }}
       />
+
+      {phase === 'input' ? (
+        <>
+          <StepIndicator activeIndex={activeStep} steps={inputSteps} />
+          <PageTitle title={inputTitles[activeStep] ?? inputTitles[0]} />
+        </>
+      ) : (
+        <PageTitle
+          description={[name, category].filter(Boolean).join(' · ')}
+          title={phase === 'failed' ? '분석을 마치지 못했어요' : '리뷰를 읽고 있어요'}
+        />
+      )}
 
       {returnedNotice ? (
         <Notice title="입력한 내용은 그대로 두었어요" message="확인한 뒤 다시 분석할 수 있어요." />

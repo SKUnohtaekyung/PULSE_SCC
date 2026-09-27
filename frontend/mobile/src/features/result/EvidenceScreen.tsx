@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/LoadingBlock';
 import { Notice } from '@/components/ui/Notice';
 import { Screen } from '@/components/ui/Screen';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
 import { FixtureBanner } from '@/features/dev/FixtureBanner';
@@ -111,11 +112,12 @@ export function EvidenceScreen({
 
   return (
     <Screen
-      header={<ScreenHeader title={`${title} 근거 리뷰`} />}
+      header={<ScreenHeader brand label="근거 리뷰" />}
       scroll={phase !== 'ready'}
-      tone="brand"
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
+
+      <PageTitle title={`${title} 근거 리뷰`} />
 
       {phase !== 'ready' ? <FixtureBanner /> : null}
 

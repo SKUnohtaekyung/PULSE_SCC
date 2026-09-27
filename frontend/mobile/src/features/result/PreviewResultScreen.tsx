@@ -154,10 +154,9 @@ export function PreviewResultScreen({ jobId }: { jobId: string }) {
           </View>
         ) : null
       }
-      header={<ScreenHeader badge="새 결과" />}
-      tone="brand"
+      header={<ScreenHeader label="새 분석 결과" badge="아직 저장하지 않음" />}
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       <FixtureBanner />
 
@@ -219,7 +218,7 @@ export function PreviewResultScreen({ jobId }: { jobId: string }) {
 
       <ConfirmDialog
         actions={[
-          { label: '새 결과로 바꾸기', onPress: () => setDialog('replace'), variant: 'action' },
+          { label: '새 결과로 바꾸기', onPress: () => setDialog('replace'), variant: 'primary' },
           { label: '기존 결과 유지', onPress: keepExisting },
           { label: '계속 보기', onPress: () => setDialog(null) },
         ]}

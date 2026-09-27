@@ -9,7 +9,7 @@ import { colors, layout, radii, spacing, typography } from '@/design/tokens';
 export type DialogAction = {
   label: string;
   onPress: () => void;
-  variant?: 'action' | 'primary' | 'ghost' | 'destructive';
+  variant?: 'primary' | 'ghost' | 'destructive';
   loading?: boolean;
   loadingLabel?: string;
 };

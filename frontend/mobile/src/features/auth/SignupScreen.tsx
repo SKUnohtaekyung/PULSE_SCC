@@ -12,6 +12,7 @@ import { CheckRow } from '@/components/ui/CheckRow';
 import { LoadingBlock } from '@/components/ui/LoadingBlock';
 import { Notice } from '@/components/ui/Notice';
 import { Screen } from '@/components/ui/Screen';
+import { PageTitle } from '@/components/ui/PageTitle';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { TextField } from '@/components/ui/TextField';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -154,8 +155,10 @@ export function SignupScreen() {
   };
 
   return (
-    <Screen header={<ScreenHeader title="이메일로 가입해요" />} tone="brand">
-      <StatusBar style="light" />
+    <Screen header={<ScreenHeader label="회원가입" />}>
+      <StatusBar style="dark" />
+
+      <PageTitle title="이메일로 가입해요" />
 
       {consentOutdated ? (
         <Notice

@@ -10,6 +10,8 @@ export const palette = {
   actionOrange80: '#FF5A36CC',
   actionOrange20: '#FF5A3633',
   actionOrange10: '#FF5A361A',
+  // 포커스 링 전용. actionOrange는 화면 배경 위에서 2.89:1이라 비텍스트 기준 3:1을 넘지 못한다.
+  focusOrange: '#E03E16',
   white: '#FFFFFF',
   slate50: '#F8FAFC',
   slate100: '#F1F5F9',
@@ -22,6 +24,8 @@ export const palette = {
   page: '#F5F7FA',
   ink: '#191F28',
   success: '#059669',
+  // 큰 면적에 쓰는 연한 초록. 진한 초록을 넓게 깔면 화면을 잡아먹는다(2026-09-27 디자인 리뷰).
+  successSubtle: '#D1FAE5',
   warning: '#D97706',
   warningStrong: '#B45309',
   error: '#DC2626',
@@ -69,6 +73,7 @@ export const colors = {
   },
   status: {
     success: palette.success,
+    successSubtle: palette.successSubtle,
     warning: palette.warning,
     error: palette.error,
     warningText: palette.warningStrong,
@@ -80,7 +85,8 @@ export const colors = {
     text: palette.errorStrong,
   },
   focus: {
-    ring: palette.royalBlue,
+    // 입력 포커스 같은 작은 포인트에 주황을 쓴다. 넓은 버튼 배경에는 쓰지 않는다(2026-09-27 디자인 리뷰).
+    ring: palette.focusOrange,
   },
 } as const;
 
