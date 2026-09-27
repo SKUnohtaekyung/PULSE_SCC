@@ -111,15 +111,6 @@ export function getFixtureScenario() {
   return scenario;
 }
 
-/** 로그인 상태까지 포함해 전부 비운다. 개발용 초기화에 쓴다. */
-export function resetFixtureServer() {
-  setFixtureScenario(scenario);
-  session = null;
-  savedAnalysis = null;
-  notificationsEnabled = true;
-  registeredAccount = null;
-}
-
 const uuid = (seed: number, suffix: string) =>
   `${suffix}-0000-4000-8000-${String(seed).padStart(12, '0')}`;
 

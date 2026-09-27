@@ -75,6 +75,8 @@ export function AnalyzeScreen() {
 
   // 응답을 받지 못한 같은 제출을 다시 보낼 때만 같은 키를 쓴다(공통 불변식 13).
   const idempotencyKey = useRef<string | null>(null);
+  /** 그 키로 보낸 입력. 지금 입력과 다르면 같은 제출이 아니므로 키를 새로 만든다. */
+  const submittedInput = useRef<string | null>(null);
 
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -167,9 +169,13 @@ export function AnalyzeScreen() {
       setOffline(false);
       setCompletionIssue(null);
 
-      if (!options.reuseKey || !idempotencyKey.current) {
+      const currentInput = [name.trim(), category, url.trim()].join('\u0000');
+      // 입력이 바뀌었으면 응답을 받지 못한 '같은 제출'이 아니다(공통 불변식 13).
+      const sameSubmission = options.reuseKey && submittedInput.current === currentInput;
+      if (!sameSubmission || !idempotencyKey.current) {
         idempotencyKey.current = createIdempotencyKey();
       }
+      submittedInput.current = currentInput;
 
       setPhase('creating');
       try {
@@ -251,8 +257,13 @@ export function AnalyzeScreen() {
   useEffect(() => {
     if (phase !== 'progress' || !jobId) return;
     let cancelled = false;
+    // 앞선 조회가 끝나기 전에 다음 tick이 겹쳐 실행되지 않게 한다.
+    // 응답이 주기(1.2초)보다 느리면 요청이 쌓이고 완료 처리가 두 번 일어날 수 있다.
+    let inFlight = false;
 
     const tick = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const job = await getAnalysisJob(client, jobId);
         if (cancelled) return;
@@ -307,6 +318,8 @@ export function AnalyzeScreen() {
           message: '진행 상태를 확인하지 못했어요. 다시 시도할 수 있어요.',
         });
         setPhase('failed');
+      } finally {
+        inFlight = false;
       }
     };
 
@@ -361,8 +374,8 @@ export function AnalyzeScreen() {
           <BottomNavigation
             active="analysis"
             bottomInset={insets.bottom}
-            onHome={() => router.replace('/home')}
-            onMyPage={() => router.push('/mypage')}
+            onHome={() => router.navigate('/home')}
+            onMyPage={() => router.navigate('/mypage')}
           />
         ) : null
       }

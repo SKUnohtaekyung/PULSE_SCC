@@ -459,7 +459,9 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 
 확인하지 못한 것:
 
-- `AUTH-CONSENT-OUTDATED`·`AUTH-SIGNUP-ERROR`(중복 이메일)·`AUTH-SIGNUP-UNAVAILABLE`: 코드와 fixture 경로는 있으나 화면 캡처는 남기지 않았다.
+- `AUTH-SIGNUP-ERROR`(중복 이메일): 코드와 fixture 경로는 있으나 화면 캡처는 남기지 않았다.
+- `AUTH-CONSENT-OUTDATED`: 화면 코드와 fixture 응답 경로는 있으나 **UI 조작으로는 재현할 수 없다.** 앱이 직전에 조회한 약관 버전을 그대로 제출하므로, 조회와 제출 사이에 서버가 버전을 올린 경우에만 나온다.
+- `AUTH-SIGNUP-UNAVAILABLE`: **구현하지 않았다.** 운영 가입 차단을 앱이 판별하는 방법이 §11 미정이다.
 - `EVIDENCE-EMPTY`·`EVIDENCE-ERROR`·`MYPAGE-PARTIAL-ERROR`·`SETTING-ERROR`·`SAVE-REPLACE-ERROR`·`LOGOUT-ERROR`: 실패를 재현하지 않았다.
 - `SAVE-KEEPING`(기존 결과 유지)과 뒤로가기 3택 대화상자: 코드에 있으나 이번 실행에서는 교체 경로만 확인했다.
 - Google 로그인(`AUTH-GOOGLE-*`)과 계정 탈퇴(`ACCOUNT-DELETE-*`): 구현하지 않았다. 앱 식별자·OAuth 설정과 탈퇴 API가 정해지기 전에는 만들지 않는다(§11).

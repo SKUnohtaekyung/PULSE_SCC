@@ -10,7 +10,9 @@
 Step 7 Vertical Slice로 만든 구조가 **나머지 화면과 기능(Step 9 전체 구현)까지 버티는지** 확인한 기록이다.
 검증 축은 워크플로 8단계가 정한 여섯 가지다: Component · State · API · Env · Error Handling · Responsive.
 
-판정 표기: **유지** = 지금 구조로 간다 · **보완함** = 이번 단계에서 고쳤다 · **결정 필요** = 사람이 정해야 한다 · **9단계** = 전체 구현 때 한다.
+판정 표기: **유지** = 지금 구조로 간다 · **보완함** = 이번 단계에서 고쳤다 · **결정 필요** = 사람이 정해야 한다 · **미이행** = 아직 하지 않았다. 언제 하는지 함께 적는다.
+
+Step 10 독립 검토에서 세 번 갱신했다. 2026-09-24에 8단계 시점의 `9단계` 표기 중 9단계에서 실제로 하지 않은 것을 `미이행`으로 바로잡고 치수 리터럴 개수를 다시 셌다. 2026-09-27에 리터럴을 센 범위(`src/prototypes/**` 제외)를 명시했고, 같은 날 실재하지 않는 DESIGN_SYSTEM §13 참조를 지웠다.
 
 ---
 
@@ -65,7 +67,7 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 |---|---|
 | 세션(인증·저장본 유무)은 `SessionProvider` 한 곳 | 유지 |
 | 화면 상태는 화면 로컬 | 유지. 화면 사이로 옮길 데이터는 **서버가 정본**이라 id만 넘기고 다시 조회한다(첫 저장 화면은 요약값만 route 파라미터로 받는다) |
-| 분석 작업 polling이 가게 입력 화면 안에 있음 | 유지(9단계 재검토) — 두 번째 사용처(저장본이 있는 사용자의 미리보기)가 생기면 hook으로 뽑는다. polling·백오프 정책 자체가 미정이라(§11) 지금 추상화하면 잘못된 모양으로 굳는다 |
+| 분석 작업 polling이 가게 입력 화면 안에 있음 | 유지 — 9단계에서 다시 봤고 그대로 뒀다. 두 번째 사용처(저장본이 있는 사용자의 미리보기)가 생기면 hook으로 뽑는다. polling·백오프 정책 자체가 미정이라(§11) 지금 추상화하면 잘못된 모양으로 굳는다 |
 | 전역 상태 라이브러리 | 도입하지 않는다. 서버 상태는 화면 진입마다 조회하고, 공유 상태는 세션뿐이다 |
 
 ### 2.3 API
@@ -79,7 +81,7 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 | fixture ↔ http 전환 | 유지 — `EXPO_PUBLIC_API_BASE_URL` 유무로 갈린다. 화면 코드는 그대로다 |
 | 요청 timeout | **보완함** — 15초 뒤 요청을 끊고 `NetworkError`로 다룬다. 없으면 진행 화면 조회가 영영 멈춘다 |
 | API.md §4.2와 실제 `SessionResponse` 불일치 | 결정 필요 — SCREEN_STATES §11 머리말에 기록. `role:platform`이 정한다 |
-| 이미지 요청의 401 갱신·재요청(§6.4) | 9단계 — 실제 서버 연결과 함께 |
+| 이미지 요청의 401 갱신·재요청(§6.4) | **미이행** — 9단계에서 하지 않았다. fixture 모드에는 내려받을 이미지가 없어 확인할 수 없다. 실제 서버 연결과 함께 한다 |
 
 ### 2.4 Env
 
@@ -89,8 +91,8 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 | `android.package`·`scheme` | **결정 필요** — 없어서 development build·딥링크·Google 로그인을 할 수 없다. Expo Go 실행만 가능하다 |
 | Google OAuth client id | 결정 필요 — 백엔드의 `GOOGLE_CLIENT_ID`와 함께 정해야 한다(SCREEN_STATES §11) |
 | 시크릿 | 앱에는 시크릿을 두지 않는다. OpenAI 키는 서버만 가진다(PRD FR-004) |
-| dev/prod 구분 | 9단계 — 빌드 프로파일(EAS)과 함께 정한다 |
-| 프로토타입 route(`/flow`·`/preview`·`/prototype-result`·`/foundation`)와 가상 서버가 제품 번들에도 들어감 | 9단계 — 배포 빌드에서 제외하는 방법(route 분리 또는 조건부 번들)을 빌드 프로파일과 함께 정한다 |
+| dev/prod 구분 | **미이행** — 9단계에서 하지 않았다. 빌드 프로파일(EAS)과 함께 정한다 |
+| 프로토타입 route(`/flow`·`/preview`·`/prototype-result`·`/foundation`)와 가상 서버가 제품 번들에도 들어감 | **미이행** — 9단계에서 하지 않았다. 배포 빌드에서 제외하는 방법(route 분리 또는 조건부 번들)을 빌드 프로파일과 함께 정한다 |
 
 ### 2.5 Error Handling
 
@@ -100,7 +102,7 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 | 봉투 없는 401 → 단일 갱신 → 재전송 | 유지(불변식 12). 갱신 실패 판정은 401로 한정했다 |
 | 코드 → 문구 규칙이 화면마다 반복됨 | **보완함** — `api/errorMessage.ts`의 `resolveErrorMessage`로 모았다. 화면은 아는 코드 표만 넘긴다 |
 | 작업 실패 → 화면 상태 매핑 | 유지 — `features/analysis/jobOutcome.ts`. §2.1 표와 1:1 |
-| 로깅·리포팅 | 9단계 — 도구 미정. 지금은 화면 문구로만 알린다 |
+| 로깅·리포팅 | **미이행** — 9단계에서 하지 않았다. 도구 미정이라 지금은 화면 문구로만 알린다 |
 
 ### 2.6 Responsive
 
@@ -114,7 +116,9 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 
 ---
 
-## 3. 9단계 전에 사람이 정해야 할 것
+## 3. 사람이 정해야 할 것
+
+8단계에서 `9단계 전에 정해야 할 것`으로 적었으나 9단계에서 정해지지 않았다. 다섯 항목 모두 아직 열려 있다.
 
 1. `android.package`·`scheme` — development build·딥링크·Google 로그인의 선행 조건
 2. Google OAuth client id(앱·백엔드 쌍)
@@ -128,10 +132,10 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 
 | 항목 | 결과 |
 |---|---|
-| `verify:tokens` · `lint` · `typecheck` · `export:android` | PASS (2026-09-23, 구조 변경 후 재실행) |
+| `verify:tokens` · `lint` · `typecheck` · `export:android` | PASS (2026-09-23, 구조 변경 후 재실행). 9·10단계에서도 다시 실행해 PASS — 기록은 handoff `TASK-020` |
 | Android 회귀 확인 | PASS — 로그인 → 입력 → 진행 → 첫 저장 → 홈까지 다시 실행. `step8-01-home-after-refactor.png` |
 | 가로 화면 | PASS — `step8-02-home-landscape.png`(컷아웃 없는 AVD) |
 | 글자 크기 200% | PASS — 골격 변경 뒤 다시 실행. `step8-03-home-200.png` |
 | 세로 가운데 정렬 화면 | PASS — `step8-04-first-save-after-refactor.png` |
 | 목록 화면(`scroll={false}`) | PASS — 임시 확인 화면에 60행 목록을 띄워 스크롤 확인. `step8-05-list-scroll.png` |
-| 하드코딩 색·간격 | 색은 없음. 값이 든 치수 리터럴은 `LoadingBlock`의 `minHeight: 120` 1건이고(DESIGN_SYSTEM §13 미결 항목과 함께 기록), 나머지는 `0` 리셋 4건이라 토큰 우회가 아니다 |
+| 하드코딩 색·간격 | 센 범위는 `src/components/ui/**`·`src/features/**`·`src/app/**`이다(`src/prototypes/**` 제외 — 제품 화면이 아니다). 색은 없음. 값이 든 치수 리터럴은 `LoadingBlock`의 `minHeight: 120`과 `ProgressList`의 모듈 상수 `markerSize = 20` 2건이다. 두 값은 토큰으로 승격할지 정하지 않았고 **이 표가 유일한 기록이다**(DESIGN_SYSTEM §13에는 없다). 나머지는 `0` 리셋 5건(`borderWidth`·`padding`·`minHeight`·`flexShrink`)이라 토큰 우회가 아니다 |

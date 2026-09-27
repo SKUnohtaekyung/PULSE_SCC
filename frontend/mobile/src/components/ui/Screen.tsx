@@ -85,7 +85,13 @@ export function Screen({
           <View style={[styles.content, centered && styles.contentCentered]}>{body}</View>
         )}
       </SafeAreaView>
-      {footer}
+      {footer ? (
+        // 하단 고정 영역이 컷아웃에 닿지 않게 좌우를 SafeArea로 감싼다.
+        // 아래쪽 inset은 footer가 bottomInset으로 직접 처리한다.
+        // 래퍼에 배경색을 주지 않는다. 주면 inset이 0인 세로 모드에서 래퍼 rect가 footer와 같아져
+        // 둥근 모서리를 가진 footer(저장 선택 바)의 radius 뒤를 채워 버린다.
+        <SafeAreaView edges={['left', 'right']}>{footer}</SafeAreaView>
+      ) : null}
     </View>
   );
 }

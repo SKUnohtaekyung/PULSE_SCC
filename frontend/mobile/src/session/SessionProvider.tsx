@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { ApiClient, type Tokens } from '@/api/client';
 import { restoreSession } from '@/api/endpoints';
@@ -31,6 +39,15 @@ const SessionContext = createContext<SessionValue | null>(null);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>({ phase: 'booting', user: null, expired: false });
   const [restoreAttempt, setRestoreAttempt] = useState(0);
+
+  // 화면 이펙트가 의존성으로 쓰므로 identity가 바뀌면 안 된다.
+  // 값이 같으면 상태도 그대로 둬 불필요한 재조회를 막는다.
+  const setHasSavedAnalysis = useCallback((hasSavedAnalysis: boolean) => {
+    setState((current) => {
+      if (!current.user || current.user.hasSavedAnalysis === hasSavedAnalysis) return current;
+      return { ...current, user: { ...current.user, hasSavedAnalysis } };
+    });
+  }, []);
 
   const client = useMemo(
     () =>
@@ -105,19 +122,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await clearTokens();
         setState({ phase: 'signedOut', user: null, expired: false });
       },
-      setHasSavedAnalysis: (hasSavedAnalysis: boolean) => {
-        setState((current) =>
-          current.user
-            ? { ...current, user: { ...current.user, hasSavedAnalysis } }
-            : current,
-        );
-      },
+      setHasSavedAnalysis,
       retryRestore: () => {
         setState({ phase: 'booting', user: null, expired: false });
         setRestoreAttempt((attempt) => attempt + 1);
       },
     }),
-    [client, state],
+    [client, setHasSavedAnalysis, state],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

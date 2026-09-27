@@ -4,7 +4,8 @@ import type { Tokens } from '@/api/client';
 
 // 토큰은 안전 저장소에 둔다(SCREEN_STATES §3.1 APP-BOOTING).
 // SecureStore를 쓸 수 없는 환경에서는 저장하지 않고 이번 실행에서만 유지한다.
-// 저장하지 못했다는 사실은 숨기지 않고 secureStorageAvailable로 알린다.
+// 그 경우 앱을 다시 켜면 로그인 화면으로 돌아간다. 사용자에게 그 이유를 알리는 방법은
+// 지원 기기 범위가 정해진 뒤에 정한다. 미결 항목은 handoff TASK-020 Unresolved 9에 등재했다.
 
 const key = 'scc.session.tokens';
 
@@ -19,10 +20,6 @@ async function isAvailable() {
     available = false;
   }
   return available;
-}
-
-export async function secureStorageAvailable() {
-  return isAvailable();
 }
 
 export async function readTokens(): Promise<Tokens | null> {

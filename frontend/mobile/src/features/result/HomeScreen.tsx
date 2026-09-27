@@ -88,8 +88,8 @@ export function HomeScreen() {
           <BottomNavigation
             active="home"
             bottomInset={insets.bottom}
-            onAnalyze={() => router.push('/analyze')}
-            onMyPage={() => router.push('/mypage')}
+            onAnalyze={() => router.navigate('/analyze')}
+            onMyPage={() => router.navigate('/mypage')}
           />
         )
       }

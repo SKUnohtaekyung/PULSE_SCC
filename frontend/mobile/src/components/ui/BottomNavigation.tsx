@@ -66,8 +66,8 @@ export function BottomNavigation({
         accessibilityLabel={homeActive ? '홈, 현재 화면' : '홈'}
         accessibilityRole="button"
         accessibilityState={{ selected: homeActive }}
-        onPress={onHome ?? (() => unavailable('홈'))}
-        style={({ pressed }) => [styles.navItem, pressed && styles.pressed]}
+        onPress={homeActive ? () => undefined : (onHome ?? (() => unavailable('홈')))}
+        style={({ pressed }) => [styles.navItem, pressed && !homeActive && styles.pressed]}
       >
         <HomeIcon color={homeActive ? colors.brand.primary : colors.text.secondary} />
         <Text style={[styles.navLabel, homeActive && styles.navLabelSelected]}>홈</Text>
@@ -94,8 +94,8 @@ export function BottomNavigation({
         accessibilityLabel={mypageActive ? '마이페이지, 현재 화면' : '마이페이지'}
         accessibilityRole="button"
         accessibilityState={{ selected: mypageActive }}
-        onPress={onMyPage ?? (() => unavailable('마이페이지'))}
-        style={({ pressed }) => [styles.navItem, pressed && styles.pressed]}
+        onPress={mypageActive ? () => undefined : (onMyPage ?? (() => unavailable('마이페이지')))}
+        style={({ pressed }) => [styles.navItem, pressed && !mypageActive && styles.pressed]}
       >
         <ProfileIcon color={mypageActive ? colors.brand.primary : colors.text.secondary} />
         <Text style={[styles.navLabel, mypageActive && styles.navLabelSelected]}>마이페이지</Text>

@@ -2,7 +2,7 @@
 
 ## Status
 
-Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
+Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -43,10 +43,13 @@ Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·�
 - (Step 7) SCREEN_STATES §10의 첫 Vertical Slice를 구현했다. 계약 타입·HTTP 클라이언트(봉투 없는 401 → 단일 갱신 → 재전송)·엔드포인트·가상 서버, 안전 저장소 기반 세션, 로그인·가게 입력·진행·첫 저장·홈 결과 화면, 공용 UI 컴포넌트 9종을 만들었다. Android에서 정상 흐름과 실패 경계 7가지를 실행해 캡처 23장으로 남겼다.
 - (Step 9) Step 7 Slice 밖에 있던 화면을 구현했다. 이메일 가입(약관 조회·동의), 저장본이 있는 사용자의 새 결과 미리보기와 저장 선택(교체 확인·유지·뒤로가기 3택), 마이페이지(알림·알림 설정·저장 이미지·서비스 정보·로그아웃), 근거 리뷰 전체 보기(cursor). API 계층에 6개 호출과 가상 서버 응답을 더했다.
 - (Step 8) Component·State·API·Env·오류 처리·반응형 여섯 축으로 Step 7 구조가 전체 구현까지 버티는지 확인했다. 화면 골격 공통화(`components/ui/Screen`), 요청 timeout, 오류 문구 공통 규칙(`api/errorMessage`)을 보완하고, 결정이 필요한 5건을 `docs/architecture/FRONTEND_STRUCTURE.md`에 남겼다.
+- (Step 10) 새로 붙은 독립 Reviewer의 1차 지적 16건(P2 6·P3 10)을 반영했다. 활성 탭의 틀린 안내, 입력이 바뀌어도 같은 멱등 키를 쓰던 문제, 작업 조회 중복 실행, 약관 변경 안내 소실, `setHasSavedAnalysis` identity, 순위 정렬 미보장, `ADVICE-EMPTY` 영역 소실, footer SafeArea, 탭 이동 스택, 대화상자 접근성 초점, 쓰지 않는 export 2개를 고치고, SCREEN_STATES §13 8차 기록과 FRONTEND_STRUCTURE의 `9단계` 표기·리터럴 개수를 사실에 맞게 정정했다.
 - PRD·기능명세·User Flow·Result IA를 다시 대조해 회원가입, 새 결과 미리보기, 저장 오류, 결과 한계, 마이페이지 상태 누락을 보완했다.
 
 ## Changed
 
+- (Step 10) `frontend/mobile/src/components/ui/BottomNavigation.tsx`(활성 탭 가드)·`ConfirmDialog.tsx`(배경 초점 제외, 본문은 터치 삼킴)·`Screen.tsx`(footer 좌우 SafeArea — 배경색은 주지 않는다. 주면 세로 모드에서 둥근 모서리를 가진 footer의 radius 뒤를 채운다) / `features/analysis/AnalyzeScreen.tsx`(멱등 키 입력 비교, polling `inFlight`, 탭 `navigate`) / `features/auth/SignupScreen.tsx`(약관 변경 안내 유지, 비밀번호 삭제 고지) / `features/result/HomeScreen.tsx`·`features/mypage/MyPageScreen.tsx`(탭 `navigate`) / `features/result/ResultView.tsx`(rank 정렬, `ADVICE-EMPTY`) / `session/SessionProvider.tsx`(`useCallback`)·`session/storage.ts`(주석·미사용 export 제거) / `api/fixtures/server.ts`(미사용 export 제거)
+- (Step 10) `docs/product/requirements/SCREEN_STATES.md` §13 8차 기록 정정 / `docs/architecture/FRONTEND_STRUCTURE.md` `미이행` 표기·리터럴 개수·§3 제목 / `docs/design/evidence/TASK-020/README.md` Step 10 섹션 / evidence `step10-01`~`step10-07` 7장
 - `docs/product/requirements/SCREEN_STATES.md` — 화면 상태 모델 신설
 - `docs/product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` — 상태 모델 링크 추가
 - `docs/product/requirements/USER_FLOW.md` — 상태 모델 링크 추가
@@ -139,6 +142,14 @@ Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·�
 - (Step 8) `verify:tokens`·`lint`·`typecheck`·`export:android`: PASS (2026-09-23, 구조 변경 후 재실행)
 - (Step 8) Android 회귀·반응형: PASS — 화면 5개를 공통 골격으로 옮긴 뒤 로그인 → 입력 → 진행 → 첫 저장 → 홈 재실행, 가로 화면과 글자 크기 200%를 다시 확인(`step8-01`~`step8-04`). 컷아웃 기기·태블릿은 미실행
 - (Step 8) 독립 Reviewer: 1차 FAIL(P2 1건 — 구조 문서의 의존 서술이 코드와 불일치, P3 11건) → 문서 정정과 `Screen`의 목록·컷아웃·가운데 정렬 보완 후 재검토
+- (Step 10) `verify:tokens`·`lint`·`typecheck`·`export:android`: PASS (1차 반영 2026-09-24, 2차 반영 2026-09-27, 3차 반영 2026-09-27 — 매번 재실행)
+- (Step 10) Android 회귀: PASS — 로그인 → 입력 → 진행 → 첫 저장 → 홈 → 마이페이지를 다시 실행했다. 활성 탭을 눌러도 틀린 안내가 뜨지 않고(`step10-01`·`step10-02`), `/mypage`·`/analyze`에서 하드웨어 뒤로가기로 홈에 돌아오며(`step10-03`·`step10-04`), 확인 대화상자는 본문을 눌러도 닫히지 않고 배경을 눌러야 닫힌다(`step10-05`). 멱등 키·polling 중복·순위 정렬은 코드 확인으로만 판정했고 그 사실을 evidence README에 적었다
+- (Step 10) 독립 Reviewer: 1차 FAIL(P2 6건 — 활성 탭의 틀린 안내, 입력 변경 후 멱등 키 재사용, 작업 조회 중복 실행, 약관 변경 안내 소실, SCREEN_STATES §13 8차 기록 오류, `setHasSavedAnalysis` identity, P3 10건) → 전부 반영
+- (Step 10) 2차 독립 Reviewer: FAIL(P2 2건 — 1차 수정이 만든 회귀. 대화상자 본문이 터치를 삼키지 않아 눌러도 닫힘, 탭 이동 `replace`가 뒤로가기 pop 대상을 없앰. P3 7건) → 본문 래퍼를 `Pressable`로 되돌리고 탭 이동을 `navigate`로 바꾼 뒤 Android에서 둘 다 확인. P3 중 빈 슬롯 클릭 지적은 `PodiumSlot.status`가 `'FILLED' | 'EMPTY'` 두 값뿐이라 성립하지 않음을 코드로 확인하고 evidence README에 기록
+- (Step 10) 3차 독립 Reviewer: FAIL(P2 1건 — 2차에서 footer 래퍼에 준 배경색이 좌우 inset 0인 세로 모드에서 저장 선택 바의 둥근 모서리를 지움. P3 5건 — 코드에 없는 `accessibilityViewIsModal`을 문서가 "줬다"고 적음, Step 10 날짜가 1·2차를 구분하지 않음, Status의 결함 총계, `accessible={false}`와 함께 둔 `accessibilityRole="alert"`, footer 변경의 Visual QA 범위) → 래퍼 배경을 되돌리고 무효 role을 지우고 문서를 정정
+- (Step 10) 3차 수정 후 재검증: `verify:tokens`·`lint`·`typecheck`·`export:android` PASS. Android에서 저장 선택 바의 둥근 모서리(`step10-06`)와 교체 확인 대화상자 본문 탭(`step10-07`)을 추가로 확인
+- (Step 10) 4차 독립 Reviewer: **코드 P1 0·P2 0**. FAIL(P3 4건 — 문서가 코드와 어긋남: 이미 지운 footer 배경색을 있다고 적음, 캡처 매수 5장↔7장, 실재하지 않는 DESIGN_SYSTEM §13 기록 참조, 미확인 항목 중복) → 문서만 정정
+- (Step 10) **5차 독립 Reviewer: PASS**(P1 0·P2 0·P3 4 — 검토 이력 기록 누락). P3는 이 기록으로 반영
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved
@@ -151,6 +162,10 @@ Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·�
 6. 최소 Android OS·지원 기기·접근성 목표
 7. ~~Expo SDK·React Native 버전과 workflow~~ — 2026-09-18 [ADR-011](../../decisions/ADR-011-frontend-bootstrap.md)로 해소
 8. 백엔드 계약 반영(3차)과 구현 가능성 재검토(4·5차)는 [TASK-019](TASK-019-step0-rebaseline.md)에서 수행했고 Step 2 게이트 독립 Reviewer PASS를 받았다. 남은 백엔드 공백은 SCREEN_STATES §11에 있다
+9. SecureStore를 쓸 수 없는 기기에서 앱을 다시 켜면 로그인 화면으로 돌아가는데, 그 이유를 사용자에게 알리는 방법이 정해지지 않았다. `frontend/mobile/src/session/storage.ts` 주석에만 있었고 정본 어디에도 없어 여기에 등재한다. 지원 기기 범위(DESIGN_SYSTEM §13)가 정해진 뒤에 정한다.
+10. 확인 대화상자가 열렸다는 사실을 TalkBack에 알리는 수단이 없다(`accessibilityLiveRegion`·`announceForAccessibility` 모두 없음). Android 네이티브 `Modal`의 윈도 전환 안내에 기대고 있다. DESIGN_SYSTEM §8이 지원 기기·TalkBack 조합 미확정을 이유로 네이티브 접근성 완료 판정을 보류했으므로 그 결정과 함께 정한다.
+11. `HomeScreen`의 `첫 분석 시작하기`는 `router.replace('/analyze')`다. 저장본이 없는 홈은 돌아갈 화면이 없어 의도한 단방향 전환이지만, 스택 깊이 가정이 걸린 지점이라 기록해 둔다(Step 10 5차 리뷰).
+12. **브랜치와 TASK가 어긋나 있다.** 이 문서의 `Branch`는 `docs/TASK-020-frontend-state-model`이지만 Step 3~10 작업은 전부 `docs/TASK-019-step0-rebaseline` 브랜치에서 했다. PR을 TASK-019와 TASK-020으로 나눌지, 한 PR로 낼지 사용자가 정한다(AGENTS 6.2 — PR은 TASK 1개에 대응).
 
 ## Do Not Assume
 
@@ -162,8 +177,8 @@ Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·�
 
 ## Next Action
 
-사용자 확인 후 Step 10(독립 검토). Step 9에서 남은 것: 실제 백엔드 연결(§11 공백 해소 후), Google 로그인과 계정 탈퇴(결정 대기), 실패 상태 재현, 오프라인·키보드·TalkBack·실기기 확인. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
+사용자 확인 후 Step 11(자동 검증). Step 9~10에서 남은 것: 실제 백엔드 연결(§11 공백 해소 후), Google 로그인과 계정 탈퇴(결정 대기), 실패 상태 재현, 오프라인·키보드·TalkBack·실기기 확인. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 
-`a8997fe` — Step 9 전체 구현과 독립 Reviewer PASS(2차)를 반영한 커밋.
+`48098d6` — Step 9 게이트 통과 기록 커밋. Step 10 수정은 이 커밋 이후 작업 트리에 있고, 커밋 뒤 이 줄을 갱신한다.

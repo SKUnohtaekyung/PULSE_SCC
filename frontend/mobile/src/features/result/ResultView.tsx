@@ -43,9 +43,14 @@ export function ResultView({
   client: ApiClient;
   onOpenEvidence?: OpenEvidence;
 }) {
-  const filled = useMemo(
-    () => result.podium.filter((slot) => slot.status === 'FILLED' && slot.persona),
+  // 응답이 rank 순이라는 보장이 계약에 없다. 최초 선택은 가장 낮은 rank다(SCREEN_STATES §6.1).
+  const podium = useMemo(
+    () => [...result.podium].sort((left, right) => left.rank - right.rank),
     [result.podium],
+  );
+  const filled = useMemo(
+    () => podium.filter((slot) => slot.status === 'FILLED' && slot.persona),
+    [podium],
   );
   const [selectedRank, setSelectedRank] = useState<number | null>(filled[0]?.rank ?? null);
   const selected = filled.find((slot) => slot.rank === selectedRank) ?? filled[0] ?? null;
@@ -62,7 +67,7 @@ export function ResultView({
           분석에 사용한 리뷰 {result.metadata.validReviewCount}건 안에서 관찰된 순서예요.
         </Text>
         <View style={styles.podium}>
-          {result.podium.map((slot) => (
+          {podium.map((slot) => (
             <PodiumCard
               key={slot.rank}
               onSelect={() => setSelectedRank(slot.rank)}
@@ -240,12 +245,19 @@ function PersonaDetail({
         );
       })}
 
-      {persona.advice.length > 0 ? (
-        <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>
-            검토해 볼 행동
-          </Text>
-          {persona.advice.map((advice) => (
+      <View style={styles.section}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          검토해 볼 행동
+        </Text>
+        {persona.advice.length === 0 ? (
+          // ADVICE-EMPTY — 근거 없는 제안을 지어내지 않았다는 사실을 적는다(SCREEN_STATES §6.5).
+          <Notice
+            title="검토해 볼 행동을 만들지 못했어요"
+            message="근거가 충분한 제안을 찾지 못해서 비워 뒀어요. 억지로 만든 제안은 넣지 않아요."
+            tone="warning"
+          />
+        ) : (
+          persona.advice.map((advice) => (
             <AdviceCard
               key={advice.id}
               aiInterpretation={advice.details.aiInterpretation}
@@ -253,9 +265,9 @@ function PersonaDetail({
               reviewFact={advice.reviewFact}
               suggestedAction={advice.suggestedAction}
             />
-          ))}
-        </View>
-      ) : null}
+          ))
+        )}
+      </View>
     </View>
   );
 }

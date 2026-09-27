@@ -181,8 +181,8 @@ export function MyPageScreen() {
         <BottomNavigation
           active="mypage"
           bottomInset={insets.bottom}
-          onAnalyze={() => router.push('/analyze')}
-          onHome={() => router.replace('/home')}
+          onAnalyze={() => router.navigate('/analyze')}
+          onHome={() => router.navigate('/home')}
         />
       }
       header={<ScreenHeader badge="마이페이지" />}

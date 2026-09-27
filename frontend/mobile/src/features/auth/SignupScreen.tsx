@@ -75,9 +75,13 @@ export function SignupScreen() {
     };
   }, [client, legalReloadToken]);
 
-  const reloadLegal = () => {
+  /**
+   * 약관을 다시 조회한다.
+   * 약관이 바뀌어 다시 받는 경우(AUTH-CONSENT-OUTDATED)에는 그 안내를 지우지 않는다.
+   */
+  const reloadLegal = (options: { keepOutdatedNotice?: boolean } = {}) => {
     setPhase('legalLoading');
-    setConsentOutdated(false);
+    if (!options.keepOutdatedNotice) setConsentOutdated(false);
     setAgreedTerms(false);
     setAgreedPrivacy(false);
     setLegalReloadToken((token) => token + 1);
@@ -126,7 +130,7 @@ export function SignupScreen() {
           // 약관이 바뀌었다. 이메일·전화번호는 남기고 동의만 다시 받는다(AUTH-CONSENT-OUTDATED).
           setConsentOutdated(true);
           setPassword('');
-          reloadLegal();
+          reloadLegal({ keepOutdatedNotice: true });
           return;
         }
         if (error.fieldErrors.length > 0) {
@@ -157,7 +161,7 @@ export function SignupScreen() {
         <Notice
           alert
           title="약관이 바뀌었어요"
-          message="새 약관을 다시 받아왔어요. 내용을 확인하고 다시 동의해 주세요."
+          message="새 약관을 다시 받아왔어요. 내용을 확인하고 다시 동의해 주세요. 비밀번호는 안전을 위해 지웠으니 다시 입력해 주세요."
           tone="warning"
         />
       ) : null}
@@ -174,7 +178,7 @@ export function SignupScreen() {
             message="약관을 확인하기 전에는 가입을 진행할 수 없어요."
             tone="error"
           />
-          <Button label="다시 불러오기" onPress={reloadLegal} variant="ghost" />
+          <Button label="다시 불러오기" onPress={() => reloadLegal()} variant="ghost" />
           <Button label="로그인으로 돌아가기" onPress={() => router.back()} variant="ghost" />
         </View>
       ) : null}

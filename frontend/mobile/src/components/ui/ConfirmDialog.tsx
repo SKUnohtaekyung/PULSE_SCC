@@ -36,8 +36,11 @@ export function ConfirmDialog({
       transparent
       visible={visible}
     >
-      <Pressable accessibilityLabel="대화상자 닫기" onPress={onDismiss} style={styles.backdrop}>
-        <Pressable accessibilityRole="alert" onPress={() => undefined} style={styles.dialog}>
+      {/* 배경과 본문 래퍼는 접근성 초점을 갖지 않는다. 가지면 안쪽 제목·버튼이 개별 초점을 받지 못한다.
+          초점을 받지 않는 노드에는 role을 두지 않는다. 읽히지 않는다. */}
+      <Pressable accessible={false} onPress={onDismiss} style={styles.backdrop}>
+        {/* 본문은 터치를 삼킨다. 핸들러 없는 View로 두면 배경의 onPress가 발화해 눌러도 닫힌다. */}
+        <Pressable accessible={false} onPress={() => undefined} style={styles.dialog}>
           <Text accessibilityRole="header" style={styles.title}>
             {title}
           </Text>
