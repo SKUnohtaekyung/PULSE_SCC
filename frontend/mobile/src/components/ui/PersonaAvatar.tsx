@@ -49,7 +49,7 @@ export function PersonaAvatar({
       {showImage ? (
         <Image
           onError={() => setFailed(true)}
-          source={source.kind === 'remote' ? source.source : undefined}
+          source={source.source}
           style={{ width: diameter, height: diameter, borderRadius: diameter / 2 }}
         />
       ) : (

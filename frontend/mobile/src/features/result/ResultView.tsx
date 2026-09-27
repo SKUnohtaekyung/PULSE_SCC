@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import type { ApiClient } from '@/api/client';
 import { personaImageSource } from '@/api/personaImages';
@@ -118,6 +118,9 @@ export function ResultView({
 
 // 무엇을 얼마나 분석했는지. 결과를 다 읽은 뒤 신뢰도를 판단하는 자리라 맨 아래에 둔다(2026-09-27 리뷰 #3).
 function AnalysisInfoBlock({ result }: { result: AnalysisResult }) {
+  const { fontScale } = useWindowDimensions();
+  // 글자를 키우면 3열 안에서 날짜가 '2026.0 / 9.22'처럼 쪼개진다. 그때는 세로로 쌓는다.
+  const stacked = fontScale >= 1.5;
   const platform = result.metadata.platform === 'NAVER' ? '네이버' : result.metadata.platform;
   return (
     <View style={styles.section}>
@@ -126,17 +129,17 @@ function AnalysisInfoBlock({ result }: { result: AnalysisResult }) {
       </Text>
       <View style={styles.metaCard}>
         <Text style={styles.metaSource}>{platform} 공개 리뷰 기준</Text>
-        <View style={styles.metaRow}>
+        <View style={stacked ? styles.metaColumn : styles.metaRow}>
           <View style={styles.metaCell}>
             <Text style={styles.metaLabel}>분석한 리뷰</Text>
             <Text style={styles.metaValue}>{result.metadata.validReviewCount}건</Text>
           </View>
-          <View style={styles.metaDivider} />
+          <View style={stacked ? styles.metaDividerStacked : styles.metaDivider} />
           <View style={styles.metaCell}>
             <Text style={styles.metaLabel}>수집</Text>
             <Text style={styles.metaValue}>{formatDate(result.metadata.collectedAt)}</Text>
           </View>
-          <View style={styles.metaDivider} />
+          <View style={stacked ? styles.metaDividerStacked : styles.metaDivider} />
           <View style={styles.metaCell}>
             <Text style={styles.metaLabel}>분석 완료</Text>
             <Text style={styles.metaValue}>{formatDate(result.metadata.analyzedAt)}</Text>
@@ -371,10 +374,6 @@ const styles = StyleSheet.create({
     ...typography.head5,
     color: colors.text.strong,
   },
-  sectionHint: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
   metaCard: {
     backgroundColor: colors.background.surface,
     borderColor: colors.border.default,
@@ -422,8 +421,15 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing[1],
   },
+  metaColumn: {
+    gap: spacing[3],
+  },
   metaDivider: {
     width: strokes.hairline,
+    backgroundColor: colors.border.default,
+  },
+  metaDividerStacked: {
+    height: strokes.hairline,
     backgroundColor: colors.border.default,
   },
   metaLabel: {

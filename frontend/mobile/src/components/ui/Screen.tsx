@@ -7,10 +7,9 @@ import { colors, layout, spacing } from '@/design/tokens';
 // 화면 하나의 공통 골격이다. 화면마다 복사하던 SafeArea·ScrollView·읽기 폭·좌우 여백을 한곳에 모았다.
 // 반응형 규칙(DESIGN_SYSTEM §7)을 여기서만 바꾸면 모든 화면에 적용된다.
 //
-// - header: 화면 폭 전체를 쓰는 영역(네이비 헤더). 좌우 여백은 헤더가 직접 가진다.
+// - header: 화면 폭 전체를 쓰는 영역. 좌우 여백은 헤더가 직접 가진다.
 // - children: 읽기 폭(readingMaxWidth) 안에서 가운데 정렬되는 본문.
 // - footer: 스크롤에서 빠지는 하단 고정 영역(하단 내비게이션 등).
-// - tone: 상단 SafeArea 색. 네이비 헤더가 있는 화면은 'brand'를 쓴다.
 // - scroll: false면 스크롤을 만들지 않는다. 목록(FlatList)을 담는 화면은 반드시 false로 둔다.
 //   FlatList를 ScrollView 안에 넣으면 가상화가 꺼지고 경고가 난다.
 
@@ -26,7 +25,6 @@ export function Screen({
   children,
   header,
   footer,
-  tone = 'canvas',
   centered = false,
   scroll = true,
   verticalEdges = ['top'],
@@ -34,7 +32,6 @@ export function Screen({
   children: ReactNode;
   header?: ReactNode;
   footer?: ReactNode;
-  tone?: 'canvas' | 'brand';
   /** 내용이 적은 화면을 세로 가운데 정렬한다(첫 저장 완료 화면 등). */
   centered?: boolean;
   /** 목록 화면처럼 자체 스크롤을 가진 내용이면 false로 둔다. */
@@ -67,7 +64,7 @@ export function Screen({
       {/* 가로 모드의 디스플레이 컷아웃 아래로 내용이 들어가지 않게 좌우도 SafeArea로 둔다. */}
       <SafeAreaView
         edges={[...verticalEdges, 'left', 'right']}
-        style={[styles.safeArea, tone === 'brand' && styles.safeAreaBrand]}
+        style={styles.safeArea}
       >
         {scroll ? (
           <ScrollView
@@ -103,9 +100,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-  },
-  safeAreaBrand: {
-    backgroundColor: colors.brand.primary,
   },
   content: {
     flexGrow: 1,

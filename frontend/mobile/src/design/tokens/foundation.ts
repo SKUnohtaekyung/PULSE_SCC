@@ -23,6 +23,12 @@ export const palette = {
   slate900: '#0F172A',
   page: '#F5F7FA',
   ink: '#191F28',
+  // 손님 유형 자리표시 그림에만 쓰는 색. 정보를 전하지 않는 장식이라 본문·아이콘 색과 섞지 않는다.
+  illustrationSkin: '#F7D6B8',
+  illustrationSkinShade: '#F2C9A8',
+  illustrationBlue: '#DCE7F7',
+  illustrationPeach: '#FBE3DC',
+  illustrationMint: '#E2ECE4',
   success: '#059669',
   // 큰 면적에 쓰는 연한 초록. 진한 초록을 넓게 깔면 화면을 잡아먹는다(2026-09-27 디자인 리뷰).
   successSubtle: '#D1FAE5',
@@ -83,6 +89,12 @@ export const colors = {
     primary: palette.errorStrong,
     onPrimary: palette.white,
     text: palette.errorStrong,
+  },
+  // 손님 유형 자리표시 그림 전용. 유형을 색으로 구분하지 않는다 — 이름과 리뷰 수가 그 일을 한다.
+  illustration: {
+    skin: palette.illustrationSkin,
+    skinShade: palette.illustrationSkinShade,
+    backgrounds: [palette.illustrationBlue, palette.illustrationPeach, palette.illustrationMint],
   },
   focus: {
     // 입력 포커스 같은 작은 포인트에 주황을 쓴다. 넓은 버튼 배경에는 쓰지 않는다(2026-09-27 디자인 리뷰).

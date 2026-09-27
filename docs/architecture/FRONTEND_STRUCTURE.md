@@ -23,6 +23,7 @@ src/
 ├─ app/           Expo Router route. 화면 조립과 진입 분기만 담당한다
 ├─ features/      화면 단위 구현 (auth · analysis · result · dev)
 ├─ components/ui/ 공용 UI. 화면에 종속된 문구·API 호출을 넣지 않는다
+├─ components/icons/ SVG 아이콘과 장식 그림. 토큰 외의 색을 쓰지 않는다
 ├─ api/           계약 타입 · HTTP/가상 서버 전송 · 인증 클라이언트 · 엔드포인트
 ├─ session/       안전 저장소와 세션 상태
 ├─ design/        토큰과 글꼴
@@ -35,7 +36,8 @@ src/
 app        → features · session · components/ui · design · prototypes
 features   → api · session · components/ui · design
 session    → api
-components/ui → design
+components/ui → components/icons · design
+components/icons → design
 prototypes → components/ui · design
 api        → (앱 안 다른 계층에 의존하지 않는다)
 ```
@@ -53,7 +55,8 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 
 | 확인한 것 | 결과 |
 |---|---|
-| 공용 컴포넌트 14종(Button·TextField·Field·Chip·CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock·Notice·LoadingBlock·ProgressList·ScreenHeader·BottomNavigation·Screen) | 유지 — 9단계에서 CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock을 더했다. 페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다 |
+| 공용 컴포넌트 18종(Button·TextField·Field·Chip·CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock·PersonaAvatar·PodiumTop3·PageTitle·StepIndicator·Notice·LoadingBlock·ProgressList·ScreenHeader·BottomNavigation·Screen) | 유지 — 9단계에서 CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock을, 2026-09-27 발표 시안 반영에서 PersonaAvatar·PodiumTop3·PageTitle·StepIndicator를 더했다. 페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다 |
+| 아이콘·장식 그림 | 유지 — `components/icons/`에 `NavIcons`(하단 내비게이션 3종)와 `GuestCharacter`(손님 유형 자리표시)를 둔다. `react-native-svg`를 쓰기로 한 근거는 DESIGN_SYSTEM §3.6 |
 | 화면 골격(SafeArea·스크롤·읽기 폭·좌우 여백)이 화면마다 복제됨 | **보완함** — `components/ui/Screen.tsx`로 모으고 5개 화면을 옮겼다. 9단계에서 화면이 늘어도 골격은 한 곳이다 |
 | 같은 입력을 두 번 구현(`TextField` ↔ 가게 입력 화면) | 보완함(Step 7 리뷰에서 해소) — `Field`를 분리해 글자 입력과 선택 입력이 같은 껍데기를 쓴다 |
 | DESIGN_SYSTEM §5.3 목록 중 미구현 | AuthMethodSelector(Google 결정 대기)·StoreConfirmation(API 없음, SCREEN_STATES §4.3) |
@@ -138,4 +141,4 @@ api        → (앱 안 다른 계층에 의존하지 않는다)
 | 글자 크기 200% | PASS — 골격 변경 뒤 다시 실행. `step8-03-home-200.png` |
 | 세로 가운데 정렬 화면 | PASS — `step8-04-first-save-after-refactor.png` |
 | 목록 화면(`scroll={false}`) | PASS — 임시 확인 화면에 60행 목록을 띄워 스크롤 확인. `step8-05-list-scroll.png` |
-| 하드코딩 색·간격 | 센 범위는 `src/components/ui/**`·`src/features/**`·`src/app/**`이다(`src/prototypes/**` 제외 — 제품 화면이 아니다). 색은 없음. 값이 든 치수 리터럴은 `LoadingBlock`의 `minHeight: 120`과 `ProgressList`의 모듈 상수 `markerSize = 20` 2건이다. 두 값은 토큰으로 승격할지 정하지 않았고 **이 표가 유일한 기록이다**(DESIGN_SYSTEM §13에는 없다). 나머지는 `0` 리셋 5건(`borderWidth`·`padding`·`minHeight`·`flexShrink`)이라 토큰 우회가 아니다 |
+| 하드코딩 색·간격 | 센 범위는 `src/components/ui/**`·`src/components/icons/**`·`src/features/**`·`src/app/**`이다(`src/prototypes/**` 제외 — 제품 화면이 아니다). 색은 없음(2026-09-27에 `GuestCharacter`의 HEX 5개를 `colors.illustration` 토큰으로 올렸다). 값이 든 치수 리터럴은 `LoadingBlock`의 `minHeight: 120`과 `ProgressList`의 모듈 상수 `markerSize = 20` 2건이다. 두 값은 토큰으로 승격할지 정하지 않았고 **이 표가 유일한 기록이다**(DESIGN_SYSTEM §13에는 없다). 나머지는 `0` 리셋 5건(`borderWidth`·`padding`·`minHeight`·`flexShrink`)이라 토큰 우회가 아니다 |

@@ -6,10 +6,10 @@ import { colors } from '@/design/tokens';
 // 그 전까지 이 그림이 자리를 지킨다(2026-09-27 디자인 리뷰 #4 — 급조한 도형 대신 제대로 그린 캐릭터).
 //
 // 특정 인물로 읽히지 않게 이목구비를 최소한으로 둔다. 유형마다 다른 것은 배경색뿐이고,
-// 누가 누구인지는 이름과 리뷰 수가 말한다 — 색만으로 정보를 전하지 않는다(DESIGN_SYSTEM §3.4).
+// 누가 누구인지는 이름과 리뷰 수가 말한다 — 색만으로 정보를 전하지 않는다(DESIGN_SYSTEM §8.1).
 
 /** 유형 순서에 따라 도는 배경색. 세 가지 모두 얼굴·옷과 대비가 충분한 연한 색이다. */
-const backgrounds = ['#DCE7F7', '#FBE3DC', '#E2ECE4'] as const;
+const backgrounds = colors.illustration.backgrounds;
 
 export type GuestCharacterProps = {
   size: number;
@@ -28,10 +28,10 @@ export function GuestCharacter({ size, variant = 0 }: GuestCharacterProps) {
       <Path d="M12 64c0-11 9-19 20-19s20 8 20 19H12Z" fill={colors.brand.primary} />
 
       {/* 목 */}
-      <Rect fill="#F2C9A8" height={8} rx={3} width={10} x={27} y={38} />
+      <Rect fill={colors.illustration.skinShade} height={8} rx={3} width={10} x={27} y={38} />
 
       {/* 얼굴 */}
-      <Circle cx={32} cy={28} fill="#F7D6B8" r={13} />
+      <Circle cx={32} cy={28} fill={colors.illustration.skin} r={13} />
 
       {/* 머리카락 — 이마를 덮는 앞머리 */}
       <Path

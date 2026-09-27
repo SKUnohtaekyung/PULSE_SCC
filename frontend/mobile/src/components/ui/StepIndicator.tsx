@@ -3,7 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing, typography } from '@/design/tokens';
 
 // 입력을 몇 단계 중 어디까지 했는지 알리는 막대. 2026-09-26 발표 시안의 상단 표시를 옮긴 것이다.
-// 색만으로 알리지 않는다 — 라벨과 접근성 문장으로 같은 사실을 전한다(DESIGN_SYSTEM §3.4).
+// 색만으로 알리지 않는다(DESIGN_SYSTEM §8.1). 끝난 단계는 막대 색과 함께 체크 기호로,
+// 지금 단계는 굵은 라벨로 구분하고, 접근성 문장이 몇 단계 중 어디인지 읽어 준다.
 
 export function StepIndicator({ steps, activeIndex }: { steps: string[]; activeIndex: number }) {
   return (
@@ -19,7 +20,10 @@ export function StepIndicator({ steps, activeIndex }: { steps: string[]; activeI
         return (
           <View key={step} style={styles.item}>
             <View style={[styles.bar, done && styles.barDone, active && styles.barActive]} />
-            <Text style={[styles.label, active && styles.labelActive]}>{step}</Text>
+            <Text style={[styles.label, active && styles.labelActive]}>
+              {done ? '✓ ' : ''}
+              {step}
+            </Text>
           </View>
         );
       })}
