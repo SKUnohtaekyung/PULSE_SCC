@@ -36,6 +36,7 @@
 - **지금 Figma 상태:** 파일 `lIEsVWuCpKr2SzvYeu2EzZ`(`PULSE TASK-020 Vertical Slice`, 링크 https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ)는 2026-09-22 보드 8장이다. 네이비 헤더, 주황 CTA, 3칸 카드 등 옛 디자인이다.
 - **지금 정본:** 저장소 `docs/design/figma/TASK-020/svg/`의 보드 10장이다. 01 IA·Flow, 02 Foundation, 03 Components, 04 Assets, 05 첫 분석, 06 실패, 07 다시 분석, 08 결과 상태, 09 인증, 10 로딩·빈 상태. 앱 코드와 맞춘 새 디자인이고 검사기 0건이다.
 - **막힌 것:** Figma MCP(`use_figma`·`get_metadata`)가 Starter 플랜 호출 한도에 걸려 거부됐다(2026-09-27). 2026-09-27 저녁 `whoami` 결과, 계정은 SCC 팀(starter, Full seat, admin)에 있다. 기존 파일이 있다고 기록된 `lawyland` 팀은 소속 목록에 **없었다**. 파일 접근 권한은 미확인이다.
+- **2026-09-28 재확인:** `get_metadata` 한 번 호출이 같은 Starter 한도 메시지로 거부됐다. `whoami`: SCC(starter, Full, admin) 외 두 팀도 모두 starter다. MCP 시도는 멈추고 사용자에게 직접 드래그 절차를 안내했다(방법 3). 사용자가 넣은 뒤 알려 주면 README Import 결과·Unresolved 13을 갱신한다.
 - **방법 후보:**
   1. MCP 한도가 풀렸으면 → `figma-use` 스킬을 먼저 읽고, 기존 파일에 새 페이지를 만들어 SVG 10장을 넣는다. 옛 페이지는 지우지 말고 이름에 날짜를 붙여 남긴다. 사용자는 "한도가 풀리면 이어서, 안 되면 새 파일로 만들어도 된다"고 했다.
   2. 기존 파일에 접근이 안 되면 → SCC 팀에 새 파일을 만든다(`figma-create-new-file` 스킬 먼저).
