@@ -43,7 +43,7 @@ export function PersonaAvatar({
       style={[
         styles.frame,
         { width: diameter, height: diameter, borderRadius: diameter / 2 },
-        selected && styles.frameSelected,
+        showImage && styles.clip,
       ]}
     >
       {showImage ? (
@@ -56,6 +56,16 @@ export function PersonaAvatar({
         // 내려받을 이미지가 없을 때의 자리표시. 이름과 리뷰 수가 누구인지 말하므로 그림은 중립으로 둔다.
         <GuestCharacter size={diameter} variant={variant} />
       )}
+      {selected ? (
+        // 선택 테두리는 그림 위에 겹쳐 그린다. 그림이 원을 꽉 채워 틀의 테두리를 덮기 때문이다.
+        <View
+          pointerEvents="none"
+          style={[
+            styles.selectedRing,
+            { width: diameter, height: diameter, borderRadius: diameter / 2 },
+          ]}
+        />
+      ) : null}
     </View>
   );
 }
@@ -76,9 +86,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background.emphasized,
     justifyContent: 'center',
+  },
+  // 사진만 원 밖을 잘라 낸다. 자리표시 SVG는 스스로 원을 그리므로 자르지 않는다 —
+  // Android에서 테두리 없는 둥근 클리핑이 SVG를 통째로 지워 선택되지 않은 순위의 그림이 사라졌다.
+  clip: {
     overflow: 'hidden',
   },
-  frameSelected: {
+  selectedRing: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
     borderColor: colors.brand.primary,
     borderWidth: strokes.focus,
   },
