@@ -528,13 +528,26 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 ## Do Not Assume
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
 - 약관과 개인정보 처리방침은 법률 검토 전 초안이다.
-- 프론트 변경은 `C:\PULSE_SCC_FE`에만 있으며 현재 백엔드 저장소 커밋 대상이 아니다.
+- 프론트는 2026-09-28 부터 `frontend/mobile`(`feat/TASK-020-frontend-mobile`, PR #35)이다. 그 이전 절에 적힌 앱 변경은 사용자가 임시로 만든 `C:\PULSE_SCC_FE`(Git 저장소 아님)에만 있고 새 앱에는 없다.
 - 이 브랜치는 원격에 push 했지만 PR 은 아직 없다. PR 전에 PR #27 병합과 인증 충돌 수동 병합이 필요하다.
 - E2E 가 성공했다고 네이버 selector 안정성이 증명된 것은 아니다. 전체 E2E 는 음식점 1개 매장에서 COMPLETED 3회 이상(230초·268초·196초, 재시작 복구 1회 포함)이 전부고, 카페 1개 매장은 수집 단계만 확인했다.
 - 선택형 키워드 제외 목록(50개)은 사용자 제공 통계와 카페 1곳 실측으로 모은 것이다. 네이버 전체 선택지 목록이 아니다.
 - 큐의 재시작 복구는 실제로 검증했지만 다중 인스턴스 동시 운영은 검증하지 않았다.
 
 ## Next Action
+
+> **2026-09-28 세션 종료 시점.** 이 인수인계 갱신 직전 HEAD 는 `35c374a` 이고 원격과 같았다. 이 인수인계 갱신 커밋 자체에는 코드 변경이 없다.
+> 이 세션에서 한 것
+> - 프론트 전환: 앞으로 프론트는 `frontend/mobile`(`feat/TASK-020-frontend-mobile`, PR #35)로 진행한다. `C:\PULSE_SCC_FE` 는 사용자가 임시로 만든 앱이라 더 쓰지 않는다
+> - 새 앱을 실제 백엔드에 붙여 전체 분석 1회까지 확인(위 "2026-09-28" 절). 발견 사항을 PR #35 댓글에 7개 절로 전달
+> - 결과 문구에서 리뷰 번호·내부 용어를 거르는 프롬프트·필터(`317dc8f`, Reviewer 4차 PASS)
+> 이어서 할 것(우선순위 순)
+> 1. **새 프롬프트로 분석 1회**(OpenAI 비용) — caveat·limitations 가 쉬운 말로 나오는지, 필터가 무엇을 빼는지 확인
+> 2. **"접기" 중복 리뷰 의심 확인**(사용자가 DB 조회 필요) — 2026-09-28 분석의 `reviews` 에서 본문 끝이 "접기"인 행과 같은 본문 중복이 있는지. 있으면 수집기 수정
+> 3. **#34 재평가** — #34 는 이제 쓰지 않는 `C:\PULSE_SCC_FE` 기준으로 적었다. 새 앱에도 같은 문제가 있다: `frontend/mobile/src/features/analysis/AnalyzeScreen.tsx` 는 상태 조회가 네트워크 오류면 오프라인 표시 후 계속 조회하지만, 5xx 등 그 밖의 오류면 `retryable` 실패로 바꾸고 "다시 분석하기"가 `submit({ reuseKey: false })` 로 새 작업을 만든다. #34 에 새 앱 위치로 갱신 댓글이 필요하다(프론트 소유라 프론트 개발자에게)
+> 4. 남은 이슈: #33(업종 범위 결정) → #32(PR #27 병합 후) → #31(지식 출처 결정)
+> 5. PR #27 은 2026-09-28 확인 시에도 **OPEN, 리뷰어 0명**. PR #35 도 OPEN, 리뷰 결정 없음
+> 로컬 상태: 새 앱 worktree `C:\PULSE_SCC-mobile`(`feat/TASK-020-frontend-mobile`, 의존성 설치됨)는 디스크에 남는다. 재부팅·세션 종료 시 사라지는 것은 서버 프로세스뿐이다 — Expo 웹 8081·프록시 8090(에이전트가 띄움), Spring 8080(사용자가 띄움). Python 8000 은 이미 꺼져 있다.
 
 > **2026-09-27 세션 종료 시점.** 이 인수인계 갱신 직전 HEAD 는 `76bae1a` 다. 이 인수인계 갱신 커밋 자체에는 코드 변경이 없다.
 > 이 세션에서 한 것
@@ -576,7 +589,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ### 지금 바로 할 수 있는 것 (선택)
 
-- **#34** 상태 조회 5xx 뒤 재시도가 새 작업을 만드는 버그. 앱(`C:\PULSE_SCC_FE`)만 고치면 된다. 수정 방향 후보는 이슈 본문에 있다.
+- **#34** 상태 조회 5xx 뒤 재시도가 새 작업을 만드는 버그. 새 앱 `frontend/mobile` 에도 같은 문제가 있다(Next Action 맨 위 블록 3번). 프론트 개발자 소유라 이슈 갱신 댓글로 넘긴다.
 - ~~재시도 소진 작업의 실패 알림 누락 수정~~ — 2026-09-27 완료, 통합 테스트 실행 확인까지 끝났다.
 - 다른 매장(주점 등) 수집 실측. OpenAI 비용 없음. 방법은 Claude Continuation 8번.
 
@@ -585,13 +598,15 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 1. `git status --short`, `git branch -a`, `git log -3 --oneline` 으로 상태를 확인한다. **`git branch -a` 를 빼먹지 않는다** — 이전 세션이 로컬 브랜치를 못 보고 같은 TASK 를 중복 구현한 적이 있다.
 2. 환경은 준비돼 있다. Docker 정상, 로컬 PostgreSQL 18 에 `scc` DB·계정 존재, `backend/.env` 설정 완료(OpenAI 키 포함).
 3. 검증 명령
-   - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 48개, skip 0 이어야 한다
-   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 35개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
+   - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 53개, skip 0 이어야 한다(Docker 필요)
+   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 114개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
 4. E2E 를 돌릴 때는 **OpenAI 실제 비용이 발생한다.** 수집만 확인하려면 `SCC_REVIEW_COLLECTION_LIMIT=20` 으로 띄운다. 50건 게이트에서 막혀 모델을 호출하지 않는다.
 5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
 6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.
 7. 한글이 든 JSON 본문은 UTF-8 파일로 써서 `curl --data-binary @file` 로 보낸다. 셸 인라인은 인코딩이 깨진다.
 8. 매장 수집 실측은 서버 없이 스크래치 스크립트로 한다. 모듈 함수 `review_collection_url` 로 URL 을 만들고, `_collect_from_browser` 와 같은 순서로 `page.goto` → `validate_collection_page_url` → `NaverPublicReviewCollector._open_review_surface` → `_extract_review_texts` 를 호출한다. `build_reviews` 에는 필터를 끄는 인자가 없으므로, 필터 전 결과는 `strip_voted_keywords` 를 항등 함수로 잠시 패치해 얻고 필터 후 결과와 비교한다. 칩 문구는 `li[class*='place_apply_pui']` 항목 텍스트에서 본문(`.pui__vn15t2`)과 `반응 남기기` 사이의 짧은 `요` 줄로 모은다. **원문에는 작성자 닉네임이 섞이므로 결과는 건수·문구만 남기고 원문 파일은 지운다.**
+9. **`backend/.env` 는 에이전트가 읽을 수 없다**(`.claude/settings.json` deny). 하지만 두 서비스 모두 **스스로** `backend/.env` 를 읽는다 — Spring 은 `application.yml` 의 `spring.config.import: optional:file:../.env[.properties]`(bootRun 작업 디렉터리 `backend/spring-api` 기준), Python 은 `core/config.py` 의 `env_file=("../.env", ".env")`(`backend/python-analysis` 에서 실행 기준). 따라서 에이전트가 값을 보지 않고도 두 서비스를 띄울 수 있다(`backend/README.md` 1장). 2026-09-28 에는 이 사실을 놓쳐 사용자에게 Spring 을 PowerShell 로 `.env` 를 불러 띄우게 했는데, 그 방식은 선택 사항이다. Python 상태 확인 경로는 `/internal/v1/health` 다(`/health` 아님). DB 직접 조회는 비밀번호가 필요해 사용자에게 요청한다.
+10. **새 앱(`frontend/mobile`) 통합 확인 방법**: 먼저 `git worktree list` 로 `C:\PULSE_SCC-mobile` 이 있는지 본다. 없을 때만 `git worktree add ../PULSE_SCC-mobile feat/TASK-020-frontend-mobile` 후 `npm --prefix ../PULSE_SCC-mobile/frontend/mobile ci`. 있으면 `git -C ../PULSE_SCC-mobile pull` 로 최신화하고, `package-lock.json` 이 바뀌었으면 `npm ci` 를 다시 한다. 이 PC 에 Android SDK 가 없어 Expo 웹으로 띄운다(에이전트 Bash 기준): `cd ../PULSE_SCC-mobile/frontend/mobile && CI=1 EXPO_PUBLIC_API_BASE_URL=http://localhost:8090 npx expo start --web --port 8081`. Spring 에 CORS 가 없으므로 `/api/` 는 8080, 나머지는 8081 로 넘기는 작은 Node 프록시(8090, 웹소켓 업그레이드 포함)를 스크래치 폴더에 두고 띄운다. 이 프록시는 저장소 밖이라 세션마다 다시 만든다. 브라우저 창에서 주소창으로 이동하면 새로고침돼 로그아웃되므로 앱 안 메뉴로 이동한다. 테스트 계정은 매번 새로 만든다(`@scc.test`, 비밀번호는 채팅에 적지 않고 스크래치에만).
 
 ## Last Verified Commit
 
