@@ -73,6 +73,7 @@ export function PodiumTop3({
               selected={selected}
               size={rank === 1 ? 'first' : 'runner'}
               source={imageSource(slot)}
+              variant={rank - 1}
             />
             <Text style={styles.name}>{persona.label}</Text>
             <Text style={styles.count}>리뷰 {slot.topicReviewCount ?? 0}건</Text>

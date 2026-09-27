@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { usePagePadding } from '@/components/ui/Screen';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -32,9 +32,13 @@ export function ScreenHeader({
         style={[styles.inner, largeText && styles.innerLargeText, { paddingHorizontal: horizontalPadding }]}
       >
         {brand ? (
-          <Text accessibilityRole="header" style={styles.wordmark}>
-            PULSE
-          </Text>
+          <Image
+            accessibilityLabel="PULSE"
+            accessibilityRole="header"
+            resizeMode="contain"
+            source={require('@/assets/images/brand/pulse-wordmark.png')}
+            style={[styles.wordmark, largeText && styles.wordmarkLargeText]}
+          />
         ) : null}
         {label ? (
           <Text accessibilityRole="header" style={styles.label}>
@@ -71,10 +75,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     flexDirection: 'column',
   },
+  // 원본 비율 1740:673. 높이를 정하고 너비를 비율로 맞춘다.
   wordmark: {
-    ...typography.body1,
-    color: colors.brand.primary,
-    letterSpacing: 1,
+    width: spacing[20],
+    height: spacing[20] * (673 / 1740),
+  },
+  wordmarkLargeText: {
+    width: spacing[24],
+    height: spacing[24] * (673 / 1740),
   },
   label: {
     ...typography.body6,

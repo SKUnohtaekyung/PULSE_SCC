@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import type { PersonaImageSource } from '@/api/personaImages';
+import { GuestCharacter } from '@/components/icons/GuestCharacter';
 import { colors, spacing, strokes, typography } from '@/design/tokens';
 
 // 순위 목록(TOP3)에 쓰는 동그란 손님 유형 그림.
@@ -20,12 +21,15 @@ export function PersonaAvatar({
   altText,
   size = 'runner',
   selected = false,
+  variant = 0,
 }: {
   source: PersonaImageSource;
   /** 기능 중심 대체 텍스트. 이미지가 없을 때도 같은 뜻이 전달돼야 한다. */
   altText: string;
   size?: PersonaAvatarSize;
   selected?: boolean;
+  /** 자리표시 그림의 배경색을 고르는 값. 순위를 넣는다. */
+  variant?: number;
 }) {
   const [failed, setFailed] = useState(false);
   const diameter = diameters[size];
@@ -49,26 +53,8 @@ export function PersonaAvatar({
           style={{ width: diameter, height: diameter, borderRadius: diameter / 2 }}
         />
       ) : (
-        // 코드로 그린 자리표시. 머리와 어깨만 있는 중립 실루엣이라 특정 사람으로 읽히지 않는다.
-        <View style={styles.placeholder}>
-          <View
-            style={[
-              styles.head,
-              { width: diameter * 0.3, height: diameter * 0.3, borderRadius: diameter * 0.15 },
-            ]}
-          />
-          <View
-            style={[
-              styles.shoulders,
-              {
-                width: diameter * 0.58,
-                height: diameter * 0.3,
-                borderTopLeftRadius: diameter * 0.29,
-                borderTopRightRadius: diameter * 0.29,
-              },
-            ]}
-          />
-        </View>
+        // 내려받을 이미지가 없을 때의 자리표시. 이름과 리뷰 수가 누구인지 말하므로 그림은 중립으로 둔다.
+        <GuestCharacter size={diameter} variant={variant} />
       )}
     </View>
   );
@@ -89,26 +75,12 @@ const styles = StyleSheet.create({
   frame: {
     alignItems: 'center',
     backgroundColor: colors.background.emphasized,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     overflow: 'hidden',
   },
   frameSelected: {
     borderColor: colors.brand.primary,
     borderWidth: strokes.focus,
-  },
-  placeholder: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: spacing[1],
-    paddingBottom: 0,
-  },
-  head: {
-    backgroundColor: colors.text.strong,
-  },
-  shoulders: {
-    backgroundColor: colors.brand.primary,
   },
   notice: {
     ...typography.caption,
