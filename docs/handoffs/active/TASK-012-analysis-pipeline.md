@@ -595,7 +595,9 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`76bae1a` — #30 재시도 소진 실패 구분·즉시 재시도 차단까지. 이 커밋 기준으로 **Spring test 53개 skip 0 PASS**, Frontend typecheck·lint·test 30개 PASS(`C:\PULSE_SCC_FE`, Git 범위 밖), 독립 Reviewer 재검토 PASS. Python 은 이번 커밋 변경 없음(직전 확인 39개). 전체 E2E·Visual QA 는 실행하지 않았다.
+`317dc8f` — 결과 문구 내부 표현 필터와 새 프론트 통합 확인 기록까지. 이 커밋 기준으로 Python lint·format PASS, pytest 114개 PASS, 독립 Reviewer 4차 PASS. Spring 은 이번 커밋 변경 없음(직전 확인 53개 skip 0). 새 프롬프트로 실제 분석은 실행하지 않았다(비용).
+
+이전 기준 `76bae1a` — #30 재시도 소진 실패 구분·즉시 재시도 차단까지. 이 커밋 기준으로 **Spring test 53개 skip 0 PASS**, Frontend typecheck·lint·test 30개 PASS(`C:\PULSE_SCC_FE`, Git 범위 밖), 독립 Reviewer 재검토 PASS. Python 은 이번 커밋 변경 없음(직전 확인 39개). 전체 E2E·Visual QA 는 실행하지 않았다.
 
 이전 기준 `4aaa709` — #29 작성일 미확인 리뷰 건수 안내까지. 이 커밋 기준으로 **Spring test 50개 skip 0 PASS**(임대 만료 알림 통합 테스트 포함), Python pytest 39개 PASS(이번 커밋 변경 없음), Frontend typecheck·lint·test 26개 PASS, 독립 Reviewer PASS. 전체 E2E·Visual QA 는 실행하지 않았다.
 
