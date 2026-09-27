@@ -59,7 +59,9 @@ export function BottomNavigation({
         ]}
       >
         <View style={[styles.analysisButton, analysisActive && styles.analysisButtonCurrent]}>
-          <AnalysisIcon color={colors.action.onPrimary} />
+          <AnalysisIcon
+            color={analysisActive ? colors.brand.onPrimary : colors.action.onPrimary}
+          />
         </View>
         <Text style={styles.analysisNavLabel}>분석하기</Text>
       </Pressable>

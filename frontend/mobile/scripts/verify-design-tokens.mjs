@@ -87,6 +87,7 @@ const contrastChecks = [
   ['포커스 링 / 카드', colors.focus.ring, colors.background.surface, accessibility.contrast.nonText],
   ['성공 아이콘 / 연한 성공 배경', colors.status.success, colors.status.successSubtle, accessibility.contrast.nonText],
   ['강조 아이콘 / 강조 원', colors.action.onPrimary, colors.action.primary, accessibility.contrast.normalText],
+  ['활성 강조 아이콘 / 브랜드 원', colors.brand.onPrimary, colors.brand.primary, accessibility.contrast.nonText],
   ['삭제 텍스트 / 삭제 버튼', colors.destructive.onPrimary, colors.destructive.primary, accessibility.contrast.normalText],
   ['삭제 링크 / 카드', colors.destructive.text, colors.background.surface, accessibility.contrast.normalText],
   ['삭제 링크 / 화면 배경', colors.destructive.text, colors.background.canvas, accessibility.contrast.normalText],
