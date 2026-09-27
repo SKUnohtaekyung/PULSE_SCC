@@ -107,10 +107,10 @@
 | `AUTH-EDITING` | 서비스 자체 로그인 정보 입력 | 이메일·비밀번호 입력값, 필수 여부, 제출 가능 상태 | 클라이언트 형식 검증 | 계속 입력 또는 로그인 제출 |
 | `AUTH-LEGAL-LOADING` | 가입 화면 진입 | 약관·개인정보 처리방침을 불러오는 중 | `GET /api/v1/legal-documents`로 현재 `termsVersion`·`privacyVersion` 조회 | `AUTH-SIGNUP-EDITING` 또는 `AUTH-LEGAL-ERROR` |
 | `AUTH-LEGAL-ERROR` | 법률 문서 조회 실패 | 약관을 불러오지 못해 가입을 진행할 수 없다는 안내와 재시도 | 가입 요청을 보내지 않음 | 재조회 또는 로그인 방식 선택 |
-| `AUTH-SIGNUP-EDITING` | 자체 계정 가입 정보 입력 | 이메일·비밀번호·전화번호, 전화번호는 인증·복구에 쓰지 않는다는 목적 고지, 조회한 버전의 이용약관·개인정보 처리방침 동의 | 클라이언트 형식 검증. 동의한 `termsVersion`·`privacyVersion`을 가입 요청에 포함 | 계속 입력 또는 가입 제출 |
-| `AUTH-CONSENT-OUTDATED` | 가입 요청이 `400 CURRENT_LEGAL_CONSENT_REQUIRED`로 거부됨 | 약관이 바뀌어 다시 동의해야 한다는 안내. 입력한 이메일·전화번호는 보존 | 법률 문서를 다시 조회 | `AUTH-LEGAL-LOADING` |
+| `AUTH-SIGNUP-EDITING` | 자체 계정 가입 정보 입력 | 이메일·비밀번호·비밀번호 확인·전화번호, 전화번호는 인증·복구에 쓰지 않는다는 목적 고지, 조회한 버전의 이용약관·개인정보 처리방침 동의 | 클라이언트 형식 검증과 비밀번호 확인 일치 검사. 동의한 `termsVersion`·`privacyVersion`을 가입 요청에 포함. 비밀번호 확인 값은 요청에 넣지 않음 | 계속 입력 또는 가입 제출 |
+| `AUTH-CONSENT-OUTDATED` | 가입 요청이 `400 CURRENT_LEGAL_CONSENT_REQUIRED`로 거부됨 | 약관이 바뀌어 다시 동의해야 한다는 안내. 입력한 이메일·전화번호는 보존하고 비밀번호·비밀번호 확인은 지운 사실을 알림 | 법률 문서를 다시 조회 | `AUTH-LEGAL-LOADING` |
 | `AUTH-SIGNUP-UNAVAILABLE` | 운영 가입이 닫혀 있음 | 지금은 가입할 수 없다는 안내와 기존 계정 로그인 진입점 | 가입 요청을 보내지 않음. 판별 방법은 §11 미정 — 현재 백엔드는 `legallyReviewed`를 항상 `false`로 반환하고 가입을 막지 않으므로 이 값만으로 판별하지 않는다 | 로그인 방식 선택 |
-| `AUTH-FIELD-ERROR` | 이메일 형식·필수값·비밀번호 정책(8자 이상, UTF-8 72바이트 이하)·전화번호 형식·약관 미동의, 또는 서버 `fieldErrors` | 해당 필드 가까이 원인과 수정 방법 | 서버 요청 전 차단 가능한 오류는 요청하지 않음 | 입력 수정 |
+| `AUTH-FIELD-ERROR` | 이메일 형식·필수값·비밀번호 정책(8자 이상, UTF-8 72바이트 이하)·가입 비밀번호 확인 누락·불일치·전화번호 형식·약관 미동의, 또는 서버 `fieldErrors` | 해당 필드 가까이 원인과 수정 방법 | 서버 요청 전 차단 가능한 오류는 요청하지 않음 | 입력 수정 |
 | `AUTH-SUBMITTING` | 서비스 자체 로그인 요청 | 로그인 처리 중 안내 | 중복 제출 차단 | 성공 또는 오류 |
 | `AUTH-SIGNUP-SUBMITTING` | 자체 계정 가입 요청 | 가입 처리 중 안내 | 중복 제출 차단 | 생성 또는 오류 |
 | `AUTH-SIGNUP-CREATED` | 자체 계정 생성 성공 | 계정이 만들어졌다는 안내 | 백엔드가 가입 응답(`201`)으로 세션을 발급하므로 토큰을 안전 저장소에 저장 | `AUTH-SUCCESS` |

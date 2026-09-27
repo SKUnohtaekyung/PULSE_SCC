@@ -302,7 +302,7 @@ loading / empty / error / normal
 | 컴포넌트 | 책임 | 경로 |
 |---|---|---|
 | AuthMethodSelector | Google 로그인과 서비스 자체 로그인 진입 선택 | 미구현 — Google 로그인은 앱 식별자·OAuth 설정이 정해진 뒤(§13) |
-| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·전화번호 입력과 오류·제출 상태 | `frontend/mobile/src/features/auth/LoginScreen.tsx`·`SignupScreen.tsx` (입력 한 칸은 `components/ui/TextField.tsx`, 동의는 `components/ui/CheckRow.tsx`) |
+| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·비밀번호 확인·전화번호 입력과 오류·제출 상태 | `frontend/mobile/src/features/auth/LoginScreen.tsx`·`SignupScreen.tsx` (입력 한 칸은 `components/ui/TextField.tsx`, 동의는 `components/ui/CheckRow.tsx`) |
 | StoreInput | 가게 이름·업종·네이버 가게 URL 입력과 검증 안내 | `frontend/mobile/src/features/analysis/AnalyzeScreen.tsx` |
 | StoreConfirmation | 입력값과 URL에서 확인한 매장 정보 대조 | 미구현 — API 없음(SCREEN_STATES §4.3) |
 | AnalysisProgress | 수집·분석 단계와 현재 상태 표시 | `frontend/mobile/src/components/ui/ProgressList.tsx` |

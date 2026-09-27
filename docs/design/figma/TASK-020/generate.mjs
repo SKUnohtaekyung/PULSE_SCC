@@ -744,15 +744,18 @@ const screenSignup = ({ outdated = false } = {}) => {
   body += pageTitle(PAD, y, '이메일로 가입해요');
   y += 56;
   if (outdated) {
-    body += errorNotice(PAD, y, W, '약관이 바뀌었어요', ['새 약관을 다시 받아왔어요. 내용을 확인하고', '다시 동의해 주세요. 비밀번호는 안전을 위해', '지웠으니 다시 입력해 주세요.'], { tone: 'warning' });
+    body += errorNotice(PAD, y, W, '약관이 바뀌었어요', ['새 약관을 다시 받아왔어요. 내용을 확인하고', '다시 동의해 주세요. 비밀번호는 안전을 위해', '지웠으니 확인 칸까지 다시 입력해 주세요.'], { tone: 'warning' });
     y += 128; // 안내 높이 112 + 16
   }
   const inner =
     field(PAD + 20, y + 20, W - 40, '이메일', 'owner@example.com') +
     field(PAD + 20, y + 120, W - 40, '비밀번호', '8자 이상', { placeholder: true }) +
-    field(PAD + 20, y + 220, W - 40, '전화번호', '010-1234-5678', { placeholder: true });
-  body += card(PAD, y, W, 320, inner);
-  y += 336;
+    field(PAD + 20, y + 220, W - 40, '비밀번호 확인', '한 번 더 입력', { placeholder: true }) +
+    field(PAD + 20, y + 320, W - 40, '전화번호', '010-1234-5678', { placeholder: true });
+  body += card(PAD, y, W, 420, inner);
+  y += 436;
+  // 안내가 붙으면 약관 동의·가입하기는 첫 화면 아래로 밀린다. 앱은 스크롤하므로 보드는 첫 화면만 그린다.
+  if (y + 72 + 52 > PHONE_H) return body;
   body += text(PAD, y, '약관 동의', typography.body6, colors.text.strong);
   y += 28;
   [['이용약관 (v2026-09-01)'], ['개인정보 처리방침 (v2026-09-01)']].forEach(([label], index) => {
@@ -1066,7 +1069,7 @@ const boards = {
     { name: 'Auth-Error', caption: '로그인 실패 (AUTH-ERROR)', body: screenLogin({ error: true }), options: {} },
     { name: 'Signup-LegalLoading', caption: '약관 조회 중 (AUTH-LEGAL-LOADING)', body: screenSignupLegalLoading(), options: {} },
     { name: 'Signup-Editing', caption: '가입 입력 (AUTH-SIGNUP-EDITING)', body: screenSignup(), options: {} },
-    { name: 'Signup-ConsentOutdated', caption: '약관 변경 (AUTH-CONSENT-OUTDATED)', body: screenSignup({ outdated: true }), options: {} },
+    { name: 'Signup-ConsentOutdated', caption: '약관 변경 (AUTH-CONSENT-OUTDATED) — 동의·가입하기는 스크롤 아래', body: screenSignup({ outdated: true }), options: {} },
   ]),
   '10-final-loading-empty.svg': phonesBoard('10 · Final UI — 로딩·빈 상태·마이페이지', 'SCREEN_STATES §6·§8. 결과를 불러오는 중과 보여 줄 것이 없을 때, 그리고 마이페이지·근거 목록', [
     { name: 'Home-Loading', caption: '홈 조회 중 (HOME-LOADING)', body: screenHomeLoading(), options: {} },

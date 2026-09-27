@@ -18,6 +18,15 @@
 | 통합 테스트 인계 문서 | 끝남. [frontend/mobile/INTEGRATION_GUIDE.md](../../../frontend/mobile/INTEGRATION_GUIDE.md) |
 | GitHub 업로드·PR | 끝남. 이 인계의 범위 밖이다. 사용자가 다시 말하기 전에는 push·PR·병합을 하지 않는다 |
 
+## 진행 중 (2026-09-27 밤, 사용량 한도로 중단)
+
+"남은 일 2번(비밀번호 확인)"을 먼저 하고 있다.
+
+- 끝남: `SignupScreen.tsx`에 `비밀번호 확인` 칸(비어 있음·불일치 필드 오류, 서버 미전송, 약관 변경 시 함께 지움, 비밀번호가 바뀌면 확인 오류도 지움). `SCREEN_STATES.md` §3.2의 `AUTH-SIGNUP-EDITING`·`AUTH-CONSENT-OUTDATED`·`AUTH-FIELD-ERROR` 행, `DESIGN_SYSTEM.md` CredentialForm 행 갱신. 보드 09 `generate.mjs`에 칸 추가 — `Signup-ConsentOutdated`는 한 화면에 안 들어가 약관 동의·가입하기를 그리지 않고 캡션에 "스크롤 아래"로 적었다.
+- 실행 결과: `check.mjs` 0건(종료 0), `verify:tokens`·`lint`·`typecheck`·`export:android` 모두 종료 0.
+- 다음 할 일: ① 에뮬레이터에서 일치·불일치·약관 변경 캡처(약관 변경은 UI로 재현 불가 — SCREEN_STATES §13 8차 기록 참고, 미확인이면 그렇게 적는다) → evidence README·SCREEN_STATES §13 기록 ② reviewer 독립 검토 ③ 사용자 보고 후 1번(Figma)으로.
+- `PRD.md`·기능명세는 "필수로 받는 정보"라 확인 칸(서버 미전송)과 충돌하지 않아 고치지 않았다. `INTEGRATION_GUIDE.md` 확인은 미실행.
+
 ## 남은 일
 
 ### 1. Figma에 지금 화면 넣기
