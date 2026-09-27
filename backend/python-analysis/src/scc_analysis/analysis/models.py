@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime
 from typing import Literal
 
@@ -5,6 +6,58 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 Industry = Literal["한식", "중식", "일식", "양식", "카페/디저트", "주점", "기타"]
 InsightKind = Literal["POSITIVE", "NEGATIVE", "PERCEPTION", "PRIORITY"]
+
+# 사장님이 읽는 문장(caveat, limitations)에 새면 안 되는 내부 표현. 모델에게도 쓰지 말라고
+# 지시하지만 어길 때가 있어 한 번 더 거른다(기능명세 RESULT-007 쉬운 표현).
+#
+# 분석기는 리뷰를 "[번호] 본문" 으로 넘기므로 모델이 그 번호를 문장에 옮겨 적는다. 그런데 방문
+# 횟수·시간·가격처럼 사장님이 읽어야 할 숫자도 같은 모양이다. 숫자 뒤에 올 수 있는 단위는 끝이
+# 없으므로(팀·병·가지·만 원 …) 단위를 허용하는 대신, 숫자 바로 뒤에 조사가 붙어 숫자 자체가
+# 가리키는 대상으로 쓰였을 때("100~119는", "68번은")만 리뷰 번호로 본다.
+# 조사 뒤에는 공백이나 문장 끝이 온다. 그래야 "3~4가지"의 "가"를 조사로 읽지 않는다.
+_PARTICLE = (
+    r"(?:은|는|이|가|을|를|의|에서|에게|에|까지|와|과|으로|로|도|부터|만(?!\s*원))"
+    r"(?:은|는|도|만)?(?=\s|$|[.,!?)])"
+)
+_ENDS_AS_NOUN = r"(?=" + _PARTICLE + r"|\s*[.,!?)]|\s*$)"
+_INTERNAL_PATTERNS = (
+    r"\[\s*\d+\s*\]",  # [68] — 분석기가 리뷰에 붙이는 번호 형식
+    r"#\s*\d+",
+    r"리뷰\s*\(\s*\d+\s*\)",  # 리뷰(68)
+    r"(?<![A-Za-z])[Rr]eview\s*#?\s*\d+",
+    r"\d+\s*번째?\s*리뷰",  # 68번 리뷰
+    r"리뷰\s*#?\s*\d+\s*번",  # 리뷰 68번
+    # 근거 리뷰: 0, 1 / 근거 리뷰 3, 7에서 / 근거는 0, 1번. — 다른 번호 패턴처럼 번호 끝에 조사나
+    # 문장 끝이 올 때만 본다("근거 리뷰가 1, 2월에", "근거가 된 리뷰 3, 4건"은 남김).
+    r"근거[^.!?\d]{0,8}\d++(?:\s*+,\s*+\d++)*+\s*번?" + _ENDS_AS_NOUN,
+    # 리뷰 3은 / 리뷰3, 리뷰7에서 (리뷰 120건, 리뷰 1,000건, 리뷰 3, 4건은 남김)
+    r"리뷰\s*\d++(?:,\d{3})*+(?:\s*+,\s*+\d++)*+" + _ENDS_AS_NOUN,
+    r"\d++\s*~\s*\d++" + _ENDS_AS_NOUN,  # 100~119는 (2~3팀, 1~2만 원은 남김)
+    r"\d++\s*번\s*~\s*\d++",  # 0번~99번
+    r"\d{2,}\s*번\s*(?:대(?=\s)|" + _PARTICLE + r")",  # 68번은, 68번과, 100번부터, 100번대
+    # 0, 1, 3 — 목록의 첫 숫자에서만 시작해 긴 입력에서도 선형으로 끝난다(3, 4, 5월은 남김).
+    r"(?<![\d,])(?<!,\s)\d++(?:\s*+,\s*+\d++){2,}+\s*번?" + _ENDS_AS_NOUN,
+    r"인덱스|토픽|임베딩|(?<![A-Za-z])(?:RAG|index)(?![A-Za-z])",
+    # 영어 필드명은 대소문자를 구분한다. "Positive한 분위기" 같은 표현은 남긴다.
+    r"(?<![A-Za-z_])(?:insights?|advice|caveat|evidence|review_index|review_fact"
+    r"|ai_interpretation|suggested_action|image_alt_text|image_prompt|topic_review_count|topics?"
+    r"|POSITIVE|NEGATIVE|PERCEPTION|PRIORITY)(?![A-Za-z_])",
+)
+_INTERNAL_MARKERS = re.compile("|".join(_INTERNAL_PATTERNS))
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def reader_facing(text: str) -> str:
+    """Drop sentences that expose review indexes or internal field names."""
+    kept = [
+        sentence
+        for sentence in _SENTENCE_END.split(text.strip())
+        if sentence and not _INTERNAL_MARKERS.search(sentence)
+    ]
+    return " ".join(kept)
+
+
+_DEFAULT_CAVEAT = "리뷰에서 반복된 상황을 묶은 유형이며 실제 개인이나 전체 손님을 뜻하지 않습니다."
 
 
 class AnalyzeRequest(BaseModel):
@@ -52,6 +105,11 @@ class PersonaOutput(BaseModel):
     insights: list[InsightOutput] = Field(min_length=4, max_length=4)
     advice: list[AdviceOutput] = Field(min_length=1, max_length=3)
 
+    @field_validator("caveat")
+    @classmethod
+    def keep_caveat_reader_facing(cls, value: str) -> str:
+        return reader_facing(value) or _DEFAULT_CAVEAT
+
     @field_validator("insights")
     @classmethod
     def require_all_perspectives(cls, value: list[InsightOutput]) -> list[InsightOutput]:
@@ -64,6 +122,13 @@ class PersonaOutput(BaseModel):
 class StructuredAnalysis(BaseModel):
     personas: list[PersonaOutput] = Field(min_length=1, max_length=3)
     limitations: list[str] = Field(default_factory=list, max_length=5)
+
+    @field_validator("limitations")
+    @classmethod
+    def keep_limitations_reader_facing(cls, value: list[str]) -> list[str]:
+        # 항목 길이에는 스키마 상한이 없다. 비정상적으로 긴 출력에서 필터가 느려지지 않도록
+        # caveat 상한과 같은 1,000자까지만 본다.
+        return [cleaned for item in value if (cleaned := reader_facing(item[:1000]))]
 
     @field_validator("personas")
     @classmethod
