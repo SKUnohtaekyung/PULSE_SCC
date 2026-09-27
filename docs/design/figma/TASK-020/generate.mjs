@@ -355,10 +355,13 @@ const resultHeader = () =>
 /**
  * 무엇을 얼마나 분석했는지. 2026-09-27 디자인 리뷰 #3으로 화면 맨 아래로 내렸고,
  * 남색 색면 대신 흰 카드에 3열로 둔다. 결과를 다 읽은 뒤 신뢰도를 판단하는 자리다.
+ * 카드 안 내용은 앱 `features/result/ResultView.tsx`의 AnalysisInfoBlock과 같다.
+ * 그 아래 한계 안내(LimitationsBlock)는 앱에서도 카드 밖 별도 안내라 이 보드 프레임에는 그리지 않는다.
  */
+const ANALYSIS_INFO_H = 150;
 const analysisInfo = (y, { date = '2026.09.18', collected = 84, valid = 59 } = {}) => {
   const w = PHONE_W - PAD * 2;
-  const H = 164;
+  const H = ANALYSIS_INFO_H;
   const cellW = (w - 40) / 3;
   const cells = [
     ['분석한 리뷰', valid + '건'],
@@ -369,20 +372,25 @@ const analysisInfo = (y, { date = '2026.09.18', collected = 84, valid = 59 } = {
     'AnalysisInfo',
     text(PAD, y - 30, '이 결과는 이렇게 만들었어요', typography.head5, colors.text.strong) +
       rect(PAD, y, w, H, { fill: colors.background.surface, stroke: colors.border.default, r: radii.panel }) +
-      text(PAD + 20, y + 14, '네이버 공개 리뷰 기준', typography.body6, colors.text.secondary) +
+      text(PAD + 20, y + 12, '네이버 공개 리뷰 기준', typography.body6, colors.text.secondary) +
       cells
         .map(([label, value], index) => {
           const cx = PAD + 20 + index * cellW;
           return (
-            text(cx, y + 48, label, typography.caption, colors.text.secondary) +
-            text(cx, y + 68, value, typography.body5, colors.text.strong) +
-            (index > 0 ? line(cx - 10, y + 48, cx - 10, y + 92, { stroke: colors.border.default }) : '')
+            text(cx, y + 44, label, typography.caption, colors.text.secondary) +
+            text(cx, y + 62, value, typography.body5, colors.text.strong) +
+            (index > 0 ? line(cx - 10, y + 44, cx - 10, y + 86, { stroke: colors.border.default }) : '')
           );
         })
         .join('') +
-      text(PAD + 20, y + 100, '모은 리뷰 ' + collected + '건 가운데 ' + valid + '건을 썼어요.', typography.body7, colors.text.secondary) +
-      rect(PAD + 16, y + 126, w - 32, 26, { fill: colors.background.emphasized, r: radii.control }) +
-      text(PAD + 28, y + 130, '리뷰를 남긴 손님 기준이에요.', typography.caption, colors.text.secondary),
+      // 앱 문구 그대로. SVG는 자동 줄바꿈이 없어 카드 폭(328 − 40)에 맞춰 두 줄로 나눈다.
+      text(
+        PAD + 20,
+        y + 96,
+        ['모은 리뷰 ' + collected + '건 가운데 겹치거나', '내용이 없는 리뷰를 빼고 ' + valid + '건을 썼어요.'],
+        typography.body7,
+        colors.text.secondary,
+      ),
   );
 };
 
@@ -433,10 +441,13 @@ const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
     const first = slotIndex === 0;
 
     if (slot.kind === 'empty') {
+      // 앱 PodiumTop3.tsx처럼 점선 원 → 사유 → 단상 순서로 쌓는다. 사유가 원 안에 있으면 원둘레가 글자를 긋는다.
+      const reasonTop = blockY - 8 - (Array.isArray(slot.reason) ? slot.reason.length : 1) * typography.caption.lineHeight;
+      const r = first ? 48 : 40;
       body += group(
         'PodiumSlot/Empty',
-        circle(cx, blockY - 56, first ? 48 : 40, { stroke: colors.border.strong, sw: strokes.hairline, dash: '6 4' }) +
-          text(cx, blockY - 8 - (Array.isArray(slot.reason) ? slot.reason.length : 1) * typography.caption.lineHeight, slot.reason, typography.caption, colors.text.secondary, { anchor: 'middle' }) +
+        circle(cx, reasonTop - 6 - r, r, { stroke: colors.border.strong, sw: strokes.hairline, dash: '6 4' }) +
+          text(cx, reasonTop, slot.reason, typography.caption, colors.text.secondary, { anchor: 'middle' }) +
           roundedTop(cx - colW / 2, blockY, colW, bh, {
             fill: colors.background.subtle,
             stroke: colors.border.default,
@@ -553,7 +564,8 @@ const screenFailed = (message, action) =>
       stepRow(PAD + 16, 390, 'failed', '분석을 마치지 못했어요') +
       text(PAD + 20, 434, message, typography.body4, colors.text.primary),
   ) +
-  primaryButton(PAD, 526, W, action);
+  // 카드(268 + 268 = 536) 아래 16px에 둔다.
+  primaryButton(PAD, 552, W, action);
 
 const screenFirstSaved = () =>
   appHeader({ brand: true }) +
@@ -564,14 +576,33 @@ const screenFirstSaved = () =>
   card(PAD, 376, W, 76, text(180, 390, '영등원조쌈밥', typography.body5, colors.text.primary, { anchor: 'middle' }) + text(180, 414, '분석에 쓴 리뷰 59건 · 손님 유형 3개', typography.body7, colors.text.secondary, { anchor: 'middle' }), { r: radii.control }) +
   primaryButton(PAD, 472, W, '결과 보기');
 
-const screenHome = (slots = fullPodium, heroBody) =>
-  appHeader({ brand: true, badge: '저장된 결과' }) +
-  text(PAD, HEADER_H + 20, '영등원조쌈밥', typography.head3, colors.text.strong) +
-  (heroBody ? text(PAD, HEADER_H + 58, heroBody, typography.body7, colors.text.secondary) : '') +
-  podium(HEADER_H + (heroBody ? 160 : 116), slots) +
-  // 카드 바닥(+188)이 하단 내비 위(PHONE_H - 72 = 728)에 오게 둔다.
-  analysisInfo(HEADER_H + (heroBody ? 492 : 448)) +
-  bottomNav('home');
+/**
+ * 저장된 결과 홈. 앱 ResultView의 읽는 순서(TOP3 → … → 분석 정보)를 따른다.
+ * 유형이 0개면 앱은 TOP3 바로 아래에 주의 안내를 두므로, 그 화면은 안내를 그리고 분석 정보는 프레임 밖(스크롤 아래)이다.
+ */
+const screenHome = (slots = fullPodium, { noPersona = false } = {}) => {
+  const below = HEADER_H + 448;
+  // 분석 정보 카드 바닥이 가운데 분석하기 버튼 위쪽 끝(PHONE_H - 72 + 10 - 28 - 2 = 708)보다 위에 와야 한다.
+  // 카드는 제목(카드 위 30px)이 TOP3 카드와 떨어지도록 12px 더 내린다.
+  const infoY = below + 12;
+  if (infoY + ANALYSIS_INFO_H > PHONE_H - 72 + 10 - 28 - 2) throw new Error('분석 정보 카드가 하단 내비에 가린다');
+  return (
+    appHeader({ brand: true, badge: '저장된 결과' }) +
+    text(PAD, HEADER_H + 20, '영등원조쌈밥', typography.head3, colors.text.strong) +
+    podium(HEADER_H + 116, slots) +
+    (noPersona
+      ? errorNotice(
+          PAD,
+          below - 10, // TOP3 카드 바닥(HEADER_H + 116 + 306 = 510) 아래 16px
+          W,
+          '채울 수 있는 손님 유형이 없었어요',
+          ['근거를 충족한 반복 패턴을 찾지 못했어요.', '리뷰가 더 쌓인 뒤 다시 분석해 볼 수 있어요.'],
+          { tone: 'warning' },
+        )
+      : analysisInfo(infoY)) +
+    bottomNav('home')
+  );
+};
 
 const saveBar = (y) =>
   group(
@@ -708,8 +739,8 @@ const screenSignup = ({ outdated = false } = {}) => {
   body += pageTitle(PAD, y, '이메일로 가입해요');
   y += 56;
   if (outdated) {
-    body += errorNotice(PAD, y, W, '약관이 바뀌었어요', ['새 약관을 다시 받아왔어요. 다시 동의해 주세요.', '비밀번호는 안전을 위해 지웠어요.'], { tone: 'warning' });
-    y += 116;
+    body += errorNotice(PAD, y, W, '약관이 바뀌었어요', ['새 약관을 다시 받아왔어요. 내용을 확인하고', '다시 동의해 주세요. 비밀번호는 안전을 위해', '지웠으니 다시 입력해 주세요.'], { tone: 'warning' });
+    y += 128; // 안내 높이 112 + 16
   }
   const inner =
     field(PAD + 20, y + 20, W - 40, '이메일', 'owner@example.com') +
@@ -723,7 +754,7 @@ const screenSignup = ({ outdated = false } = {}) => {
     body += rect(PAD, y + index * 36, 20, 20, { stroke: colors.border.control, r: radii.small });
     body += text(PAD + 32, y + index * 36 + 1, label, typography.body7, colors.text.primary);
   });
-  y += 84;
+  y += 72; // 둘째 동의 항목(+36, 높이 20) 아래 16px
   body += primaryButton(PAD, y, W, '가입하기');
   return body;
 };
@@ -829,7 +860,12 @@ const boardIaFlow = () => {
     return (
       line(x1, y1, x2, y2, { stroke: colors.text.secondary, sw: 1.5 }) +
       `<polygon points="${x2},${y2} ${head}" fill="${colors.text.secondary}"/>` +
-      (label ? text((x1 + x2) / 2 + 6, (y1 + y2) / 2 - 22, label, typography.caption, colors.text.secondary) : '')
+      (label
+        ? y1 === y2
+          ? // 가로 화살표는 이름표를 가운데에 둔다. 왼쪽 정렬이면 긴 이름표가 오른쪽 상자 테두리에 걸친다.
+            text((x1 + x2) / 2, y1 - 22, label, typography.caption, colors.text.secondary, { anchor: 'middle' })
+          : text((x1 + x2) / 2 + 6, (y1 + y2) / 2 - 22, label, typography.caption, colors.text.secondary)
+        : '')
     );
   };
 
@@ -1005,9 +1041,9 @@ const boards = {
     { name: 'Home', caption: '⑥ 홈 (저장 결과)', body: screenHome(), options: {} },
   ]),
   '06-final-failures.svg': phonesBoard('06 · Final UI — 실패', '실패 단계는 알 수 없으므로 마지막 행은 멈추고 목록 끝에 실패 결과 행. 입력을 고쳐야 하면 입력으로 복귀', [
-    { name: 'Failed-Retryable', caption: '재시도 가능 실패', body: screenFailed(['일시적인 문제로 분석을 마치지 못했어요.', '다시 시도할 수 있어요.'], '다시 분석하기'), options: {} },
+    { name: 'Failed-Retryable', caption: '재시도 가능 실패', body: screenFailed(['일시적인 문제로 분석을 마치지', '못했어요. 다시 시도할 수 있어요.'], '다시 분석하기'), options: {} },
     { name: 'Failed-Insufficient', caption: '리뷰 부족 (50건 미만)', body: screenFailed(['분석에 필요한 리뷰가 50건보다 적어', '결과를 만들지 못했어요.'], '가게 정보 다시 입력'), options: {} },
-    { name: 'Failed-Fatal', caption: '서비스 문제', body: screenFailed(['서비스 쪽 문제로 지금은 분석을 마칠 수', '없어요. 잠시 뒤에 다시 시도해 주세요.'], '입력 화면으로'), options: {} },
+    { name: 'Failed-Fatal', caption: '서비스 문제', body: screenFailed(['서비스 쪽 문제로 지금은 분석을', '마칠 수 없어요. 잠시 뒤에 다시', '시도해 주세요.'], '입력 화면으로'), options: {} },
     { name: 'Store-NotFound', caption: '가게 못 찾음 → 입력으로 복귀', body: screenInput(3, { notice: true, errors: { name: ['가게를 찾지 못했어요.', '가게 이름을 확인해 주세요.'], url: ['가게를 찾지 못했어요.', '네이버 가게 URL을 확인해 주세요.'] } }), options: {} },
   ]),
   '07-final-reanalysis.svg': phonesBoard('07 · Final UI — 다시 분석과 저장 선택 (다음 Slice)', '첫 Vertical Slice 다음에 연결한다(SCREEN_STATES §10). 저장 선택은 미리보기 첫 화면부터 하단 고정, 교체만 확인, 미리보기에서는 하단 내비게이션을 숨긴다', [
@@ -1039,13 +1075,13 @@ const boards = {
     {
       name: 'Result-Partial',
       caption: '유형 2개만 찾음',
-      body: screenHome([fullPodium[0], { kind: 'filled', key: 'solo', name: ['혼밥', '안심형'] }, { kind: 'empty', reason: ['근거가 부족해', '비웠어요'] }], ['네이버 공개 리뷰 54건에서 유형 2개를 찾았어요.']),
+      body: screenHome([fullPodium[0], { kind: 'filled', key: 'solo', name: ['혼밥', '안심형'] }, { kind: 'empty', reason: ['근거가 부족해', '비웠어요'] }]),
       options: {},
     },
     {
       name: 'Result-NoPersona',
       caption: '유형 0개',
-      body: screenHome([{ kind: 'empty', reason: ['근거가', '부족해요'] }, { kind: 'empty', reason: ['근거가', '부족해요'] }, { kind: 'empty', reason: ['근거가', '부족해요'] }], ['리뷰는 모았지만 근거를 충족한 유형이 없어요.']),
+      body: screenHome([{ kind: 'empty', reason: ['근거가', '부족해요'] }, { kind: 'empty', reason: ['근거가', '부족해요'] }, { kind: 'empty', reason: ['근거가', '부족해요'] }], { noPersona: true }),
       options: {},
     },
     { name: 'Image-States', caption: '이미지 불러오는 중 · 실패', body: screenImageStates(), options: {} },
