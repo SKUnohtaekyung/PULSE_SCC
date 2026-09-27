@@ -2,6 +2,8 @@
 
 Expo 기반 React Native·TypeScript Android 클라이언트다. 제품 요구사항은 저장소 루트의 `docs/product/PRD.md`, UI/UX 원칙은 `docs/design/DESIGN_SYSTEM.md`가 정본이다.
 
+통합 테스트·백엔드 연결을 맡는다면 [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md)부터 읽는다.
+
 ## 요구 환경
 
 - Node.js `>=22.13.0 <25`
