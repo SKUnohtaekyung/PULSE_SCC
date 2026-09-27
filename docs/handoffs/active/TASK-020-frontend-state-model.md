@@ -158,6 +158,7 @@
 - (발표 시안 반영) 5차 독립 Reviewer: FAIL(차단 3 — 08 분석 정보 캡션이 아직 가운데 버튼 뒤로 숨음, 가림 70% 임계값·원 정사각형 근사가 그것을 놓침, README 검증 범위 절이 검사기 실제 동작과 다름 / 권고 3 — 빈 슬롯 사유를 점선 원이 관통, 카드 축소로 제외 사유 문구 누락, Last Verified Commit 절이 낡음) → 검사기를 절대 넓이 가림·원 실측·테두리 관통·도형 이탈로 바꾸고, 새 검사기가 찾은 18건(06·09·01 포함)을 모두 고쳤다. 분석 정보 카드는 앱 `AnalysisInfoBlock` 문구와 맞췄다
 - (발표 시안 반영) 사용자 제보 버그: 시상대에서 선택되지 않은 순위의 캐릭터가 사라짐 → `PersonaAvatar`의 둥근 클리핑을 원격 사진일 때만 쓰고 선택 테두리를 겹친 링으로 바꿨다. Android(Expo Go 강제 종료 후 재실행)에서 1·2·3위 선택을 캡처로 확인(evidence `fix-podium-*`). `verify:tokens`·`lint`·`typecheck` PASS, `export:android` 미실행
 - (발표 시안 반영) 6차 독립 Reviewer: PASS(차단 0·권고 5). R1(원 테두리 두께)·R2(README 사각지대)·R4(캐릭터 어깨가 원 밖으로 나옴 → SVG ClipPath)를 반영하고 Expo Go 재실행 뒤 다시 캡처했다. 7차 리뷰: FAIL(차단 1 — R1 정규식 오타로 두께가 늘 1로 읽힘) → 오타를 고치고 민감도 실험으로 확인. 권고(`</G>` 들여쓰기, 입 Path fill 누락, handoff 리뷰 요청 절 낡음, "R1 반영" 문구가 사실과 다름)도 반영했다. 8차 독립 Reviewer: PASS(차단 0·권고 3 — Last Verified Commit 설명, evidence README 캡처 방법 두 줄 모순, 불릿 붙음) → 문서만 정리했다. R3(보드 유형 2개 화면에 상세 섹션 없음·유형 0개 이미지 고지 문구)는 이번 변경 전부터 있던 차이로 남긴다. R5는 Last Verified Commit 갱신으로 반영
+- (Step 11 자동 검증, 2026-09-27, `40a1c4a` 기준) `verify:tokens` PASS · `lint` 경고·오류 0 · `typecheck` 오류 0 · `export:android` PASS(모듈 1423개, Android 번들 3.2MB, 약 14초) · `npm ls --depth=0` 누락·불일치 없음 · 보드 `check.mjs` 0건. 모두 종료 코드 0. 단위 테스트·E2E·visual regression은 **없음** — 도구 미도입(AGENTS 2장). 사용자 결정(2026-09-27): 지금은 도입하지 않는다. install은 이미 설치돼 있고 Metro가 실행 중이라 미실행
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved
@@ -187,7 +188,7 @@
 
 ## Next Action
 
-발표 시안·디자인 리뷰 반영을 재검토 받는 중이다. 그 뒤에 Step 11(자동 검증)로 넘어간다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
+발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다(위 검증 기록). 다음은 Step 12(Spec Update) — 이번에 새로 정한 것을 정본에 다시 반영한다. 단위 테스트·E2E·visual regression 도입 시점은 실제 백엔드 연결 뒤 다시 정한다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
 
 2026-09-27에 한 것: 2026-09-26 최종 발표 시안과 Figma 디자인 리뷰 댓글 9건을 반영해 화면을 다시 만들었고(주요 버튼 남색, 흰 헤더, TOP3 시상대, 홈 순서 변경, 입력 3단계 표시), PULSE 로고·SVG 아이콘·손님 캐릭터를 넣었으며, Figma 보드를 새 디자인으로 다시 뽑고 인증·로딩 보드 2장을 더했다. Figma MCP는 Starter 플랜 호출 한도에 걸려 파일을 직접 고치지 못했고, 기존과 같은 SVG import 방식으로 만들었다. Step 9~10에서 남은 것: 실제 백엔드 연결(§11 공백 해소 후), Google 로그인과 계정 탈퇴(결정 대기), 실패 상태 재현, 오프라인·키보드·TalkBack·실기기 확인. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
