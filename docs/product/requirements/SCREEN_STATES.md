@@ -444,7 +444,7 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 
 | 상태 | 결과 | 근거 캡처 |
 |---|---|---|
-| `AUTH-FIELD-ERROR` — 확인 불일치 | 확인 | `signup-confirm-01-mismatch.png` — 요청 없이 확인 칸에 오류 |
+| `AUTH-FIELD-ERROR` — 확인 불일치 | 확인 | `signup-confirm-01-mismatch.png` — 확인 칸에 오류, 화면 유지. 요청을 보내지 않는 것은 코드 기준 |
 | `AUTH-FIELD-ERROR` — 확인 누락 | 확인 | `signup-confirm-02-empty.png` |
 | `AUTH-CONSENT-OUTDATED` | 확인 (임시 코드로 재현) | `signup-confirm-03-consent-outdated.png` — 이메일·전화번호 보존, 비밀번호·확인 모두 지움. 가상 서버에 임시 분기를 넣어 재현하고 되돌렸다 |
 | `AUTH-SIGNUP-EDITING` → `AUTH-SIGNUP-CREATED` → `APP-FIRST-ANALYSIS-REQUIRED` | 확인 | `signup-confirm-04-match.png`, `signup-confirm-05-created.png` |

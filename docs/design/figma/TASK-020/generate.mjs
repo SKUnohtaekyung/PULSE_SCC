@@ -750,12 +750,12 @@ const screenSignup = ({ outdated = false } = {}) => {
   const inner =
     field(PAD + 20, y + 20, W - 40, '이메일', 'owner@example.com') +
     field(PAD + 20, y + 120, W - 40, '비밀번호', '8자 이상', { placeholder: true }) +
-    field(PAD + 20, y + 220, W - 40, '비밀번호 확인', '한 번 더 입력', { placeholder: true }) +
+    field(PAD + 20, y + 220, W - 40, '비밀번호 확인', '', { placeholder: true }) +
     field(PAD + 20, y + 320, W - 40, '전화번호', '010-1234-5678', { placeholder: true });
   body += card(PAD, y, W, 420, inner);
   y += 436;
   // 안내가 붙으면 약관 동의·가입하기는 첫 화면 아래로 밀린다. 앱은 스크롤하므로 보드는 첫 화면만 그린다.
-  if (y + 72 + 52 > PHONE_H) return body;
+  if (y + 28 + 72 + 52 > PHONE_H) return body; // 제목 28 + 동의 두 줄 72 + 버튼 52
   body += text(PAD, y, '약관 동의', typography.body6, colors.text.strong);
   y += 28;
   [['이용약관 (v2026-09-01)'], ['개인정보 처리방침 (v2026-09-01)']].forEach(([label], index) => {

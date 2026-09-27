@@ -161,7 +161,7 @@
 - (발표 시안 반영) 사용자 제보 버그: 시상대에서 선택되지 않은 순위의 캐릭터가 사라짐 → `PersonaAvatar`의 둥근 클리핑을 원격 사진일 때만 쓰고 선택 테두리를 겹친 링으로 바꿨다. Android(Expo Go 강제 종료 후 재실행)에서 1·2·3위 선택을 캡처로 확인(evidence `fix-podium-*`). `verify:tokens`·`lint`·`typecheck` PASS, `export:android` 미실행
 - (발표 시안 반영) 6차 독립 Reviewer: PASS(차단 0·권고 5). R1(원 테두리 두께)·R2(README 사각지대)·R4(캐릭터 어깨가 원 밖으로 나옴 → SVG ClipPath)를 반영하고 Expo Go 재실행 뒤 다시 캡처했다. 7차 리뷰: FAIL(차단 1 — R1 정규식 오타로 두께가 늘 1로 읽힘) → 오타를 고치고 민감도 실험으로 확인. 권고(`</G>` 들여쓰기, 입 Path fill 누락, handoff 리뷰 요청 절 낡음, "R1 반영" 문구가 사실과 다름)도 반영했다. 8차 독립 Reviewer: PASS(차단 0·권고 3 — Last Verified Commit 설명, evidence README 캡처 방법 두 줄 모순, 불릿 붙음) → 문서만 정리했다. R3(보드 유형 2개 화면에 상세 섹션 없음·유형 0개 이미지 고지 문구)는 이번 변경 전부터 있던 차이로 남긴다. R5는 Last Verified Commit 갱신으로 반영
 - (Step 11 자동 검증, 2026-09-27, `40a1c4a` 기준) `verify:tokens` PASS · `lint` 경고·오류 0 · `typecheck` 오류 0 · `export:android` PASS(모듈 1423개, Android 번들 3.2MB, 약 14초) · `npm ls --depth=0` 누락·불일치 없음 · 보드 `check.mjs` 0건. 모두 종료 코드 0. 단위 테스트·E2E·visual regression은 **없음** — 도구 미도입(AGENTS 2장). 사용자 결정(2026-09-27): 지금은 도입하지 않는다. install은 이미 설치돼 있고 Metro가 실행 중이라 미실행
-- (가입 비밀번호 확인 칸, 2026-09-28) `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, 보드 `check.mjs` 0건. Android에서 불일치·누락·약관 변경(임시 fixture 분기로 재현 후 되돌림)·일치 → 가입 성공을 캡처 5장으로 확인(`signup-confirm-*`, SCREEN_STATES §13 9차). 200%·TalkBack·실기기 미실행. 독립 Reviewer: 아래 인계 문서 참고
+- (가입 비밀번호 확인 칸, 2026-09-28) `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, 보드 `check.mjs` 0건. Android에서 불일치·누락·약관 변경(임시 fixture 분기로 재현 후 되돌림)·일치 → 가입 성공을 캡처 5장으로 확인(`signup-confirm-*`, SCREEN_STATES §13 9차). 200%·TalkBack·실기기 미실행. 독립 Reviewer PASS(차단 0·P3 4 반영)
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved

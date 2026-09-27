@@ -18,14 +18,13 @@
 | 통합 테스트 인계 문서 | 끝남. [frontend/mobile/INTEGRATION_GUIDE.md](../../../frontend/mobile/INTEGRATION_GUIDE.md) |
 | GitHub 업로드·PR | 끝남. 이 인계의 범위 밖이다. 사용자가 다시 말하기 전에는 push·PR·병합을 하지 않는다 |
 
-## 진행 중 (2026-09-27 밤, 사용량 한도로 중단)
+## 끝남 — 가입 비밀번호 확인 칸 (2026-09-28)
 
-"남은 일 2번(비밀번호 확인)"을 먼저 하고 있다.
+"남은 일 2번(비밀번호 확인)"을 끝냈다. 독립 Reviewer **PASS**(차단 0·P3 4 — 인계 문서 모순, 보드 확인 칸의 흐린 글씨가 앱에 없음, 보드 잘림 판정식에 제목 높이 누락, "요청 없이"가 코드 기준임을 안 밝힘 → 모두 반영하고 `check.mjs` 0건 재확인). 사용자 확인 뒤 1번(Figma)으로 간다.
 
 - 끝남: `SignupScreen.tsx`에 `비밀번호 확인` 칸(비어 있음·불일치 필드 오류, 서버 미전송, 약관 변경 시 함께 지움, 비밀번호가 바뀌면 확인 오류도 지움). `SCREEN_STATES.md` §3.2의 `AUTH-SIGNUP-EDITING`·`AUTH-CONSENT-OUTDATED`·`AUTH-FIELD-ERROR` 행, `DESIGN_SYSTEM.md` CredentialForm 행 갱신. 보드 09 `generate.mjs`에 칸 추가 — `Signup-ConsentOutdated`는 한 화면에 안 들어가 약관 동의·가입하기를 그리지 않고 캡션에 "스크롤 아래"로 적었다.
 - 실행 결과: `check.mjs` 0건(종료 0), `verify:tokens`·`lint`·`typecheck`·`export:android` 모두 종료 0.
 - 2026-09-28: 에뮬레이터 캡처 5장(`signup-confirm-*`)과 evidence README·SCREEN_STATES §13 9차 기록 끝남. 약관 변경은 임시 fixture 분기로 재현하고 되돌렸다.
-- 다음 할 일: ① reviewer 독립 검토(진행 중이면 결과 확인) ② 사용자 보고 후 1번(Figma)으로.
 - `PRD.md`·기능명세는 "필수로 받는 정보"라 확인 칸(서버 미전송)과 충돌하지 않아 고치지 않았다. `INTEGRATION_GUIDE.md`·`frontend/mobile/README.md`는 가입 칸 목록이 없어 고칠 것 없음(grep 확인).
 
 ## 남은 일
@@ -44,9 +43,9 @@
 - **넣은 뒤 할 일:** 글꼴 대체 여부를 확인한다. 2026-09-22에는 Pretendard가 없어 Inter로 바뀌었고, Gothic A1로 교정했다(보드 README "Import 결과"). 스크린샷으로 확인하고 [보드 README](../../design/figma/TASK-020/README.md)의 Import 결과와 상태 정본 Unresolved 13을 갱신한다.
 - **주의:** 보드를 다시 만들 일이 생기면 `generate.mjs` 뒤에 반드시 `check.mjs`를 돌린다. 보드 문구·배치의 기준은 앱 코드다.
 
-### 2. 이메일 가입에 "비밀번호 확인" 칸 추가 (사용자 요청, 2026-09-27)
+### 2. 이메일 가입에 "비밀번호 확인" 칸 추가 (사용자 요청, 2026-09-27) — **끝남 (2026-09-28). 위 "끝남" 절 참고. 아래는 당시 작업 지시 기록이다**
 
-- **현재:** `frontend/mobile/src/features/auth/SignupScreen.tsx`에는 비밀번호 칸이 하나뿐이다(이메일·비밀번호·전화번호·약관 동의). 코드·`docs/product`·`API.md`·`DESIGN_SYSTEM.md` 어디에도 "비밀번호 확인"이 없다(2026-09-27 grep 0건).
+- **당시 상태(2026-09-27):** `SignupScreen.tsx`에는 비밀번호 칸이 하나뿐이었다.
 - **정본에 먼저 반영:** `SCREEN_STATES.md`의 `AUTH-SIGNUP-EDITING` 행은 "이메일·비밀번호·전화번호"라고 적혀 있다. AGENTS 8장 순서대로 요구사항을 먼저 확인하고, 이 행과 가입 관련 절을 grep으로 찾아 함께 고친다. `docs/product/**`는 `role:product` 소유라 변경을 handoff에 적는다.
 - **구현할 것:** 비밀번호 아래에 확인 칸을 둔다. 두 값이 다르면 제출 전에 필드 오류를 보여 준다(기존 `errors` 방식, 문구 예: "비밀번호가 서로 달라요."). 확인 값은 **서버에 보내지 않는다** — `POST /api/v1/auth/register` 계약은 바뀌지 않는다. 약관이 바뀌어 비밀번호를 지우는 경우(`AUTH-CONSENT-OUTDATED`)에는 확인 칸도 함께 지운다. 입력 중 오류 지우기, 보안 입력(`secureTextEntry`), 자동완성 속성도 기존 비밀번호 칸과 맞춘다.
 - **함께 고칠 것:** Figma 보드 09(인증)의 가입 화면 중 입력 칸이 있는 `Signup-Editing`·`Signup-ConsentOutdated`에 칸을 추가한다(`Signup-LegalLoading`은 칸이 없다). `generate.mjs` → `check.mjs` 0건을 확인하고, 화면 높이가 넘치면 간격을 조정한다. `INTEGRATION_GUIDE.md`는 가입 칸을 다루지 않으니 바꿀 필요가 없는지만 확인한다.
