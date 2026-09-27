@@ -151,8 +151,8 @@
 - (Step 10) 4차 독립 Reviewer: **코드 P1 0·P2 0**. FAIL(P3 4건 — 문서가 코드와 어긋남: 이미 지운 footer 배경색을 있다고 적음, 캡처 매수 5장↔7장, 실재하지 않는 DESIGN_SYSTEM §13 기록 참조, 미확인 항목 중복) → 문서만 정정
 - (Step 10) **5차 독립 Reviewer: PASS**(P1 0·P2 0·P3 4 — 검토 이력 기록 누락). P3는 이 기록으로 반영
 - (발표 시안 반영) `verify:tokens`·`lint`·`typecheck`·`export:android`: PASS (2026-09-27)
-- (발표 시안 반영) Android Visual QA: PASS — 로그인 → 입력 3단계 → 진행 → 첫 저장 → 홈 시상대 → 상세·제안을 실행하고 캡처 7장(`redesign-01`~`07`). 글자 크기 200%와 가로 화면을 다시 실행했고, 분석 정보 3열이 200%에서 날짜를 쪼개는 것을 찾아 세로로 쌓도록 고친 뒤 재확인
-- (발표 시안 반영) 독립 Reviewer: 1차 FAIL(P1 3 — 활성 탭 아이콘 대비 1.28:1, DESIGN_SYSTEM §3.6·§4.1이 코드와 반대, P2 7) → 반영 / 2차 FAIL(P1 2 — §13이 §3.6과 충돌, 보드 10개 화면의 안 보이는 상태 표시줄, P2 7·P3 4) → 반영
+- (발표 시안 반영) Android Visual QA: PASS — 로그인 → 입력 3단계 → 진행 → 첫 저장 → 홈 시상대 → 상세·제안을 실행하고 캡처 6장(`redesign-01`·`03`~`07`. `02`는 결번). 글자 크기 200%와 가로 화면을 다시 실행했고, 분석 정보 3열이 200%에서 날짜를 쪼개는 것을 찾아 세로로 쌓도록 고친 뒤 재확인
+- (발표 시안 반영) 독립 Reviewer: 1차 FAIL(P1 3 — 활성 탭 아이콘 대비 1.28:1, DESIGN_SYSTEM §3.6·§4.1이 코드와 반대, P2 7) → 반영 / 2차 FAIL(P1 2 — §13이 §3.6과 충돌, 보드 10개 화면의 안 보이는 상태 표시줄, P2 7·P3 4) → P1·P2 전부와 P3 일부 반영. P3 3건(검사 이름, 배열 길이 단언, `StepIndicator`의 `✓`와 TalkBack)은 판단해 보류했고 3차 리뷰가 그 판단이 타당하다고 확인했다
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved
@@ -168,7 +168,9 @@
 9. SecureStore를 쓸 수 없는 기기에서 앱을 다시 켜면 로그인 화면으로 돌아가는데, 그 이유를 사용자에게 알리는 방법이 정해지지 않았다. `frontend/mobile/src/session/storage.ts` 주석에만 있었고 정본 어디에도 없어 여기에 등재한다. 지원 기기 범위(DESIGN_SYSTEM §13)가 정해진 뒤에 정한다.
 10. 확인 대화상자가 열렸다는 사실을 TalkBack에 알리는 수단이 없다(`accessibilityLiveRegion`·`announceForAccessibility` 모두 없음). Android 네이티브 `Modal`의 윈도 전환 안내에 기대고 있다. DESIGN_SYSTEM §8이 지원 기기·TalkBack 조합 미확정을 이유로 네이티브 접근성 완료 판정을 보류했으므로 그 결정과 함께 정한다.
 11. `HomeScreen`의 `첫 분석 시작하기`는 `router.replace('/analyze')`다. 저장본이 없는 홈은 돌아갈 화면이 없어 의도한 단방향 전환이지만, 스택 깊이 가정이 걸린 지점이라 기록해 둔다(Step 10 5차 리뷰).
-12. **브랜치와 TASK가 어긋나 있다.** 이 문서의 `Branch`는 `docs/TASK-020-frontend-state-model`이지만 Step 3~10 작업은 전부 `docs/TASK-019-step0-rebaseline` 브랜치에서 했다. PR을 TASK-019와 TASK-020으로 나눌지, 한 PR로 낼지 사용자가 정한다(AGENTS 6.2 — PR은 TASK 1개에 대응).
+12. `StepIndicator`의 끝난 단계에 붙인 `✓`가 라벨 본문에 섞여 있다. TalkBack이 기호를 그대로 읽을 수 있는데 실행하지 못해 미확인이다. 보조기술 검증을 할 때 함께 본다.
+13. **Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)이 2026-09-22 보드 8장 그대로다.** 2026-09-27 갱신분과 새 보드 2장을 넣지 못했다. Figma MCP가 Starter 플랜 호출 한도에 걸린다. 한도가 풀리거나 플랜을 올리면 import한다. 그때까지 디자인 정본은 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
+14. **브랜치와 TASK가 어긋나 있다.** 이 문서의 `Branch`는 `docs/TASK-020-frontend-state-model`이지만 Step 3~10 작업은 전부 `docs/TASK-019-step0-rebaseline` 브랜치에서 했다. PR을 TASK-019와 TASK-020으로 나눌지, 한 PR로 낼지 사용자가 정한다(AGENTS 6.2 — PR은 TASK 1개에 대응).
 
 ## Do Not Assume
 
@@ -186,4 +188,4 @@
 
 ## Last Verified Commit
 
-`d6f1219` — Figma 보드 재생성까지 담은 커밋. 그 뒤 리뷰 반영은 작업 트리에 있고, 커밋 뒤 이 줄을 갱신한다.
+`c2127b4` — Figma 보드·문서의 2차 리뷰 반영까지 담은 커밋.

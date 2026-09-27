@@ -39,8 +39,11 @@ const roundedTop = (x, y, w, h, { fill = 'none', stroke, dash, r = radii.control
 const spinnerArc = (cx, cy, r) =>
   `<path d="M ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="${colors.brand.primary}" stroke-width="3" stroke-linecap="round"/>`;
 
-const circle = (cx, cy, r, { fill = 'none', stroke, sw = strokes.hairline } = {}) =>
-  `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width="${sw}"` : ''}/>`;
+const circle = (cx, cy, r, { fill = 'none', stroke, sw = strokes.hairline, dash } = {}) =>
+  `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"` +
+  (stroke ? ` stroke="${stroke}" stroke-width="${sw}"` : '') +
+  (dash ? ` stroke-dasharray="${dash}"` : '') +
+  '/>';
 
 const line = (x1, y1, x2, y2, { stroke = colors.border.strong, sw = strokes.hairline, dash } = {}) =>
   `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;
@@ -93,8 +96,9 @@ const PHONE_W = 360;
 const PHONE_H = 800;
 const PAD = spacing[4];
 
-const statusBar = (tone) => {
-  const ink = tone === 'light' ? colors.text.inverse : colors.text.primary;
+// 상단 배경이 모두 흰색이라 글자도 하나뿐이다. 네이비 헤더가 있던 시절의 light 분기는 지웠다.
+const statusBar = () => {
+  const ink = colors.text.primary;
   return (
     text(PAD, 4, '9:41', typography.body6, ink) +
     rect(PHONE_W - 48, 10, 22, 11, { stroke: ink, r: 3 }) +
@@ -102,7 +106,7 @@ const statusBar = (tone) => {
   );
 };
 
-const phone = (name, caption, content, { statusTone = 'dark', background = colors.background.canvas, top = colors.background.canvas, overlay = '' } = {}) =>
+const phone = (name, caption, content, { background = colors.background.canvas, top = colors.background.canvas, overlay = '' } = {}) =>
   group(
     `Screen/${name}`,
     text(0, -40, caption, typography.body5, colors.text.strong) +
@@ -111,7 +115,7 @@ const phone = (name, caption, content, { statusTone = 'dark', background = color
       rect(0, 0, PHONE_W, PHONE_H, { fill: background }) +
       rect(0, 0, PHONE_W, 32, { fill: top }) +
       content +
-      statusBar(statusTone) +
+      statusBar() +
       overlay +
       '</g>' +
       rect(0, 0, PHONE_W, PHONE_H, { stroke: colors.border.strong, r: radii.panel, sw: 2 }),
@@ -207,7 +211,7 @@ const appHeader = ({ brand = false, label, badge } = {}) =>
     rect(0, 0, PHONE_W, HEADER_H, { fill: colors.background.surface }) +
       line(0, HEADER_H, PHONE_W, HEADER_H, { stroke: colors.border.default }) +
       (brand ? text(PAD, 44, 'PULSE', typography.body1, colors.brand.primary, { weight: 700 }) : '') +
-      (label ? text(PAD, 46, label, typography.body6, colors.text.strong) : '') +
+      (label ? text(PAD + (brand ? 72 : 0), 46, label, typography.body6, colors.text.strong) : '') +
       (badge
         ? rect(PHONE_W - PAD - (measure(badge, typography.body7.fontSize) + 24), 46, measure(badge, typography.body7.fontSize) + 24, 28, {
             fill: colors.background.emphasized,
@@ -310,17 +314,6 @@ const bottomNav = (active) => {
   );
 };
 
-const warningNotice = (x, y, w, lines) => {
-  const list = Array.isArray(lines) ? lines : [lines];
-  const h = 32 + list.length * typography.body6.lineHeight;
-  return group(
-    'Notice/Warning',
-    rect(x, y, w, h, { fill: colors.background.surface, stroke: colors.border.default, r: radii.control }) +
-      rect(x, y, 4, h, { fill: colors.status.warning }) +
-      text(x + 18, y + 16, '!', typography.body5, colors.status.warningText) +
-      text(x + 34, y + 16, list, typography.body6, colors.text.primary),
-  );
-};
 
 /**
  * 앱의 `components/ui/Notice`와 같은 모양. 전체 테두리 + 색 있는 제목 + 본문이고,
@@ -403,7 +396,7 @@ const analysisInfo = (y, { date = '2026.09.18', collected = 84, valid = 59 } = {
         .join('') +
       text(PAD + 20, y + 104, ['모은 리뷰 ' + collected + '건 가운데 겹치거나 내용이 없는', '리뷰를 빼고 ' + valid + '건을 썼어요.'], typography.body7, colors.text.secondary) +
       rect(PAD + 16, y + 148, w - 32, 28, { fill: colors.background.emphasized, r: radii.control }) +
-      text(PAD + 28, y + 153, '리뷰를 남긴 손님 기준이라 전체 손님과 다를 수 있어요.', typography.caption, colors.text.secondary),
+      text(PAD + 28, y + 153, '리뷰를 남긴 손님 기준이에요.', typography.caption, colors.text.secondary),
   );
 };
 
@@ -433,9 +426,9 @@ const guestCharacter = (cx, cy, size, variant = 0) => {
 const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
   const x0 = PAD;
   const w = PHONE_W - PAD * 2;
-  const H = 268;
-  let body = text(x0, y - 38, title, typography.head5, colors.text.strong);
-  body += text(x0 + w, y - 32, '리뷰 수 순서', typography.caption, colors.text.secondary, { anchor: 'end' });
+  const H = 306;
+  let body = text(x0, y - 60, '리뷰 수 순서', typography.caption, colors.text.secondary);
+  body += text(x0, y - 38, title, typography.head5, colors.text.strong);
   body += rect(x0, y, w, H, { fill: colors.background.surface, stroke: colors.border.default, r: radii.panel });
 
   const order = [1, 0, 2]; // 화면 왼쪽부터 2위 · 1위 · 3위
@@ -443,7 +436,7 @@ const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
   const blockH = { 0: 80, 1: 56, 2: 48 };
   const gap = spacing[2];
   const colW = (w - 40 - gap * 2) / 3;
-  const baseline = y + H - 40; // 단상 바닥선
+  const baseline = y + H - 58; // 단상 바닥선
 
   order.forEach((slotIndex, column) => {
     const slot = slots[slotIndex];
@@ -457,7 +450,7 @@ const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
       body += group(
         'PodiumSlot/Empty',
         circle(cx, blockY - 56, first ? 48 : 40, { stroke: colors.border.strong, sw: strokes.hairline, dash: '6 4' }) +
-          text(cx, blockY - 18, slot.reason, typography.caption, colors.text.secondary, { anchor: 'middle' }) +
+          text(cx, blockY - 8 - Math.min(2, (Array.isArray(slot.reason) ? slot.reason.length : 1)) * typography.caption.lineHeight, (Array.isArray(slot.reason) ? slot.reason.slice(0, 2) : slot.reason), typography.caption, colors.text.secondary, { anchor: 'middle' }) +
           roundedTop(cx - colW / 2, blockY, colW, bh, {
             fill: colors.background.subtle,
             stroke: colors.border.default,
@@ -483,7 +476,7 @@ const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
     );
   });
 
-  body += text(x0 + 20, y + H - 28, '그림은 AI로 만든 가상 이미지예요. 실제 손님이 아니에요.', typography.caption, colors.text.secondary);
+  body += text(x0 + 20, y + H - 26, '그림은 AI로 만든 가상 이미지예요.', typography.caption, colors.text.secondary);
   return group('Podium', body);
 };
 
@@ -497,15 +490,21 @@ const fullPodium = [
 
 const W = PHONE_W - PAD * 2;
 
-const inputTitles = ['가게 이름을 알려 주세요', '어떤 업종인가요?', '네이버 가게 주소를 붙여 넣어 주세요'];
+const inputTitles = [
+  '가게 이름을 알려 주세요',
+  '어떤 업종인가요?',
+  // 한 줄이면 프레임을 넘는다. SVG는 자동 줄바꿈이 없으므로 여기서 나눈다.
+  ['네이버 가게 주소를', '붙여 넣어 주세요'],
+];
 
 const screenInput = (step, { reanalysis = false, errors = {}, notice = false } = {}) => {
   let body = appHeader({ label: '분석하기' });
   let y = HEADER_H + 20;
   body += stepIndicator(PAD, y, W, step - 1);
   y += 48;
-  body += pageTitle(PAD, y, inputTitles[step - 1]);
-  y += 52;
+  const titleLines = inputTitles[step - 1];
+  body += pageTitle(PAD, y, titleLines);
+  y += 26 + (Array.isArray(titleLines) ? titleLines.length : 1) * typography.head3.lineHeight;
   if (notice) {
     body += card(PAD, y, W, 48, text(PAD + 16, y + 13, '입력한 내용은 그대로 두었어요.', typography.body6, colors.text.primary), { r: radii.control });
     y += 64;
@@ -545,7 +544,7 @@ const screenInput = (step, { reanalysis = false, errors = {}, notice = false } =
 };
 
 const summaryCard = (y) =>
-  card(PAD, y, W, 56, text(PAD + 16, y + 16, '영등원조쌈밥 · 한식 · naver.me/…', typography.body7, colors.text.primary) + text(PAD + W - 16, y + 16, '입력 보기', typography.body6, colors.text.brand, { anchor: 'end' }), { r: radii.control });
+  card(PAD, y, W, 56, text(PAD + 16, y + 16, '영등원조쌈밥 · 한식', typography.body7, colors.text.primary) + text(PAD + W - 16, y + 16, '입력 보기', typography.body6, colors.text.brand, { anchor: 'end' }), { r: radii.control });
 
 const screenProgress = () =>
   appHeader({ label: '분석하기' }) +
@@ -582,9 +581,9 @@ const screenFirstSaved = () =>
 const screenHome = (slots = fullPodium, heroBody) =>
   appHeader({ brand: true, badge: '저장된 결과' }) +
   text(PAD, HEADER_H + 20, '영등원조쌈밥', typography.head3, colors.text.strong) +
-  podium(HEADER_H + 104, slots) +
-  (heroBody ? text(PAD, HEADER_H + 388, heroBody, typography.body7, colors.text.secondary) : '') +
-  analysisInfo(HEADER_H + 420) +
+  (heroBody ? text(PAD, HEADER_H + 62, heroBody, typography.body7, colors.text.secondary) : '') +
+  podium(HEADER_H + (heroBody ? 172 : 128), slots) +
+  analysisInfo(HEADER_H + (heroBody ? 512 : 468)) +
   bottomNav('home');
 
 const saveBar = (y) =>
@@ -598,10 +597,10 @@ const saveBar = (y) =>
   );
 
 const screenPreview = () =>
-  resultHeader() +
-  warningNotice(PAD, 84, W, ['새 분석 결과예요.', '아직 저장된 결과를 바꾸지 않았어요.']) +
-  resultHero(168, { eyebrow: '새 분석 결과 · 저장 전', date: '2026.09.20' }) +
-  podium(448, fullPodium) +
+  appHeader({ label: '새 분석 결과', badge: '아직 저장하지 않음' }) +
+  text(PAD, HEADER_H + 16, '영등원조쌈밥', typography.head3, colors.text.strong) +
+  text(PAD, HEADER_H + 58, '네이버 리뷰 131건 · 2026.09.20 분석', typography.body7, colors.text.secondary) +
+  podium(HEADER_H + 152, fullPodium) +
   saveBar(PHONE_H - 184);
 
 const behindDialog = () => {
@@ -672,10 +671,10 @@ const centerBlock = (message) => {
   const y = 340;
   return group(
     'LoadingBlock',
-    rect(PAD, y, W, 120, { fill: colors.background.emphasized, r: radii.panel }) +
+    rect(PAD, y, W, 120, { fill: colors.background.emphasized, r: radii.control }) +
       circle(180, y + 44, 12, { stroke: colors.border.control, sw: 3 }) +
       spinnerArc(180, y + 44, 12) +
-      text(180, y + 70, message, typography.body4, colors.text.secondary, { anchor: 'middle' }),
+      text(180, y + 70, message, typography.body7, colors.text.secondary, { anchor: 'middle' }),
   );
 };
 
@@ -690,8 +689,8 @@ const screenBootError = () =>
 const screenLogin = ({ expired = false, error = false } = {}) => {
   let body = appHeader({ brand: true });
   let y = HEADER_H + 20;
-  body += pageTitle(PAD, y, '가게 리뷰에서 손님을 읽어요', '네이버 공개 리뷰를 모아 어떤 손님이');
-  y += 96;
+  body += pageTitle(PAD, y, ['가게 리뷰에서', '손님을 읽어요'], '네이버 공개 리뷰를 모아 어떤 손님이');
+  y += 130;
   if (expired) {
     body += errorNotice(PAD, y, W, '로그인이 만료됐어요', ['보안을 위해 일정 시간이 지나면 다시', '로그인해야 해요.'], { tone: 'warning' });
     y += 120;
@@ -714,7 +713,7 @@ const screenLogin = ({ expired = false, error = false } = {}) => {
 const screenSignupLegalLoading = () =>
   appHeader({ label: '회원가입' }) +
   pageTitle(PAD, HEADER_H + 20, '이메일로 가입해요') +
-  centerBlock('이용약관과 개인정보 처리방침을 불러오고 있어요.');
+  centerBlock(['이용약관과 개인정보 처리방침을', '불러오고 있어요.']);
 
 const screenSignup = ({ outdated = false } = {}) => {
   let body = appHeader({ label: '회원가입' });
@@ -955,7 +954,9 @@ const boardComponents = () => {
   body += text(1460, 548, ['done · running · paused(실패 뒤 멈춤) · failed', '앞으로 올 단계는 그리지 않는다'], typography.caption, colors.text.secondary);
 
   body += col(64, 620, 'Notice');
-  body += warningNotice(64, 660, 560, '새 분석 결과예요. 아직 저장된 결과를 바꾸지 않았어요.');
+  body += errorNotice(64, 660, 272, '새 분석 결과예요', ['아직 저장된 결과를 바꾸지 않았어요.'], { tone: 'warning' });
+  body += errorNotice(352, 660, 272, '결과를 불러오지 못했어요', ['저장본은 그대로 있어요.']);
+  body += text(64, 736, 'components/ui/Notice — warning · error. 전체 테두리 + 색 있는 제목', typography.caption, colors.text.secondary);
   body += col(64, 760, 'BottomNavigation');
   body += group('BottomNavigation/home', bottomNav('home'), 64, 800 - (PHONE_H - 72)) + text(64, 880, 'home 선택 — 가운데 분석하기는 오렌지', typography.caption, colors.text.secondary);
   body += group('BottomNavigation/analysis', bottomNav('analysis'), 64, 920 - (PHONE_H - 72)) + text(64, 1000, ['analysis 선택 — 가운데를 네이비로 바꿔', '지금 그 화면에 있다는 사실을 알린다'], typography.caption, colors.text.secondary);

@@ -2,9 +2,11 @@
 
 ## Status
 
-Step 5 합성안([synthesis/TASK-020](../../synthesis/TASK-020/README.md))을 팀 Figma에 옮기기 위한 SVG 보드 8장이다. 범위는 **Step 5 합성 범위**(입력·진행·첫 저장·새 결과 미리보기 네 화면과 결과 상태 네 가지)이고, 첫 Vertical Slice(SCREEN_STATES §10)와 같지 않다. [발표 자료](../../../presentation/README.md)와 같은 방식으로 SVG를 만들어 Figma에 넣는다(2026-09-22 사용자 선택).
+Step 5 합성안([synthesis/TASK-020](../../synthesis/TASK-020/README.md))을 팀 Figma에 옮기기 위한 SVG 보드 10장이다. 2026-09-22에 Step 5 합성 범위로 8장을 만들었고, 2026-09-27에 인증·로딩·빈 상태 보드 2장을 더하면서 화면 보드를 새 디자인으로 다시 뽑았다. [발표 자료](../../../presentation/README.md)와 같은 방식으로 SVG를 만들어 Figma에 넣는다(2026-09-22 사용자 선택).
 
-**2026-09-22 import 완료:** https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — `lawyland` 팀의 내 드래프트, 파일 `PULSE TASK-020 Vertical Slice`, 페이지 `TASK-020 Vertical Slice`. 팀 공용 파일로 옮기는 것은 사용자가 정한다.
+**2026-09-22 import:** https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — `lawyland` 팀의 내 드래프트, 파일 `PULSE TASK-020 Vertical Slice`, 페이지 `TASK-020 Vertical Slice`. 팀 공용 파일로 옮기는 것은 사용자가 정한다.
+
+> **Figma 파일은 2026-09-22 보드 8장 그대로다.** 2026-09-27 갱신분(새 디자인 + 09·10)은 아직 넣지 못했다. Figma MCP가 Starter 플랜 호출 한도에 걸려 파일을 직접 고칠 수 없었다. 지금 디자인 정본은 이 폴더의 SVG와 앱 코드이고, Figma 파일은 구버전이다.
 
 정본 관계:
 
@@ -25,7 +27,8 @@ Figma와 코드·문서가 다르면 코드·문서가 맞다(AGENTS.md 4장). F
 docs/design/figma/TASK-020/
 ├─ README.md       이 문서
 ├─ generate.mjs    svg/를 만드는 스크립트 (토큰을 foundation.ts에서 읽는다)
-└─ svg/            Figma에 넣을 보드 8장
+├─ svg/            Figma에 넣을 보드 10장
+└─ check.mjs      보드의 프레임 이탈·글자 겹침 검사
 ```
 
 | 파일 | 내용 | preview.html Step 6 항목 |
@@ -85,7 +88,10 @@ docs/design/figma/TASK-020/
 
 ```bash
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/generate.mjs
+node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/check.mjs
 ```
+
+생성 뒤에는 반드시 `check.mjs`를 돌린다. 문구를 한 글자만 늘려도 프레임을 넘길 수 있다.
 
 `frontend/mobile/node_modules`가 있어야 한다(이미지 축소에 `jimp-compact`를 쓴다). 설치는 `npm --prefix frontend/mobile install`.
 
@@ -100,9 +106,22 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/g
 
 ## 검증 범위
 
-- 8장을 브라우저로 렌더링해 겹침·넘침을 눈으로 확인했다. 이 PC에는 Pretendard가 시스템 글꼴로 없어 대체 글꼴로 렌더링됐다. 독립 리뷰에서 Pretendard OTF를 로드해 다시 렌더링했을 때 눈에 띄는 넘침은 없었다.
-- 글자 폭은 근사(`measure()`: 한글 1.0배, 라틴 0.56배)이고 자동 줄바꿈이 없다. 긴 문장은 스크립트에서 줄을 직접 나눈다. 문구를 바꾸면 넘침을 다시 확인한다.
+### 2026-09-27 (보드 10장)
+
+- `check.mjs`로 **프레임 이탈·글자 겹침을 기계로 검사한다.** 사람이 눈으로 보는 것만으로는 놓친다 — 독립 리뷰가 좌표를 직접 재서 이탈 6건과 겹침 17건을 찾았고, 그래서 검사를 스크립트로 고정했다. 현재 결과는 **0건**이다.
+
+  ```bash
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/check.mjs
+  ```
+
+- 05·09·10 세 장은 PNG로 렌더링해 눈으로도 확인했다. 나머지 일곱 장은 `check.mjs`만 돌렸다.
+- 이 PC에 Pretendard가 없어 렌더 미리보기에서는 한글이 네모로 보인다. Figma에 넣으면 정상이다.
+- 글자 폭은 근사(`measure()`: 한글 1.0배, 라틴 0.56배)이고 자동 줄바꿈이 없다. 긴 문장은 스크립트에서 줄을 직접 나눈다. `check.mjs`가 같은 근사식을 쓰므로 문구를 바꾸면 검사에 걸린다.
+
+### 2026-09-22 (보드 8장, 그때 기준)
+
+- 8장을 브라우저로 렌더링해 겹침·넘침을 눈으로 확인했다. 독립 리뷰에서 Pretendard OTF를 로드해 다시 렌더링했을 때 눈에 띄는 넘침은 없었다.
 - 레이어 id는 보드 안에서 겹치지 않게 번호를 붙였다. 대화상자 뒤 배경 화면(07)의 페르소나 이미지는 용량을 줄이려고 회색 사각형으로 대체했다.
-- 실제 Figma import 결과는 위 "Import 결과"에서 확인했다. 8장 모두 화면으로 보고 글자 잘림·겹침·이미지 누락이 없음을 확인했다.
+- 2026-09-22 import 결과는 위 "Import 결과"에서 확인했다. 그때 8장 모두 화면으로 보고 글자 잘림·겹침·이미지 누락이 없음을 확인했다. 2026-09-27 갱신분은 아직 import하지 못했다.
 - Figma에서 컴포넌트·오토레이아웃으로 묶는 작업은 하지 않았다. 레이어 이름(`Button/Primary/분석하기` 등)만 그대로 들어가 있다. **2026-09-22 사용자 결정: 이 작업은 워크플로 10단계까지 마친 뒤 0~10단계 재검토 때 한다.**
 - 보드는 Android 렌더링과 픽셀 단위로 같지 않다. 간격·크기의 기준은 코드다.
