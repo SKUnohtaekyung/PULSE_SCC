@@ -1,84 +1,82 @@
-# TASK-020 — 세션 인계 (2026-09-27)
+# TASK-020 — 세션 인계 (2026-09-27 저녁)
 
-사용량 한도로 세션이 끊겨 새 대화에서 이어갈 때 읽는 문서다. 정본은 아니고 **인계용**이다.
-시스템 전체 상태는 [TASK-020-frontend-state-model.md](TASK-020-frontend-state-model.md)를 본다.
+새 대화에서 이어갈 때 **가장 먼저 읽는 문서**다. 정본은 아니고 인계용이다.
+시스템 전체 상태의 정본은 [TASK-020-frontend-state-model.md](TASK-020-frontend-state-model.md)다.
 
 ## 지금 어디까지 왔나
 
-워크플로 10단계(독립 검토)까지 통과한 뒤, 사용자가 **2026-09-26 최종 발표 시안(`PULSE 최종발표.pdf`, 저장소 밖)** 과
-**Figma 디자인 리뷰 댓글 9건**을 반영해 달라고 해서 화면을 다시 만들었다.
+작업 순서는 사용자가 준 `preview.html` 「최종 AI-Native 워크플로」 0~12단계다(한 단계씩, 끝나면 재검토 후 다음으로).
 
 | 갈래 | 상태 |
 |---|---|
-| 앱 화면 재구축 | **끝남.** 검증 4종 PASS, Android Visual QA·200%·가로 확인 |
-| 로고·아이콘·캐릭터 | **끝남.** 사용자가 준 PNG 반영, SVG 아이콘 3종·손님 캐릭터 신설 |
-| Figma 보드 | **SVG는 끝남.** 10장 생성, 기하 검사 0건. **Figma 파일에는 못 넣었다**(아래) |
-| 독립 리뷰 | **8차 PASS.** 11단계(자동 검증) 실행 완료, 다음은 12단계 |
-| 시상대 버그 | 선택되지 않은 순위 그림이 사라지던 것을 고치고 Android에서 확인했다(사용자 제보, 2026-09-27) |
+| 워크플로 0~10단계 | 끝남. Step 10 게이트는 5차 독립 Reviewer PASS |
+| 발표 시안·디자인 리뷰 반영 | 끝남. 반영분 독립 리뷰 8차 PASS |
+| 시상대 그림 버그 | 고침. 선택되지 않은 순위의 캐릭터가 사라지던 것(Android 둥근 클리핑). 캐릭터는 SVG 안에서 원으로 자른다 |
+| **11단계 자동 검증** | **끝남.** lint·typecheck·`export:android`·`verify:tokens`·보드 `check.mjs` 모두 통과. 테스트·E2E·visual regression은 도구가 없고 **지금은 도입하지 않기로 사용자가 정했다** |
+| **12단계 Spec Update** | **시작 전.** 사용자가 진행 여부를 아직 말하지 않았다 |
+| **Figma 파일 갱신** | **시작 전.** 파일이 2026-09-22 옛 보드 8장 그대로다(아래) |
+| 통합 테스트 인계 문서 | 끝남. [frontend/mobile/INTEGRATION_GUIDE.md](../../../frontend/mobile/INTEGRATION_GUIDE.md) |
+| GitHub 업로드·PR | 끝남. 이 인계의 범위 밖이다. 사용자가 다시 말하기 전에는 push·PR·병합을 하지 않는다 |
 
-## 바로 이어서 할 일
+## 남은 일
 
-1. **워크플로 11단계(자동 검증)는 실행했다(2026-09-27).** lint·typecheck·`export:android`·토큰·보드 검사 모두 통과. 테스트·E2E·visual regression은 도구가 없고 지금은 도입하지 않기로 사용자가 정했다. 결과는 상태 정본 문서의 검증 기록에 있다.
-   다음은 **12단계(Spec Update)** 인데, 넘어갈지 사용자에게 먼저 확인한다.
-   아래 "마지막 리뷰 요청"은 8차 기록이다. 다음 리뷰 때는 범위와 항목을 새로 쓴다.
-2. Figma MCP 호출 한도가 풀리면 보드 10장을 파일에 넣는다(Unresolved 13).
+### 1. Figma에 지금 화면 넣기
 
-## 리뷰 이력 — 같은 실수가 반복됐다
+**목표:** Figma에서 지금 앱과 같은 화면을 볼 수 있게 한다.
 
-발표 시안 반영분만 다섯 번 FAIL을 받았다. 원인이 매번 같았다.
+- **지금 Figma 상태:** 파일 `lIEsVWuCpKr2SzvYeu2EzZ`(`PULSE TASK-020 Vertical Slice`, 링크 https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ)는 2026-09-22 보드 8장이다. 네이비 헤더, 주황 CTA, 3칸 카드 등 옛 디자인이다.
+- **지금 정본:** 저장소 `docs/design/figma/TASK-020/svg/`의 보드 10장이다. 01 IA·Flow, 02 Foundation, 03 Components, 04 Assets, 05 첫 분석, 06 실패, 07 다시 분석, 08 결과 상태, 09 인증, 10 로딩·빈 상태. 앱 코드와 맞춘 새 디자인이고 검사기 0건이다.
+- **막힌 것:** Figma MCP(`use_figma`·`get_metadata`)가 Starter 플랜 호출 한도에 걸려 거부됐다(2026-09-27). 2026-09-27 저녁 `whoami` 결과, 계정은 SCC 팀(starter, Full seat, admin)에 있다. 기존 파일이 있다고 기록된 `lawyland` 팀은 소속 목록에 **없었다**. 파일 접근 권한은 미확인이다.
+- **방법 후보:**
+  1. MCP 한도가 풀렸으면 → `figma-use` 스킬을 먼저 읽고, 기존 파일에 새 페이지를 만들어 SVG 10장을 넣는다. 옛 페이지는 지우지 말고 이름에 날짜를 붙여 남긴다. 사용자는 "한도가 풀리면 이어서, 안 되면 새 파일로 만들어도 된다"고 했다.
+  2. 기존 파일에 접근이 안 되면 → SCC 팀에 새 파일을 만든다(`figma-create-new-file` 스킬 먼저).
+  3. MCP가 계속 막히면 → 사용자가 `svg/` 파일 10장을 Figma 캔버스로 드래그하면 된다(MCP 한도와 무관). 절차는 [보드 README "Figma에 넣는 법"](../../design/figma/TASK-020/README.md#figma에-넣는-법).
+- **넣은 뒤 할 일:** 글꼴 대체 여부를 확인한다. 2026-09-22에는 Pretendard가 없어 Inter로 바뀌었고, Gothic A1로 교정했다(보드 README "Import 결과"). 스크린샷으로 확인하고 [보드 README](../../design/figma/TASK-020/README.md)의 Import 결과와 상태 정본 Unresolved 13을 갱신한다.
+- **주의:** 보드를 다시 만들 일이 생기면 `generate.mjs` 뒤에 반드시 `check.mjs`를 돌린다. 보드 문구·배치의 기준은 앱 코드다.
 
-| 회차 | 판정 | 무엇이 문제였나 |
-|---|---|---|
-| 1차 | FAIL | 활성 탭 아이콘 대비 1.28:1. DESIGN_SYSTEM §3.6·§4.1이 코드와 반대 |
-| 2차 | FAIL | §13이 §3.6과 충돌. 보드 10개 화면의 상태 표시줄이 흰 글자 × 흰 배경 |
-| 3차 | FAIL | 보드 SVG의 프레임 이탈 6건·글자 겹침 17건(리뷰어가 좌표를 직접 쟀다) |
-| 4차 | FAIL | 검사기가 보드 01~04를 검사하지 않고 세로·가림 축이 없었다. 분석 정보 카드가 하단 내비 뒤로 숨음 |
-| 5차 | FAIL | 08 캡션이 아직 가운데 버튼 뒤로 숨음. 가림 70% 비율이 그것을 놓침. README가 검사기 실제 동작과 다름 |
-| 6차 | PASS | 차단 0·권고 5. R1·R2·R4 반영, R3은 기존 차이로 남김 |
-| 7차 | FAIL | R1 정규식 오타(`[\d.]`가 `[d.]`로 들어감)로 테두리 두께가 늘 1로 읽힘. 셸 heredoc 안 JS 문자열에서 백슬래시가 사라졌다 |
-| 8차 | PASS | 차단 0·권고 3(문서 정합성) → 정리함 |
+### 2. 12단계 Spec Update
 
-**반복된 원인 두 가지.** 새 세션에서도 이것부터 조심한다.
+진행 여부를 **사용자에게 먼저 묻는다.** 진행하면 이번에 새로 정한 것을 정본에 다시 반영한다. 후보는 다음과 같다(반영 여부는 각 정본을 읽고 판단한다).
 
-1. **코드에 없는 것을 문서에 있다고 적었다.** 매수·수치·컴포넌트 이름을 기억으로 쓰지 말고
-   `ls`·`git log`·`grep`으로 뽑아서 적는다.
-2. **눈으로 본 것을 검증했다고 적었다.** 보드는 `check.mjs`가, 앱은 실제 실행이 근거다.
+- 주요 버튼 남색 / 주황 사용처, 홈 순서 TOP3 먼저 → `docs/design/DESIGN_SYSTEM.md`에 이미 들어갔는지 grep으로 확인
+- 손님 TOP3 시상대, 빈 칸 사유 위치, 분석 정보 카드 문구 → `SCREEN_STATES.md`·`RESULT_IA.md`
+- 테스트 도구 미도입 결정 → `AGENTS.md` 2장 "프론트엔드: 단위 테스트 미도입"이 이미 맞는지 확인
+- 정책을 바꾸면 그 정책을 언급한 **모든 절**을 grep으로 찾아 함께 고친다
 
-## 이번에 만든 도구
+## 사용자가 정한 것 (되묻지 않는다)
+
+- 주요 버튼은 남색. 주황은 입력 포커스·진행 중 단계·저장 완료 표시·하단 중앙 버튼에만. (디자인 리뷰 #2·#7)
+- 홈은 TOP3가 맨 위, 분석 정보는 맨 아래. (디자인 리뷰 #3)
+- 11단계의 테스트·E2E·visual regression은 지금 도입하지 않는다(2026-09-27).
+- Figma는 한도가 풀리면 이어서, 안 되면 새 파일로 만들어도 된다.
+
+## 반복된 실수 — 이것부터 조심한다
+
+발표 시안 반영분에서만 독립 리뷰가 FAIL 6번(1~5차, 7차)이 났다. 원인은 세 가지로 모인다.
+
+1. **코드에 없는 것을 문서에 있다고 적었다.** 매수·수치·컴포넌트 이름·절 번호를 기억으로 쓰지 않는다. `ls`·`git log`·`grep`·명령 출력에서 뽑는다.
+2. **눈으로 본 것을 검증했다고 적었다.** 보드는 `check.mjs`가, 앱은 에뮬레이터 실행이 근거다. 확인 못 한 것은 "미확인"이라고 쓴다.
+3. **셸 heredoc 안 node 템플릿 문자열로 파일을 고치면 `\d` 같은 백슬래시가 사라진다.** 7차 FAIL 원인이다. 백슬래시가 들어가는 수정은 Edit 도구로 하고, 결과를 `grep -nF`로 다시 확인한다.
+
+## 알아 둘 도구·환경
 
 ```bash
-# 보드를 다시 뽑고 반드시 검사까지 돌린다
+# 프론트 검증 (저장소 루트)
+npm --prefix frontend/mobile run verify:tokens
+npm --prefix frontend/mobile run lint
+npm --prefix frontend/mobile run typecheck
+npm --prefix frontend/mobile run export:android   # 2026-09-27 약 14초
+
+# 보드 다시 뽑기 + 검사
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/generate.mjs
 node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/check.mjs
 ```
 
-`check.mjs`는 이탈·겹침·가림·관통·도형 이탈 다섯 가지를 본다. 현재 0건이다.
-프레임 밖 글자 306개는 이탈 검사만 받지 않으며, 검사기가 실행할 때마다 이 숫자를 출력한다.
-검사 범위와 사각지대는 [보드 README 검증 범위](../../design/figma/TASK-020/README.md#검증-범위)가 정본이다.
+- 앱 실행: 에뮬레이터 `Medium_Phone` + Expo Go. `npm run start`는 development build용이라 쓰지 않는다. 명령은 [INTEGRATION_GUIDE 3.3](../../../frontend/mobile/INTEGRATION_GUIDE.md).
+- `adb`는 `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`에 있다. 한글 입력은 안 된다. 입력 제출은 Enter(`keyevent 66`)로 한다. 뒤로 가기(`keyevent 4`)를 보내면 앱이 닫힐 수 있다.
+- 독립 리뷰는 `reviewer` 서브에이전트에게 맡긴다. 제약으로 에뮬레이터·`npm install`·`generate.mjs`(svg/를 덮어씀)를 금지하고, 판정과 근거만 받는다.
 
-## 사용자가 정한 것 (되묻지 않는다)
+## Git 상태
 
-- **주요 버튼은 남색.** 발표 시안은 주황 CTA였지만 디자인 리뷰 #2·#7을 따랐다.
-  주황은 입력 포커스·진행 중 단계·저장 완료 표시·하단 중앙 버튼에만 쓴다.
-- **홈은 TOP3가 맨 위.** 분석 정보는 맨 아래. 리뷰 #3을 따랐다.
-- Figma는 한도가 풀리면 이어서, 안 되면 새 파일로 만들어도 된다.
-
-## 막힌 것
-
-- **Figma MCP가 Starter 플랜 호출 한도에 걸린다.** `use_figma`·`get_metadata` 모두 거부된다.
-  그래서 파일을 직접 고치지 못하고 기존과 같은 SVG import 방식으로 만들었다.
-  Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)은 **2026-09-22 보드 8장 그대로**다.
-- 지금 디자인 정본은 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
-
-## 마지막 리뷰 요청 (그대로 다시 쓰면 된다)
-
-범위 `2baea11..HEAD`. 봐 달라고 한 것:
-
-1. 7차 차단(check.mjs 원 테두리 두께 정규식 오타)이 고쳐졌는가, 보드 README의 민감도 실험(기준선 710·711)이 재현되는가
-2. `GuestCharacter.tsx` — ClipPath·useId, `</G>` 들여쓰기, 입 Path `fill="none"`이 보드 `generate.mjs`와 같은가
-3. 증거 캡처 `fix-podium-select-1~3.png`가 evidence README 설명과 맞는가(입이 선으로 그려짐 포함)
-4. 문서의 숫자·해시·파일명, AGENTS 13장 Definition of Done
-
-리뷰어 제약: `export:android`·`npx expo`·`gradlew`·에뮬레이터·`npm install` 금지, `generate.mjs` 실행 금지(svg/를 덮어쓴다). `verify:tokens`·`lint`·`typecheck`·`check.mjs`는 돌려도 된다. 코드를 고치지 말고 판정과 근거만.
-
-셸 heredoc 안에서 node로 JS를 고칠 때 `\d` 같은 백슬래시가 사라질 수 있다(7차 FAIL 원인). 정규식을 고치면 결과 파일을 grep으로 다시 확인한다.
+- 로컬 브랜치 `docs/TASK-019-step0-rebaseline`은 원격 `feat/TASK-020-frontend-mobile`을 추적한다.
+- 이 인계 문서 갱신은 로컬 커밋만 했다. **push하지 않는다** — 사용자가 GitHub 작업은 끝났다고 했다.
