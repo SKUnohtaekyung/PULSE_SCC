@@ -124,7 +124,7 @@ function parse(svg) {
       const Y = cy * top.k + top.dy;
       // 원은 원 모양 그대로 잰다. 안쪽 정사각형으로 근사하면 가장자리 가림을 놓친다(5차 리뷰).
       // 테두리가 있으면 선 두께의 절반만큼 바깥까지 덮는다(하단 가운데 버튼의 흰 테두리 4 — 6차 리뷰).
-      const sw = stroked ? Number(/stroke-width="([d.]+)"/.exec(tag)?.[1] ?? 1) * top.k : 0;
+      const sw = stroked ? Number(/stroke-width="([\d.]+)"/.exec(tag)?.[1] ?? 1) * top.k : 0;
       const cover = R + sw / 2;
       shapes.push({
         ...base,

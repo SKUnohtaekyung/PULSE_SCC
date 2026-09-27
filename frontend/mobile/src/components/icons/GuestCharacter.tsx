@@ -55,11 +55,12 @@ export function GuestCharacter({ size, variant = 0 }: GuestCharacterProps) {
         <Circle cx={37} cy={28} fill={colors.text.strong} r={1.7} />
         <Path
           d="M28.5 33.5a4.5 4.5 0 0 0 7 0"
+          fill="none"
           stroke={colors.text.strong}
           strokeLinecap="round"
           strokeWidth={1.6}
         />
-  </G>
+      </G>
     </Svg>
   );
 }
