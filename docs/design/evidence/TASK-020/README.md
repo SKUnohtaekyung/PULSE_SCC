@@ -76,7 +76,6 @@
 | `redesign-01-home-podium.png` | 홈 — 흰 헤더, 가게 이름, **리뷰에 많이 나온 손님 TOP3** 시상대(1위 가운데·가장 높음), 자리표시 고지 |
 | `redesign-03-advice-block.png` | 상세 — 점선 AI 해석 블록, 사실 카드 → ↓ → 남색 제안 블록, 맨 아래 분석 정보 |
 | `redesign-04-logo-icons-characters.png` | 실제 PULSE 로고, SVG 하단 아이콘 3종, 손님 유형 캐릭터 |
-
 | `redesign-05-podium-200.png` | 글자 크기 200%의 시상대 — 이름이 두 줄로 줄바꿈되고 단상 안 `1 / 보는 중`이 잘리지 않는다 |
 | `redesign-06-analysis-info-200.png` | 글자 크기 200%의 분석 정보 — 3열을 세로로 쌓아 날짜가 온전히 보인다 |
 | `redesign-07-podium-landscape.png` | 가로 화면의 시상대 — 읽기 폭 안에서 가운데 정렬되고 늘어지지 않는다 |

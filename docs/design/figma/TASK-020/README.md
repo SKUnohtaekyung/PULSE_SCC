@@ -41,13 +41,19 @@ docs/design/figma/TASK-020/
 | `09-final-auth.svg` | 앱 시작·세션 복원·시작 실패·로그인 3종·가입 3종 | Final UI (2026-09-27 추가) |
 | `10-final-loading-empty.svg` | 홈 조회 중·저장본 없음·결과 조회 실패·근거 목록 2종·마이페이지 | Final UI (2026-09-27 추가) |
 
-보드에 없는 상태: `STORE-CREATING-JOB`(버튼 loading — 누른 버튼의 글자만 바뀌므로 정지 화면으로 담기 어렵다), Google 로그인·계정 탈퇴(구현 범위 밖, SCREEN_STATES §11).
+보드에 없는 상태:
+
+- `STORE-CREATING-JOB`·`AUTH-SUBMITTING`(버튼 loading — 누른 버튼의 글자만 바뀌므로 정지 화면으로 담기 어렵다)
+- `IMAGE-GENERATION-FAILED`(서버가 이 코드를 아직 보내지 않는다, SCREEN_STATES §11)
+- Google 로그인·계정 탈퇴(구현 범위 밖, SCREEN_STATES §11)
+
+이 목록은 SCREEN_STATES의 상태를 전수 대조한 것이 아니라 위 네 가지만 확인한 결과다.
 
 휴대폰 화면은 360×800 기준이다. 페르소나 이미지는 파일 크기를 줄이려고 240px로 축소해 넣었다(원본은 `frontend/mobile/assets/images/personas/prototype/`).
 
 ## 2026-09-27 갱신 — 발표 시안과 디자인 리뷰 반영
 
-보드 8장을 만든 2026-09-22 이후 두 가지가 바뀌어 **전 보드를 다시 뽑았다.**
+보드 8장을 만든 2026-09-22 이후 두 가지가 바뀌어 **화면 보드(05~08)를 다시 뽑고 09·10을 더했다.** 01(IA·Flow)과 04(Assets)는 화면이 아니라 구조·에셋 설명이라 바뀐 곳이 없다(04의 아이콘 공급원 문구만 고쳤다).
 
 1. 2026-09-26 최종 발표 시안(`PULSE 최종발표.pdf`, 저장소 밖)
 2. 이 Figma 파일에 달린 디자인 리뷰 댓글 9건

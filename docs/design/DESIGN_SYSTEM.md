@@ -315,7 +315,7 @@ loading / empty / error / normal
 | DataLimitNotice | 리뷰 부족·편향·대표성 한계 안내 | `frontend/mobile/src/components/ui/Notice.tsx` + `ResultView.tsx` |
 | ResultMetadata | 플랫폼, 리뷰 수, 수집·분석 시점 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
 | AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | 첫 저장은 `frontend/mobile/src/features/analysis/FirstSaveScreen.tsx`, 교체·유지는 `features/result/PreviewResultScreen.tsx`(확인 대화상자는 `components/ui/ConfirmDialog.tsx`) |
-| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 화면 안 오렌지 주요 버튼과 경쟁하지 않게 한다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | `frontend/mobile/src/components/ui/BottomNavigation.tsx` |
+| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 지금 그 화면에 있다는 사실을 알린다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | `frontend/mobile/src/components/ui/BottomNavigation.tsx` |
 | PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | `frontend/mobile/src/features/mypage/MyPageScreen.tsx` |
 | ErrorState | 오류 이유와 재시도 가능 행동 표시 | `frontend/mobile/src/components/ui/Notice.tsx` + 화면별 버튼 |
 
@@ -477,7 +477,7 @@ UI 변경은 `.claude/skills/visual-qa/SKILL.md` 절차를 읽고 실제 렌더�
 | 사실·해석·지식·제안 카드 시안 | 결과 화면 구현 전 |
 | 긴 근거 리뷰의 접기·펼치기 방식 | SC-005 구현 전 |
 | ~~로딩 단계 표시 방식~~ | 2026-09-22 Step 5 합성으로 해소 — 받은 단계를 쌓는 진행 목록 |
-| ~~아이콘 공급원 — 라이브러리 채택 여부와 라이선스 기록~~ | 2026-09-22 Step 7에서 해소 — 아이콘 라이브러리를 쓰지 않는다. 필요한 아이콘(홈·마이페이지·분석하기·체크·경고)은 `View` 도형으로 그려 `components/ui`에 둔다. 추적할 외부 라이선스가 생기지 않고 색·굵기를 토큰으로 맞출 수 있다. 도형으로 표현하기 어려운 아이콘이 필요해지면 그때 다시 정한다 |
+| ~~아이콘 공급원 — 라이브러리 채택 여부와 라이선스 기록~~ | **2026-09-27에 다시 정했다** — `react-native-svg`로 그려 `components/icons`에 둔다. 규칙 정본은 §3.6이다. 2026-09-22 Step 7의 `View` 도형 결정은 아이콘마다 굵기와 모서리가 달라지는 문제가 있어 뒤집었다(디자인 리뷰 #4). `react-native-svg`는 의존성 목록에 올라가는 추적 대상이다 |
 | ~~로딩 자리표시·이미지 실패·빈 포디움 슬롯의 시각 구분~~ | 2026-09-22 Step 5 합성으로 해소 — 빈 칸은 점선 테두리, 로딩과 조회 실패는 같은 영역에 아이콘·문장·버튼으로 구분 |
 | 오프라인 안내의 표현(오류인지 안내인지) | 오프라인 정책 확정 후(SCREEN_STATES §11). 인증 만료(`AUTH-EXPIRED`)는 2026-09-22 Step 7에서 해소 — 오류가 아니라 `warning` 안내로 로그인 화면 위에 이유와 다음 행동을 표시한다 |
 | 하단 내비게이션 일시 비활성(`NAV-DISABLED-TRANSITION`) | 해당 공용 컴포넌트 구현 전. 버튼 loading·disabled는 2026-09-22 Step 7에서 §5.4로 확정. ~~알림 설정 토글의 상태 표현~~은 2026-09-23 Step 9에서 해소 — 스위치 옆에 `켜짐`·`꺼짐` 글자를 함께 두고, 바꾸는 중에는 조작을 막고 `바꾸는 중`을 표시한다(`components/ui/ToggleRow.tsx`) |

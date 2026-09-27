@@ -28,6 +28,17 @@ const rect = (x, y, w, h, { fill = 'none', stroke, sw = strokes.hairline, r = 0,
   (opacity !== undefined ? ` opacity="${opacity}"` : '') +
   '/>';
 
+/** 위 두 모서리만 둥근 사각형. 시상대 단상이 바닥에 붙어 보이게 한다(앱 PodiumTop3와 같다). */
+const roundedTop = (x, y, w, h, { fill = 'none', stroke, dash, r = radii.control } = {}) =>
+  `<path d="M ${x} ${y + h} L ${x} ${y + r} Q ${x} ${y} ${x + r} ${y} L ${x + w - r} ${y} Q ${x + w} ${y} ${x + w} ${y + r} L ${x + w} ${y + h} Z" fill="${fill}"` +
+  (stroke ? ` stroke="${stroke}" stroke-width="${strokes.hairline}"` : '') +
+  (dash ? ` stroke-dasharray="${dash}"` : '') +
+  '/>';
+
+/** 로딩 표시의 호. 정지 화면이라 한 바퀴의 4분의 1만 그린다. */
+const spinnerArc = (cx, cy, r) =>
+  `<path d="M ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="${colors.brand.primary}" stroke-width="3" stroke-linecap="round"/>`;
+
 const circle = (cx, cy, r, { fill = 'none', stroke, sw = strokes.hairline } = {}) =>
   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width="${sw}"` : ''}/>`;
 
@@ -311,6 +322,22 @@ const warningNotice = (x, y, w, lines) => {
   );
 };
 
+/**
+ * 앱의 `components/ui/Notice`와 같은 모양. 전체 테두리 + 색 있는 제목 + 본문이고,
+ * 왼쪽 막대나 `!` 기호는 쓰지 않는다. tone으로 오류·주의를 나눈다.
+ */
+const errorNotice = (x, y, w, title, lines, { tone = 'error' } = {}) => {
+  const list = Array.isArray(lines) ? lines : [lines];
+  const h = 28 + typography.body6.lineHeight + list.length * typography.body7.lineHeight;
+  const edge = tone === 'warning' ? colors.status.warningText : colors.status.errorText;
+  return group(
+    'Notice/' + tone,
+    rect(x, y, w, h, { fill: colors.background.surface, stroke: edge, r: radii.control }) +
+      text(x + 16, y + 12, title, typography.body6, edge) +
+      text(x + 16, y + 12 + typography.body6.lineHeight, list, typography.body7, colors.text.primary),
+  );
+};
+
 // ---------- 결과 화면 조각 ----------
 
 const personaFiles = {
@@ -406,17 +433,17 @@ const guestCharacter = (cx, cy, size, variant = 0) => {
 const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
   const x0 = PAD;
   const w = PHONE_W - PAD * 2;
-  const H = 300;
-  let body = rect(x0, y, w, H, { fill: colors.background.surface, stroke: colors.border.default, r: radii.panel });
-  body += text(x0 + 20, y + 14, title, typography.head5, colors.text.strong);
-  body += text(x0 + w - 20, y + 20, '리뷰 수 순서', typography.caption, colors.text.secondary, { anchor: 'end' });
+  const H = 268;
+  let body = text(x0, y - 38, title, typography.head5, colors.text.strong);
+  body += text(x0 + w, y - 32, '리뷰 수 순서', typography.caption, colors.text.secondary, { anchor: 'end' });
+  body += rect(x0, y, w, H, { fill: colors.background.surface, stroke: colors.border.default, r: radii.panel });
 
   const order = [1, 0, 2]; // 화면 왼쪽부터 2위 · 1위 · 3위
   const counts = [24, 19, 16];
   const blockH = { 0: 80, 1: 56, 2: 48 };
   const gap = spacing[2];
   const colW = (w - 40 - gap * 2) / 3;
-  const baseline = y + H - 44; // 단상 바닥선
+  const baseline = y + H - 40; // 단상 바닥선
 
   order.forEach((slotIndex, column) => {
     const slot = slots[slotIndex];
@@ -429,20 +456,19 @@ const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
     if (slot.kind === 'empty') {
       body += group(
         'PodiumSlot/Empty',
-        circle(cx, blockY - 56, first ? 34 : 28, { stroke: colors.border.strong, sw: strokes.hairline }) +
+        circle(cx, blockY - 56, first ? 48 : 40, { stroke: colors.border.strong, sw: strokes.hairline, dash: '6 4' }) +
           text(cx, blockY - 18, slot.reason, typography.caption, colors.text.secondary, { anchor: 'middle' }) +
-          rect(cx - colW / 2, blockY, colW, bh, {
+          roundedTop(cx - colW / 2, blockY, colW, bh, {
             fill: colors.background.subtle,
             stroke: colors.border.default,
             dash: '6 4',
-            r: radii.control,
           }) +
           text(cx, blockY + bh / 2 - 14, String(slotIndex + 1), typography.head5, colors.text.disabled, { anchor: 'middle' }),
       );
       return;
     }
 
-    const size = first ? 72 : 56;
+    const size = first ? 96 : 80;
     const nameLines = Array.isArray(slot.name) ? slot.name : [slot.name];
     const nameTop = blockY - 12 - nameLines.length * typography.body6.lineHeight - typography.caption.lineHeight;
     body += group(
@@ -451,10 +477,7 @@ const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
         (first ? circle(cx, nameTop - size / 2 - 6, size / 2 + 3, { stroke: colors.brand.primary, sw: strokes.focus }) : '') +
         text(cx, nameTop, nameLines, typography.body6, colors.text.strong, { anchor: 'middle' }) +
         text(cx, nameTop + nameLines.length * typography.body6.lineHeight, '리뷰 ' + counts[slotIndex] + '건', typography.caption, colors.text.secondary, { anchor: 'middle' }) +
-        rect(cx - colW / 2, blockY, colW, bh, {
-          fill: first ? colors.brand.primary : colors.background.emphasized,
-          r: radii.control,
-        }) +
+        roundedTop(cx - colW / 2, blockY, colW, bh, { fill: first ? colors.brand.primary : colors.background.emphasized }) +
         text(cx, blockY + (first ? 8 : bh / 2 - 14), String(slotIndex + 1), typography.head5, first ? colors.brand.onPrimary : colors.text.brand, { anchor: 'middle' }) +
         (first ? text(cx, blockY + 38, '보는 중', typography.caption, colors.brand.onPrimary, { anchor: 'middle' }) : ''),
     );
@@ -559,9 +582,9 @@ const screenFirstSaved = () =>
 const screenHome = (slots = fullPodium, heroBody) =>
   appHeader({ brand: true, badge: '저장된 결과' }) +
   text(PAD, HEADER_H + 20, '영등원조쌈밥', typography.head3, colors.text.strong) +
-  podium(HEADER_H + 72, slots) +
-  (heroBody ? text(PAD, HEADER_H + 392, heroBody, typography.body7, colors.text.secondary) : '') +
-  analysisInfo(HEADER_H + 424) +
+  podium(HEADER_H + 104, slots) +
+  (heroBody ? text(PAD, HEADER_H + 388, heroBody, typography.body7, colors.text.secondary) : '') +
+  analysisInfo(HEADER_H + 420) +
   bottomNav('home');
 
 const saveBar = (y) =>
@@ -578,7 +601,7 @@ const screenPreview = () =>
   resultHeader() +
   warningNotice(PAD, 84, W, ['새 분석 결과예요.', '아직 저장된 결과를 바꾸지 않았어요.']) +
   resultHero(168, { eyebrow: '새 분석 결과 · 저장 전', date: '2026.09.20' }) +
-  podium(416, fullPodium) +
+  podium(448, fullPodium) +
   saveBar(PHONE_H - 184);
 
 const behindDialog = () => {
@@ -645,35 +668,24 @@ const screenImageStates = () =>
 // 이 화면들은 Step 5 합성 범위 밖이라 Step 6 보드에 없었다.
 
 /** 화면 가운데에 두는 로딩·안내 덩어리. 앱의 `components/ui/LoadingBlock`과 같은 자리다. */
-const centerBlock = (title, body, { action, secondary } = {}) => {
-  const y = 300;
-  return (
-    text(180, y, title, typography.head4, colors.text.strong, { anchor: 'middle' }) +
-    text(180, y + 44, body, typography.body4, colors.text.secondary, { anchor: 'middle' }) +
-    (action ? primaryButton(PAD, y + 44 + (Array.isArray(body) ? body.length : 1) * typography.body4.lineHeight + 24, W, action) : '') +
-    (secondary ? outlineButton(PAD, y + 44 + (Array.isArray(body) ? body.length : 1) * typography.body4.lineHeight + 84, W, secondary) : '')
+const centerBlock = (message) => {
+  const y = 340;
+  return group(
+    'LoadingBlock',
+    rect(PAD, y, W, 120, { fill: colors.background.emphasized, r: radii.panel }) +
+      circle(180, y + 44, 12, { stroke: colors.border.control, sw: 3 }) +
+      spinnerArc(180, y + 44, 12) +
+      text(180, y + 70, message, typography.body4, colors.text.secondary, { anchor: 'middle' }),
   );
 };
 
-/** 로딩 자리표시. 회색 막대 세 줄로 무엇을 불러오는지 알린다. */
-const loadingBars = (x, y, w) =>
-  group(
-    'LoadingPlaceholder',
-    rect(x, y, w, 20, { fill: colors.background.emphasized, r: radii.small }) +
-      rect(x, y + 28, w * 0.7, 20, { fill: colors.background.emphasized, r: radii.small }) +
-      rect(x, y + 56, w * 0.85, 20, { fill: colors.background.emphasized, r: radii.small }),
-  );
+const screenBooting = () => centerBlock('앱을 시작하고 있어요.');
 
-const screenBooting = () =>
-  appHeader({ brand: true }) + centerBlock('앱을 시작하고 있어요', '잠시만 기다려 주세요.');
-
-const screenRestoring = () =>
-  appHeader({ brand: true }) + centerBlock('로그인 상태를 확인하고 있어요', '저장해 둔 로그인 정보를 확인하는 중이에요.');
+const screenRestoring = () => centerBlock('로그인 상태를 확인하고 있어요.');
 
 const screenBootError = () =>
-  appHeader({ brand: true }) +
-  warningNotice(PAD, 200, W, ['시작하지 못했어요', '로그인 상태를 확인하지 못했어요.', '연결을 확인한 뒤 다시 시도해 주세요.']) +
-  primaryButton(PAD, 340, W, '다시 시도');
+  errorNotice(PAD, 300, W, '시작하지 못했어요', ['로그인 상태를 확인하지 못했어요.', '연결을 확인한 뒤 다시 시도해 주세요.']) +
+  primaryButton(PAD, 396, W, '다시 시도');
 
 const screenLogin = ({ expired = false, error = false } = {}) => {
   let body = appHeader({ brand: true });
@@ -681,11 +693,11 @@ const screenLogin = ({ expired = false, error = false } = {}) => {
   body += pageTitle(PAD, y, '가게 리뷰에서 손님을 읽어요', '네이버 공개 리뷰를 모아 어떤 손님이');
   y += 96;
   if (expired) {
-    body += warningNotice(PAD, y, W, ['로그인이 만료됐어요', '보안을 위해 일정 시간이 지나면 다시', '로그인해야 해요.']);
+    body += errorNotice(PAD, y, W, '로그인이 만료됐어요', ['보안을 위해 일정 시간이 지나면 다시', '로그인해야 해요.'], { tone: 'warning' });
     y += 120;
   }
   if (error) {
-    body += warningNotice(PAD, y, W, ['로그인하지 못했어요', '이메일 또는 비밀번호를 확인해 주세요.']);
+    body += errorNotice(PAD, y, W, '로그인하지 못했어요', ['이메일 또는 비밀번호를 확인해 주세요.']);
     y += 96;
   }
   const inner =
@@ -702,8 +714,7 @@ const screenLogin = ({ expired = false, error = false } = {}) => {
 const screenSignupLegalLoading = () =>
   appHeader({ label: '회원가입' }) +
   pageTitle(PAD, HEADER_H + 20, '이메일로 가입해요') +
-  text(PAD, HEADER_H + 80, '이용약관과 개인정보 처리방침을 불러오고 있어요.', typography.body4, colors.text.secondary) +
-  loadingBars(PAD, HEADER_H + 120, W);
+  centerBlock('이용약관과 개인정보 처리방침을 불러오고 있어요.');
 
 const screenSignup = ({ outdated = false } = {}) => {
   let body = appHeader({ label: '회원가입' });
@@ -711,7 +722,7 @@ const screenSignup = ({ outdated = false } = {}) => {
   body += pageTitle(PAD, y, '이메일로 가입해요');
   y += 56;
   if (outdated) {
-    body += warningNotice(PAD, y, W, ['약관이 바뀌었어요', '새 약관을 다시 받아왔어요. 다시 동의해 주세요.', '비밀번호는 안전을 위해 지웠어요.']);
+    body += errorNotice(PAD, y, W, '약관이 바뀌었어요', ['새 약관을 다시 받아왔어요. 다시 동의해 주세요.', '비밀번호는 안전을 위해 지웠어요.'], { tone: 'warning' });
     y += 116;
   }
   const inner =
@@ -733,8 +744,7 @@ const screenSignup = ({ outdated = false } = {}) => {
 
 const screenHomeLoading = () =>
   appHeader({ brand: true, badge: '저장된 결과' }) +
-  text(PAD, HEADER_H + 20, '저장된 분석 결과를 불러오고 있어요.', typography.body4, colors.text.secondary) +
-  loadingBars(PAD, HEADER_H + 60, W) +
+  centerBlock('저장된 분석 결과를 불러오고 있어요.') +
   bottomNav('home');
 
 const screenNoSavedResult = () =>
@@ -745,7 +755,7 @@ const screenNoSavedResult = () =>
 
 const screenResultError = () =>
   appHeader({ brand: true, badge: '저장된 결과' }) +
-  warningNotice(PAD, HEADER_H + 20, W, ['결과를 불러오지 못했어요', '저장된 결과를 불러오지 못했어요.', '저장본은 그대로 있어요.']) +
+  errorNotice(PAD, HEADER_H + 20, W, '결과를 불러오지 못했어요', ['저장된 결과를 불러오지 못했어요.', '저장본은 그대로 있어요.']) +
   outlineButton(PAD, HEADER_H + 152, W, '다시 불러오기') +
   bottomNav('home');
 
@@ -760,17 +770,19 @@ const evidenceRow = (x, y, w, quote, date) =>
 const screenEvidence = ({ end = false } = {}) => {
   let body = appHeader({ brand: true, label: '근거 리뷰' });
   let y = HEADER_H + 20;
-  body += pageTitle(PAD, y, '추억 재방문형 근거 리뷰');
+  body += pageTitle(PAD, y, '먼저 볼 것 근거 리뷰');
   y += 52;
-  body += text(PAD, y, '작성자 정보는 보여 드리지 않아요.', typography.caption, colors.text.secondary);
+  body += text(PAD, y, '추억 재방문형', typography.body6, colors.text.strong);
+  y += 26;
+  body += text(PAD, y, '리뷰를 쓴 사람의 정보는 받지도, 보여주지도 않아요.', typography.caption, colors.text.secondary);
   y += 28;
   [['국물 맛이 그대로라 반가웠어요.', '2026년 8월'], ['몇 년 만에 왔는데 여전하네요.', '2026년 7월'], ['예전 생각이 나서 또 왔어요.', '2026년 6월']].forEach(([quote, date], index) => {
     body += evidenceRow(PAD, y + index * 100, W, quote, '네이버 리뷰 · ' + date);
   });
   y += 300;
   body += end
-    ? text(PAD, y, '근거 리뷰 31건을 모두 불러왔어요.', typography.body7, colors.text.secondary)
-    : loadingBars(PAD, y, W);
+    ? text(PAD, y, '근거 리뷰를 모두 확인했어요.', typography.body7, colors.text.secondary)
+    : text(PAD, y, '다음 근거를 불러오는 중이에요.', typography.body7, colors.text.secondary);
   return body;
 };
 
@@ -946,7 +958,7 @@ const boardComponents = () => {
   body += warningNotice(64, 660, 560, '새 분석 결과예요. 아직 저장된 결과를 바꾸지 않았어요.');
   body += col(64, 760, 'BottomNavigation');
   body += group('BottomNavigation/home', bottomNav('home'), 64, 800 - (PHONE_H - 72)) + text(64, 880, 'home 선택 — 가운데 분석하기는 오렌지', typography.caption, colors.text.secondary);
-  body += group('BottomNavigation/analysis', bottomNav('analysis'), 64, 920 - (PHONE_H - 72)) + text(64, 1000, ['analysis 선택 — 가운데를 네이비로 바꿔', '화면 안 오렌지 주요 버튼과 경쟁하지 않게 한다'], typography.caption, colors.text.secondary);
+  body += group('BottomNavigation/analysis', bottomNav('analysis'), 64, 920 - (PHONE_H - 72)) + text(64, 1000, ['analysis 선택 — 가운데를 네이비로 바꿔', '지금 그 화면에 있다는 사실을 알린다'], typography.caption, colors.text.secondary);
 
   body += col(760, 620, 'PodiumSlot');
   body += group('Podium/Normal', podium(0, fullPodium), 760 - PAD, 660);
@@ -972,7 +984,7 @@ const boardAssets = () => {
     const x = 64 + index * 420;
     body += group(`Asset/${file}`, rect(x, 180, 360, 360, { fill: colors.background.subtle, stroke: colors.border.default, r: radii.panel }) + image(key, x + 40, 220, 280) + text(x, 560, name, typography.body5, colors.text.primary) + text(x, 584, file, typography.caption, colors.text.secondary));
   });
-  body += text(64, 660, ['사용처', '· 결과 프로토타입의 TOP3 포디움과 선택 유형 카드', '', '사용 금지', '· 제품 화면(실제 분석 결과)의 페르소나 이미지로 쓰지 않는다 — 실제 이미지는 분석 결과가 준다', '· 사람·얼굴·인구통계를 암시하는 이미지로 바꾸지 않는다', '· 이미지만으로 유형을 설명하지 않는다 — 유형 이름·특징·근거가 항상 함께', '', '표시 규칙', '· 선택한 유형 카드의 이미지에 \'AI 생성 이미지\'를 표시한다(포디움 작은 이미지는 레이블 없이, 선택 카드에서 고지)', '· 로딩·조회 실패 대체 표현은 코드로 그린다(03 Components)', '· 아이콘 공급원은 미정 — Vertical Slice 착수 전 결정(DESIGN_SYSTEM §13)'], typography.body4, colors.text.primary);
+  body += text(64, 660, ['사용처', '· 결과 프로토타입의 TOP3 포디움과 선택 유형 카드', '', '사용 금지', '· 제품 화면(실제 분석 결과)의 페르소나 이미지로 쓰지 않는다 — 실제 이미지는 분석 결과가 준다', '· 사람·얼굴·인구통계를 암시하는 이미지로 바꾸지 않는다', '· 이미지만으로 유형을 설명하지 않는다 — 유형 이름·특징·근거가 항상 함께', '', '표시 규칙', '· 선택한 유형 카드의 이미지에 \'AI 생성 이미지\'를 표시한다(포디움 작은 이미지는 레이블 없이, 선택 카드에서 고지)', '· 로딩·조회 실패 대체 표현은 코드로 그린다(03 Components)', '· 아이콘은 react-native-svg로 그려 components/icons에 둔다(2026-09-27, DESIGN_SYSTEM §3.6)'], typography.body4, colors.text.primary);
   body += text(1320, 180, ['원본', 'frontend/mobile/assets/images/personas/prototype/', '출처·해시: 같은 폴더 README.md', '', '이 보드의 이미지는 파일 크기를 줄이려고', '240px로 축소한 사본이다'], typography.body7, colors.text.secondary);
   return svg(width, height, body + footer(width, height));
 };
@@ -997,21 +1009,21 @@ const boards = {
   '03-components.svg': boardComponents(),
   '04-assets.svg': boardAssets(),
   '05-final-first-analysis.svg': phonesBoard('05 · Final UI — 첫 분석', '입력은 한 화면에서 차례로 펼치고, 진행은 받은 단계만 쌓는다. 첫 저장은 별도 완료 화면', [
-    { name: 'Input-1-Name', caption: '① 가게 이름', body: screenInput(1), options: { statusTone: 'light', top: colors.brand.primary } },
-    { name: 'Input-2-Category', caption: '② 업종 — 칩을 고르면 바로 다음', body: screenInput(2), options: { statusTone: 'light', top: colors.brand.primary } },
-    { name: 'Input-3-Url', caption: '③ 네이버 가게 URL', body: screenInput(3), options: { statusTone: 'light', top: colors.brand.primary } },
-    { name: 'Progress', caption: '④ 진행 목록', body: screenProgress(), options: { statusTone: 'light', top: colors.brand.primary } },
-    { name: 'FirstSaved', caption: '⑤ 첫 저장 완료 → 결과 보기', body: screenFirstSaved(), options: { statusTone: 'light', top: colors.brand.primary } },
+    { name: 'Input-1-Name', caption: '① 가게 이름', body: screenInput(1), options: {} },
+    { name: 'Input-2-Category', caption: '② 업종 — 칩을 고르면 바로 다음', body: screenInput(2), options: {} },
+    { name: 'Input-3-Url', caption: '③ 네이버 가게 URL', body: screenInput(3), options: {} },
+    { name: 'Progress', caption: '④ 진행 목록', body: screenProgress(), options: {} },
+    { name: 'FirstSaved', caption: '⑤ 첫 저장 완료 → 결과 보기', body: screenFirstSaved(), options: {} },
     { name: 'Home', caption: '⑥ 홈 (저장 결과)', body: screenHome(), options: {} },
   ]),
   '06-final-failures.svg': phonesBoard('06 · Final UI — 실패', '실패 단계는 알 수 없으므로 마지막 행은 멈추고 목록 끝에 실패 결과 행. 입력을 고쳐야 하면 입력으로 복귀', [
-    { name: 'Failed-Retryable', caption: '재시도 가능 실패', body: screenFailed(['일시적인 문제로 분석을 마치지 못했어요.', '다시 시도할 수 있어요.'], '다시 분석하기'), options: { statusTone: 'light', top: colors.brand.primary } },
-    { name: 'Failed-Insufficient', caption: '리뷰 부족 (50건 미만)', body: screenFailed(['분석에 필요한 리뷰가 50건보다 적어', '결과를 만들지 못했어요.'], '가게 정보 다시 입력'), options: { statusTone: 'light', top: colors.brand.primary } },
-    { name: 'Failed-Fatal', caption: '서비스 문제', body: screenFailed(['서비스 쪽 문제로 지금은 분석을 마칠 수', '없어요. 잠시 뒤에 다시 시도해 주세요.'], '입력 화면으로'), options: { statusTone: 'light', top: colors.brand.primary } },
-    { name: 'Store-NotFound', caption: '가게 못 찾음 → 입력으로 복귀', body: screenInput(3, { notice: true, errors: { name: ['가게를 찾지 못했어요.', '가게 이름을 확인해 주세요.'], url: ['가게를 찾지 못했어요.', '네이버 가게 URL을 확인해 주세요.'] } }), options: { statusTone: 'light', top: colors.brand.primary } },
+    { name: 'Failed-Retryable', caption: '재시도 가능 실패', body: screenFailed(['일시적인 문제로 분석을 마치지 못했어요.', '다시 시도할 수 있어요.'], '다시 분석하기'), options: {} },
+    { name: 'Failed-Insufficient', caption: '리뷰 부족 (50건 미만)', body: screenFailed(['분석에 필요한 리뷰가 50건보다 적어', '결과를 만들지 못했어요.'], '가게 정보 다시 입력'), options: {} },
+    { name: 'Failed-Fatal', caption: '서비스 문제', body: screenFailed(['서비스 쪽 문제로 지금은 분석을 마칠 수', '없어요. 잠시 뒤에 다시 시도해 주세요.'], '입력 화면으로'), options: {} },
+    { name: 'Store-NotFound', caption: '가게 못 찾음 → 입력으로 복귀', body: screenInput(3, { notice: true, errors: { name: ['가게를 찾지 못했어요.', '가게 이름을 확인해 주세요.'], url: ['가게를 찾지 못했어요.', '네이버 가게 URL을 확인해 주세요.'] } }), options: {} },
   ]),
   '07-final-reanalysis.svg': phonesBoard('07 · Final UI — 다시 분석과 저장 선택 (다음 Slice)', '첫 Vertical Slice 다음에 연결한다(SCREEN_STATES §10). 저장 선택은 미리보기 첫 화면부터 하단 고정, 교체만 확인, 미리보기에서는 하단 내비게이션을 숨긴다', [
-    { name: 'Reanalysis-Input', caption: '다시 분석 — 내비의 분석하기는 네이비', body: screenInput(3, { reanalysis: true }), options: { statusTone: 'light', top: colors.brand.primary } },
+    { name: 'Reanalysis-Input', caption: '다시 분석 — 내비의 분석하기는 네이비', body: screenInput(3, { reanalysis: true }), options: {} },
     { name: 'Preview', caption: '새 결과 미리보기', body: screenPreview(), options: {} },
     { name: 'Replace-Confirm', caption: '교체 확인 (배경 이미지는 회색으로 대체)', body: behindDialog(), options: { overlay: replaceDialog() } },
     { name: 'Leave-Choice', caption: '뒤로가기 (배경 이미지는 회색으로 대체)', body: behindDialog(), options: { overlay: leaveDialog() } },
