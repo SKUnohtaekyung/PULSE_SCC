@@ -38,10 +38,34 @@ docs/design/figma/TASK-020/
 | `06-final-failures.svg` | 재시도 가능·리뷰 부족·서비스 문제·가게 못 찾음 | Final UI |
 | `07-final-reanalysis.svg` | 다시 분석 입력 → 새 결과 미리보기 → 교체 확인 / 뒤로가기. **SCREEN_STATES §10의 다음 Slice** | Final UI |
 | `08-final-result-states.svg` | 유형 부족·유형 0개·이미지 로딩·조회 실패 | Final UI |
+| `09-final-auth.svg` | 앱 시작·세션 복원·시작 실패·로그인 3종·가입 3종 | Final UI (2026-09-27 추가) |
+| `10-final-loading-empty.svg` | 홈 조회 중·저장본 없음·결과 조회 실패·근거 목록 2종·마이페이지 | Final UI (2026-09-27 추가) |
 
-§10 첫 Vertical Slice 중 보드에 없는 상태: 인증(`AUTH-*`), `APP-BOOTING`, `STORE-CREATING-JOB`(버튼 loading — 표현 미정, DESIGN_SYSTEM §13), `HOME-LOADING`. Step 7에서 DESIGN_SYSTEM 규칙으로 구현한다.
+보드에 없는 상태: `STORE-CREATING-JOB`(버튼 loading — 누른 버튼의 글자만 바뀌므로 정지 화면으로 담기 어렵다), Google 로그인·계정 탈퇴(구현 범위 밖, SCREEN_STATES §11).
 
 휴대폰 화면은 360×800 기준이다. 페르소나 이미지는 파일 크기를 줄이려고 240px로 축소해 넣었다(원본은 `frontend/mobile/assets/images/personas/prototype/`).
+
+## 2026-09-27 갱신 — 발표 시안과 디자인 리뷰 반영
+
+보드 8장을 만든 2026-09-22 이후 두 가지가 바뀌어 **전 보드를 다시 뽑았다.**
+
+1. 2026-09-26 최종 발표 시안(`PULSE 최종발표.pdf`, 저장소 밖)
+2. 이 Figma 파일에 달린 디자인 리뷰 댓글 9건
+
+바뀐 것:
+
+| 항목 | 전 | 후 |
+|---|---|---|
+| 헤더 | 네이비 색면 150px, 큰 제목 포함 | 흰 배경 88px + 얇은 아래 경계선. 큰 제목은 본문 첫 줄(`PageTitle`) |
+| 주요 버튼 | 주황 배경 | 남색 배경. 주황은 입력 포커스·진행 중 단계·저장 완료 표시·하단 중앙 버튼에만 |
+| 손님 유형 | 3칸 카드 나열 | **1위를 가운데 가장 높게 두는 시상대.** 좌우는 2위·3위 |
+| 홈 순서 | 분석 정보(네이비 블록) → TOP3 | TOP3 → 분석 정보(흰 카드 3열) |
+| 입력 화면 | 헤더에 `첫 분석` 배지 | 상단 3단계 표시 + 단계별 제목. 배지 제거 |
+| 진행 완료 표시 | 진한 초록 원 | 연한 초록 바탕 + 진한 초록 기호 |
+| 하단 아이콘 | 사각형·막대 도형 | 앱과 같은 24×24 SVG path |
+| 손님 유형 그림 | 프로토타입 ImageGen 사진 | 앱과 같은 코드 캐릭터(`GuestCharacter`) |
+
+보드와 앱 코드가 같은 값을 쓰도록, 아이콘 path와 캐릭터 도형은 `frontend/mobile/src/components/icons/`의 것과 같게 적었다. 한쪽을 고치면 다른 쪽도 고쳐야 한다.
 
 ## Figma에 넣는 법
 
