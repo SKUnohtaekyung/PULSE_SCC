@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.emphasized,
     justifyContent: 'center',
   },
-  // 사진만 원 밖을 잘라 낸다. 자리표시 SVG는 스스로 원을 그리므로 자르지 않는다 —
+  // 사진만 틀에서 원 밖을 잘라 낸다. 자리표시 SVG는 그림 안에서 스스로 원으로 자른다(GuestCharacter) —
   // Android에서 테두리 없는 둥근 클리핑이 SVG를 통째로 지워 선택되지 않은 순위의 그림이 사라졌다.
   clip: {
     overflow: 'hidden',

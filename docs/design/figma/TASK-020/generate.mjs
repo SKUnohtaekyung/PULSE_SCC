@@ -396,11 +396,16 @@ const analysisInfo = (y, { date = '2026.09.18', collected = 84, valid = 59 } = {
 
 // slots: [{ kind: 'filled'|'empty', key, name, selected, reason }]
 /** 앱의 `components/icons/GuestCharacter.tsx`와 같은 64×64 그림. 중심과 지름을 받아 그린다. */
+let guestClipCount = 0;
 const guestCharacter = (cx, cy, size, variant = 0) => {
   const bg = colors.illustration.backgrounds[Math.abs(variant) % colors.illustration.backgrounds.length];
   const k = size / 64;
+  // 앱처럼 원으로 자른다. 어깨 아래 모서리가 원 밖으로 나가지 않는다. id는 보드 안에서 겹치지 않게 센다.
+  const clipId = 'guest-clip-' + ++guestClipCount;
   return (
     `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${k})">` +
+    `<clipPath id="${clipId}"><circle cx="32" cy="32" r="32"/></clipPath>` +
+    `<g clip-path="url(#${clipId})">` +
     `<circle cx="32" cy="32" r="32" fill="${bg}"/>` +
     `<path d="M12 64c0-11 9-19 20-19s20 8 20 19H12Z" fill="${colors.brand.primary}"/>` +
     `<rect x="27" y="38" width="10" height="8" rx="3" fill="${colors.illustration.skinShade}"/>` +
@@ -409,7 +414,7 @@ const guestCharacter = (cx, cy, size, variant = 0) => {
     `<circle cx="27" cy="28" r="1.7" fill="${colors.text.strong}"/>` +
     `<circle cx="37" cy="28" r="1.7" fill="${colors.text.strong}"/>` +
     `<path d="M28.5 33.5a4.5 4.5 0 0 0 7 0" fill="none" stroke="${colors.text.strong}" stroke-width="1.6" stroke-linecap="round"/>` +
-    '</g>'
+    '</g></g>'
   );
 };
 

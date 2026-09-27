@@ -12,7 +12,8 @@
 //
 // 묶음: 화면 프레임(Screen/*) 하나가 한 묶음이고, 프레임 밖 글자·도형은 보드마다 한 묶음이다.
 // 2~4는 모든 글자가 받는다. 1·5는 화면 프레임 안에서만 뜻이 있어 프레임 밖 글자·도형은 받지 않는다.
-// 보지 않는 것: <path>·<line> 도형, 실제 글꼴의 글자 폭(shared.mjs의 measure 근사를 쓴다).
+// 보지 않는 것: <path>·<line>·<polygon>·<image> 도형, 사각형 모서리 둥글기(rx — 넓게 잡는 쪽),
+// 실제 글꼴의 글자 폭(shared.mjs의 measure 근사를 쓴다).
 //
 // 실행: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/check.mjs
 
@@ -122,7 +123,21 @@ function parse(svg) {
       const X = cx * top.k + top.dx;
       const Y = cy * top.k + top.dy;
       // 원은 원 모양 그대로 잰다. 안쪽 정사각형으로 근사하면 가장자리 가림을 놓친다(5차 리뷰).
-      shapes.push({ ...base, kind: 'circle', cx: X, cy: Y, r: R, left: X - R, top: Y - R, right: X + R, bottom: Y + R });
+      // 테두리가 있으면 선 두께의 절반만큼 바깥까지 덮는다(하단 가운데 버튼의 흰 테두리 4 — 6차 리뷰).
+      const sw = stroked ? Number(/stroke-width="([d.]+)"/.exec(tag)?.[1] ?? 1) * top.k : 0;
+      const cover = R + sw / 2;
+      shapes.push({
+        ...base,
+        kind: 'circle',
+        cx: X,
+        cy: Y,
+        r: R,
+        cover,
+        left: X - cover,
+        top: Y - cover,
+        right: X + cover,
+        bottom: Y + cover,
+      });
     }
   }
   return { texts, shapes };
@@ -146,7 +161,7 @@ const coveredArea = (t, s) => {
   let n = 0;
   for (let x = left + step / 2; x < right; x += step) {
     for (let y = top + step / 2; y < bottom; y += step) {
-      if ((x - s.cx) ** 2 + (y - s.cy) ** 2 <= s.r ** 2) n += 1;
+      if ((x - s.cx) ** 2 + (y - s.cy) ** 2 <= s.cover ** 2) n += 1;
     }
   }
   return n * step * step;
