@@ -34,7 +34,16 @@
 - **넣은 뒤 할 일:** 글꼴 대체 여부를 확인한다. 2026-09-22에는 Pretendard가 없어 Inter로 바뀌었고, Gothic A1로 교정했다(보드 README "Import 결과"). 스크린샷으로 확인하고 [보드 README](../../design/figma/TASK-020/README.md)의 Import 결과와 상태 정본 Unresolved 13을 갱신한다.
 - **주의:** 보드를 다시 만들 일이 생기면 `generate.mjs` 뒤에 반드시 `check.mjs`를 돌린다. 보드 문구·배치의 기준은 앱 코드다.
 
-### 2. 12단계 Spec Update
+### 2. 이메일 가입에 "비밀번호 확인" 칸 추가 (사용자 요청, 2026-09-27)
+
+- **현재:** `frontend/mobile/src/features/auth/SignupScreen.tsx`에는 비밀번호 칸이 하나뿐이다(이메일·비밀번호·전화번호·약관 동의). 코드·`docs/product`·`API.md`·`DESIGN_SYSTEM.md` 어디에도 "비밀번호 확인"이 없다(2026-09-27 grep 0건).
+- **정본에 먼저 반영:** `SCREEN_STATES.md`의 `AUTH-SIGNUP-EDITING` 행은 "이메일·비밀번호·전화번호"라고 적혀 있다. AGENTS 8장 순서대로 요구사항을 먼저 확인하고, 이 행과 가입 관련 절을 grep으로 찾아 함께 고친다. `docs/product/**`는 `role:product` 소유라 변경을 handoff에 적는다.
+- **구현할 것:** 비밀번호 아래에 확인 칸을 둔다. 두 값이 다르면 제출 전에 필드 오류를 보여 준다(기존 `errors` 방식, 문구 예: "비밀번호가 서로 달라요."). 확인 값은 **서버에 보내지 않는다** — `POST /api/v1/auth/register` 계약은 바뀌지 않는다. 약관이 바뀌어 비밀번호를 지우는 경우(`AUTH-CONSENT-OUTDATED`)에는 확인 칸도 함께 지운다. 입력 중 오류 지우기, 보안 입력(`secureTextEntry`), 자동완성 속성도 기존 비밀번호 칸과 맞춘다.
+- **함께 고칠 것:** Figma 보드 09(인증)의 가입 화면 중 입력 칸이 있는 `Signup-Editing`·`Signup-ConsentOutdated`에 칸을 추가한다(`Signup-LegalLoading`은 칸이 없다). `generate.mjs` → `check.mjs` 0건을 확인하고, 화면 높이가 넘치면 간격을 조정한다. `INTEGRATION_GUIDE.md`는 가입 칸을 다루지 않으니 바꿀 필요가 없는지만 확인한다.
+- **검증:** `verify:tokens`·`lint`·`typecheck`·`export:android`, 에뮬레이터에서 일치·불일치·약관 변경 세 경우를 캡처한다(evidence README에 기록). 끝나면 reviewer 독립 검토를 받는다.
+- **순서:** Figma 넣기(1번)와 파일이 겹친다. 보드 09가 바뀌므로 **이 작업을 먼저 하고 Figma에 넣는 것**이 두 번 일하지 않는 길이다. 사용자에게 순서를 확인한다.
+
+### 3. 12단계 Spec Update
 
 진행 여부를 **사용자에게 먼저 묻는다.** 진행하면 이번에 새로 정한 것을 정본에 다시 반영한다. 후보는 다음과 같다(반영 여부는 각 정본을 읽고 판단한다).
 
