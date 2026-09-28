@@ -16,7 +16,7 @@
 | `docs/design/**`(DESIGN_SYSTEM·evidence·synthesis·figma) | `role:design-system` | Step 3~8 토큰·컴포넌트·검증 기록 |
 | `frontend/mobile/src/design/**`·`src/components/ui/**` | `role:design-system` | 토큰과 공용 컴포넌트 |
 | `docs/product/requirements/SCREEN_STATES.md` | `role:product` | 상태 모델 갱신과 Step 7·9 검증 기록 |
-| `frontend/mobile/src/components/ui/**`(Step 9 신설 4종 포함) | `role:design-system` | CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock |
+| `frontend/mobile/src/components/ui/**`(Step 9 신설 4종 포함) | `role:design-system` | CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock(2026-09-28 삭제) |
 
 ## Branch
 
@@ -47,6 +47,8 @@
 - PRD·기능명세·User Flow·Result IA를 다시 대조해 회원가입, 새 결과 미리보기, 저장 오류, 결과 한계, 마이페이지 상태 누락을 보완했다.
 
 ## Changed
+
+- (마이페이지 저장 이미지, 2026-09-28) `features/mypage/MyPageScreen.tsx`(`StoredPersonaRow` — 동그란 그림 + 순위·유형 이름, 순위 순 정렬), `components/ui/PersonaAvatar.tsx`(`usePersonaImageRetry`·`PersonaImageError` — 홈 카드와 공유), `features/result/ResultView.tsx`(공유 도구로 교체), `components/ui/PersonaImageBlock.tsx` 삭제, 보드 `generate.mjs`·`svg/10`(MyPage-Images 화면 추가), `SCREEN_STATES` §8 `STORED-IMAGES-NORMAL`, `DESIGN_SYSTEM` §3.6, evidence `mypage-images-*` 2장
 
 - (선택 유형 요약 카드, 2026-09-28) 결과 화면의 큰 이미지 칸을 사용자가 고른 F안 카드로 바꿨다 — 손님 그림·순위·리뷰 수·분석 리뷰 대비 비율 막대·관점별 근거 수 칩. `features/result/ResultView.tsx`(`PersonaStatsCard`, 이미지 실패 시 다시 불러오기), `components/ui/PersonaAvatar.tsx`(`compact` 크기, `onLoadError`), 보드 `generate.mjs`·`svg/08`(Image-States 화면), `SCREEN_STATES` §6.1·§6.4·§11, `DESIGN_SYSTEM` §3.6·§6 SC-007, `RESULT_IA` 구조도·트리, evidence `stats-card-*` 3장. 독립 Reviewer 1차 FAIL(P1 — 카드 묶음 라벨이 서버 대체 텍스트를 가림, P2 1·P3 5) → 반영 후 2차 PASS(P3 3 — 주석 위치 반영, altText 형식·가상 서버 대체 텍스트가 음식을 설명하는 차이는 실제 서버 연결 때 확인)
 
@@ -120,7 +122,7 @@
 26. (Step 9) 알림 설정 토글은 스위치 옆에 `켜짐`·`꺼짐` 글자를 함께 둔다. 색만으로 상태를 알리지 않는다.
 27. (Step 9) 계정 탈퇴는 구현하지 않는다. 원격 백엔드에는 `DELETE /api/v1/me/account`가 있으나 이 저장소 API.md §3.3이 계약에서 제외했다. 계약을 맞출지는 `role:platform`이 정한다(FRONTEND_STRUCTURE §2.3).
 28. (Step 9) Google 로그인은 앱 식별자·scheme·OAuth client id가 정해진 뒤에 만든다. 로그인 화면에 그 사실을 적는다.
-29. (Step 9, 리뷰 반영) 페르소나 이미지는 `components/ui/PersonaImageBlock` 하나로 그린다. 결과 화면과 마이페이지가 같은 고지·로딩·실패 규칙을 쓴다.
+29. (Step 9, 리뷰 반영) 페르소나 이미지는 `components/ui/PersonaImageBlock` 하나로 그린다. 결과 화면과 마이페이지가 같은 고지·로딩·실패 규칙을 쓴다. — **2026-09-28 대체:** 두 화면 모두 동그란 `PersonaAvatar` + `usePersonaImageRetry`·`PersonaImageError`로 바꾸고 `PersonaImageBlock`은 지웠다(같은 규칙을 한 곳에서 쓴다는 뜻은 유지).
 30. (Step 9, 리뷰 반영) 입력 검증은 서버 규칙보다 좁히지 않는다. 전화번호는 숫자 8~15자리와 국가번호를 허용하고, 보낼 때만 숫자로 정리한다.
 
 ## Verification
@@ -189,7 +191,7 @@
 
 15. **`docs/architecture/API.md` 272줄이 옛 결과 순서다**(`분석 메타정보 → 3칸 포디움 → …`). Step 12 독립 리뷰(2026-09-28)가 찾았다. `role:platform` 소유라 이 TASK에서 고치지 않았다. 화살표를 빼고 데이터 구성으로 적거나 RESULT_IA D7로 링크하도록 `role:platform`에 넘긴다(PR 본문에도 적는다).
 
-16. **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄 "페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다"가 2026-09-28부터 사실과 다르다.** 결과 화면은 `PersonaStatsCard`(작은 그림), 마이페이지만 `PersonaImageBlock`을 쓴다. `role:platform` 소유라 이 TASK에서 고치지 않았다 — Unresolved 15와 함께 넘긴다(PR 본문에도 적는다).
+16. **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄의 공용 컴포넌트 목록(18종)과 "페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다"가 2026-09-28부터 사실과 다르다.** `PersonaImageBlock`은 지웠고(17종), 두 화면은 `PersonaAvatar`와 그 옆의 `usePersonaImageRetry`·`PersonaImageError`를 함께 쓴다. `role:platform` 소유라 이 TASK에서 고치지 않았다 — Unresolved 15와 함께 넘긴다(PR 본문에도 적는다).
 
 ## Do Not Assume
 

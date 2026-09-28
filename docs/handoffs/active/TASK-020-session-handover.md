@@ -28,10 +28,12 @@
 
 5. **선택 유형 요약 카드** — 결과 화면의 빈 이미지 칸 대신, 사용자가 시안 6개 중 고른 F안을 넣었다. 왼쪽 손님 캐릭터(실제 서버에서는 AI 이미지), 순위·리뷰 수, "분석한 리뷰 N건 중 M%" 막대, 관점별 근거 수 칩. 사용자 결정: 큰 이미지 칸은 없앤다 / 비율은 지금 넣고 백엔드 확인(SCREEN_STATES §11) / 이미지 실패 시 카드에 다시 불러오기.
 
+6. **마이페이지 저장 이미지** — 사용자 요청으로 큰 회색 칸 3개를 홈과 같은 동그란 손님 그림 + `N위 손님`·유형 이름 한 줄씩으로 바꿨다. 실패·다시 불러오기 로직은 `PersonaAvatar.tsx`의 `usePersonaImageRetry`·`PersonaImageError`로 모아 홈 카드와 함께 쓴다. `PersonaImageBlock`은 쓰는 곳이 없어 지웠다. Figma 보드 10에 마이페이지 스크롤 아래 화면을 한 장 더했다(보드 너비 2608 → 3032).
+
 ## 남은 것 (다음 작업 후보 — 사용자가 고른다)
 
 - **`docs/architecture/API.md` 272줄 옛 결과 순서** — `role:platform` 소유. 상태 정본 Unresolved 15. PR 본문에 적고 넘긴다.
-- **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄 이미지 컴포넌트 서술** — 결과 화면이 더 이상 `PersonaImageBlock`을 쓰지 않는다. `role:platform` 소유. 상태 정본 Unresolved 16.
+- **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄 이미지 컴포넌트 서술** — `PersonaImageBlock`을 지워 공용 컴포넌트가 17종이 됐다. `role:platform` 소유. 상태 정본 Unresolved 16.
 - **한 리뷰가 여러 유형에 세어지는지** — 요약 카드의 비율 뜻이 달라진다. 백엔드(`role:feature`) 확인. SCREEN_STATES §11.
 - **Figma 미확인** — 잘림·굵기 4단계·팀원 PC 글꼴. MCP가 Starter 한도라 에이전트는 파일을 볼 수 없다.
 - **원격에 없는 로컬 커밋 push·PR** — 사용자가 말하기 전에는 하지 않는다. 범위는 `git log --oneline @{u}..HEAD`로 뽑는다(아래 Git 상태). PR을 올릴 때 `docs/product/**`(role:product)·`docs/design/**`(role:design-system) 수정을 본문에 밝힌다(AGENTS 5장).

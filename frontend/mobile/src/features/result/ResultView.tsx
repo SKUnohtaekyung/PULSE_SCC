@@ -5,7 +5,12 @@ import type { ApiClient } from '@/api/client';
 import { personaImageSource, type PersonaImageSource } from '@/api/personaImages';
 import type { AnalysisResult, Persona, PerspectiveKey, PodiumSlot } from '@/api/types';
 import { Notice } from '@/components/ui/Notice';
-import { PersonaAvatar, PersonaAvatarNotice } from '@/components/ui/PersonaAvatar';
+import {
+  PersonaAvatar,
+  PersonaAvatarNotice,
+  PersonaImageError,
+  usePersonaImageRetry,
+} from '@/components/ui/PersonaAvatar';
 import { PodiumTop3 } from '@/components/ui/PodiumTop3';
 import { colors, fontFamilies, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
@@ -181,10 +186,7 @@ function PersonaStatsCard({
       : null;
   const chips = perspectiveOrder.filter((item) => perspectives[item.key]);
   // IMAGE-LOAD-ERROR(SCREEN_STATES §6.4) — 그림은 자리표시로 바꾸고 유형 정보는 그대로 둔 채 다시 불러오기를 준다.
-  // key를 바꿔 PersonaAvatar를 새로 그리면 이미지를 다시 요청한다.
-  const [imageFailed, setImageFailed] = useState(false);
-  const [imageAttempt, setImageAttempt] = useState(0);
-  const showImageError = imageFailed || source.kind === 'unavailable';
+  const image = usePersonaImageRetry(source);
 
   return (
     <View style={styles.statsCard}>
@@ -200,8 +202,8 @@ function PersonaStatsCard({
       >
         <PersonaAvatar
           altText={altText}
-          key={imageAttempt}
-          onLoadError={() => setImageFailed(true)}
+          key={image.attempt}
+          onLoadError={image.onLoadError}
           size="compact"
           source={source}
           variant={rank - 1}
@@ -225,23 +227,7 @@ function PersonaStatsCard({
         </View>
       </View>
 
-      {showImageError ? (
-        <View accessibilityLiveRegion="polite" style={styles.imageError}>
-          <Text style={styles.statsShare}>이미지를 불러오지 못했어요. 손님 유형 내용은 그대로 볼 수 있어요.</Text>
-          {source.kind === 'remote' ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setImageFailed(false);
-                setImageAttempt((count) => count + 1);
-              }}
-              style={({ pressed }) => [styles.imageRetry, pressed && styles.pressed]}
-            >
-              <Text style={styles.imageRetryText}>이미지 다시 불러오기</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
+      {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
 
       {chips.length > 0 ? (
         <View style={styles.chipRow}>
@@ -596,18 +582,6 @@ const styles = StyleSheet.create({
   statsShare: {
     ...typography.caption,
     color: colors.text.secondary,
-  },
-  imageError: {
-    gap: spacing[1],
-  },
-  imageRetry: {
-    alignSelf: 'flex-start',
-    justifyContent: 'center',
-    minHeight: layout.touchTargetMin,
-  },
-  imageRetryText: {
-    ...typography.body6,
-    color: colors.text.brand,
   },
   chipRow: {
     flexDirection: 'row',

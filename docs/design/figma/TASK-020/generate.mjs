@@ -883,9 +883,39 @@ const screenMyPage = () => {
       circle(PAD + W - 38, y + 71, 12, { fill: colors.background.surface }),
   );
   y += 124;
-  body += card(PAD, y, W, 132, text(PAD + 20, y + 14, '저장된 결과의 손님 유형 이미지', typography.body6, colors.text.strong) + [0, 1, 2].map((index) => guestCharacter(PAD + 52 + index * 84, y + 78, 64, index)).join(''));
-  y += 148;
-  body += outlineButton(PAD, y, W, '로그아웃');
+  // 저장 이미지 카드와 로그아웃은 스크롤 아래에 있다. 앱 캡처처럼 따로 그린다(screenMyPageImages).
+  body += bottomNav('mypage');
+  return body;
+};
+
+/** 마이페이지 스크롤 아래 — 저장된 결과의 손님 유형 이미지(앱 `MyPageScreen`의 StoredPersonaRow, 2026-09-28). */
+const screenMyPageImages = () => {
+  let body = appHeader({ brand: true, badge: '마이페이지' });
+  const y = HEADER_H + 20;
+  const rows = [
+    ['추억 재방문형', 0],
+    ['매운맛 조절형', 1],
+    ['혼밥 안심형', 2],
+  ];
+  const rowTop = y + 86;
+  const inner =
+    text(PAD + 20, y + 14, '저장된 결과의 손님 유형 이미지', typography.body6, colors.text.strong) +
+    text(PAD + 20, y + 42, ['예시 화면이라 그림 대신 자리표시를 보여 드려요.', '실제 서버에서는 AI가 만든 가상 이미지가 나와요.'], typography.caption, colors.text.secondary) +
+    rows
+      .map(([label, index]) => {
+        const ry = rowTop + index * 80;
+        return group(
+          `StoredPersonaRow/${label}`,
+          guestCharacter(PAD + 20 + 32, ry + 32, 64, index) +
+            text(PAD + 100, ry + 12, `${index + 1}위 손님`, typography.caption, colors.text.secondary) +
+            text(PAD + 100, ry + 32, label, typography.body6, colors.text.strong),
+        );
+      })
+      .join('') +
+    text(PAD + 20, rowTop + 240, ['읽기 전용이에요. 새 결과로 바꾸면', '이미지도 함께 바뀌어요.'], typography.caption, colors.text.secondary);
+  const cardH = rowTop + 240 + 36 + 20 - y;
+  body += card(PAD, y, W, cardH, inner);
+  body += outlineButton(PAD, y + cardH + 16, W, '로그아웃');
   body += bottomNav('mypage');
   return body;
 };
@@ -1132,7 +1162,8 @@ const boards = {
     { name: 'Result-Error', caption: '결과 조회 실패 (RESULT-ERROR)', body: screenResultError(), options: {} },
     { name: 'Evidence-LoadingMore', caption: '근거 목록 — 더 불러오는 중', body: screenEvidence(), options: {} },
     { name: 'Evidence-End', caption: '근거 목록 끝 (EVIDENCE-END)', body: screenEvidence({ end: true }), options: {} },
-    { name: 'MyPage', caption: '마이페이지 (MYPAGE-NORMAL)', body: screenMyPage(), options: {} },
+    { name: 'MyPage', caption: '마이페이지 위쪽 (MYPAGE-NORMAL)', body: screenMyPage(), options: {} },
+    { name: 'MyPage-Images', caption: '스크롤 아래 — 저장 이미지 (STORED-IMAGES-NORMAL)', body: screenMyPageImages(), options: {} },
   ]),
   '08-final-result-states.svg': phonesBoard('08 · Final UI — 결과 상태', '빈 칸은 점선. 선택 유형 요약 카드의 이미지 로딩(IMAGE-LOADING)은 회색 원, 조회 실패(IMAGE-LOAD-ERROR)는 캐릭터 + 문장 + 다시 불러오기', [
     {

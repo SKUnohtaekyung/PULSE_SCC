@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { PersonaImageSource } from '@/api/personaImages';
 import { GuestCharacter } from '@/components/icons/GuestCharacter';
-import { colors, spacing, strokes, typography } from '@/design/tokens';
+import { colors, layout, spacing, strokes, typography } from '@/design/tokens';
 
-// 순위 목록(TOP3)과 선택한 유형 요약 카드에 쓰는 동그란 손님 유형 그림.
+// 순위 목록(TOP3)·선택한 유형 요약 카드·마이페이지 저장 이미지에 쓰는 동그란 손님 유형 그림.
 // 실제 서버에 연결되면 AI가 만든 이미지를 원형으로 보여 주고, 그 전에는 코드로 그린 자리표시를 쓴다.
 // 프로토타입 에셋을 제품 화면에 쓰지 않는다(DESIGN_SYSTEM §3.6). 생성 사실 고지는 목록이 한 번만 한다.
 
@@ -78,6 +78,44 @@ export function PersonaAvatar({
   );
 }
 
+/**
+ * IMAGE-LOAD-ERROR(SCREEN_STATES §6.4)를 다시 불러오기로 되돌리는 상태.
+ * `attempt`를 PersonaAvatar의 key로 주면, 다시 불러오기 때 새로 그려져 이미지를 다시 요청한다.
+ */
+export function usePersonaImageRetry(source: PersonaImageSource) {
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  return {
+    attempt,
+    onLoadError: () => setFailed(true),
+    showError: failed || source.kind === 'unavailable',
+    // 가상 서버에는 다시 받을 이미지가 없다. 눌러도 아무 일이 없는 버튼을 두지 않는다.
+    canRetry: source.kind === 'remote',
+    retry: () => {
+      setFailed(false);
+      setAttempt((count) => count + 1);
+    },
+  };
+}
+
+/** 그림을 받지 못했을 때 그림 가까이 두는 원인 문장과 다시 불러오기. 유형 정보는 그대로 둔다. */
+export function PersonaImageError({ canRetry, onRetry }: { canRetry: boolean; onRetry: () => void }) {
+  return (
+    <View accessibilityLiveRegion="polite" style={styles.error}>
+      <Text style={styles.notice}>이미지를 불러오지 못했어요. 손님 유형 내용은 그대로 볼 수 있어요.</Text>
+      {canRetry ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onRetry}
+          style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+        >
+          <Text style={styles.retryText}>이미지 다시 불러오기</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 /** 이미지가 실제로 보이지 않을 때 목록 아래에 한 번 두는 문장. */
 export function PersonaAvatarNotice({ anyRemote }: { anyRemote: boolean }) {
   return (
@@ -110,5 +148,20 @@ const styles = StyleSheet.create({
   notice: {
     ...typography.caption,
     color: colors.text.secondary,
+  },
+  error: {
+    gap: spacing[1],
+  },
+  retry: {
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    minHeight: layout.touchTargetMin,
+  },
+  retryText: {
+    ...typography.body6,
+    color: colors.text.brand,
+  },
+  pressed: {
+    opacity: 0.9,
   },
 });
