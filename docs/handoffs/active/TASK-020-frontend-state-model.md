@@ -48,7 +48,7 @@
 
 ## Changed
 
-- (선택 유형 요약 카드, 2026-09-28) 결과 화면의 큰 이미지 칸을 사용자가 고른 F안 카드로 바꿨다 — 손님 그림·순위·리뷰 수·분석 리뷰 대비 비율 막대·관점별 근거 수 칩. `features/result/ResultView.tsx`(`PersonaStatsCard`, 이미지 실패 시 다시 불러오기), `components/ui/PersonaAvatar.tsx`(`compact` 크기, `onLoadError`), 보드 `generate.mjs`·`svg/08`(Image-States 화면), `SCREEN_STATES` §6.1·§6.4·§11, `DESIGN_SYSTEM` §3.6·§6 SC-007, `RESULT_IA` 구조도·트리, evidence `stats-card-*` 3장
+- (선택 유형 요약 카드, 2026-09-28) 결과 화면의 큰 이미지 칸을 사용자가 고른 F안 카드로 바꿨다 — 손님 그림·순위·리뷰 수·분석 리뷰 대비 비율 막대·관점별 근거 수 칩. `features/result/ResultView.tsx`(`PersonaStatsCard`, 이미지 실패 시 다시 불러오기), `components/ui/PersonaAvatar.tsx`(`compact` 크기, `onLoadError`), 보드 `generate.mjs`·`svg/08`(Image-States 화면), `SCREEN_STATES` §6.1·§6.4·§11, `DESIGN_SYSTEM` §3.6·§6 SC-007, `RESULT_IA` 구조도·트리, evidence `stats-card-*` 3장. 독립 Reviewer 1차 FAIL(P1 — 카드 묶음 라벨이 서버 대체 텍스트를 가림, P2 1·P3 5) → 반영 후 2차 PASS(P3 3 — 주석 위치 반영, altText 형식·가상 서버 대체 텍스트가 음식을 설명하는 차이는 실제 서버 연결 때 확인)
 
 - (손님 캐릭터 교체, 2026-09-28) 사용자 선택으로 자리표시 캐릭터를 서로 다른 세 사람(얼굴 있음, 1번은 안경다리까지)으로 바꿨다. 하단 바 아이콘은 바꾸지 않았다(사용자 결정). `components/icons/guestCharacterShapes.ts` 신설(앱·보드 생성기가 함께 읽는 도형 정의), `GuestCharacter.tsx` 교체, `design/tokens/foundation.ts` 그림 색 추가(`skinShade` 값 변경 포함), `scripts/verify-design-tokens.mjs` 그림 대비 검사 교체, 보드 `generate.mjs`와 svg 5장(03·05·07·08·10), `DESIGN_SYSTEM` §3.6, 보드 README, evidence `guest-v2-*` 2장. 독립 Reviewer PASS(차단 0·P3 3 — 주석 두 곳, 눈썹 색 대비 검사 누락 → 반영, `verify:tokens`·`lint`·`typecheck` 종료 0)
 

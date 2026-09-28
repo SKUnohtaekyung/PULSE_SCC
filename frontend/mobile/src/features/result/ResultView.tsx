@@ -179,7 +179,6 @@ function PersonaStatsCard({
     topicReviewCount !== undefined && validReviewCount > 0
       ? Math.round((topicReviewCount / validReviewCount) * 100)
       : null;
-  // 100%를 넘는 값은 데이터가 이상하다는 뜻이다. 문장에는 그대로 보여 드러나게 하고, 막대만 카드 밖으로 나가지 않게 자른다.
   const chips = perspectiveOrder.filter((item) => perspectives[item.key]);
   // IMAGE-LOAD-ERROR(SCREEN_STATES §6.4) — 그림은 자리표시로 바꾸고 유형 정보는 그대로 둔 채 다시 불러오기를 준다.
   // key를 바꿔 PersonaAvatar를 새로 그리면 이미지를 다시 요청한다.
@@ -215,6 +214,7 @@ function PersonaStatsCard({
           {share !== null ? (
             <>
               <View style={styles.statsTrack}>
+                {/* 100%를 넘는 값은 데이터가 이상하다는 뜻이다. 문장에는 그대로 보여 드러나게 하고, 막대만 카드 밖으로 나가지 않게 자른다. */}
                 <View style={[styles.statsBar, { width: `${Math.min(100, share)}%` }]} />
               </View>
               <Text style={styles.statsShare}>
