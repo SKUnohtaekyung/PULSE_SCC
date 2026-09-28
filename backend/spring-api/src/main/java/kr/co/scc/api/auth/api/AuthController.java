@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.servlet.http.HttpServletRequest;
 import kr.co.scc.api.auth.application.AuthService;
+import kr.co.scc.api.auth.application.LoginAttemptLimiter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,19 +26,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final LoginAttemptLimiter attemptLimiter;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, LoginAttemptLimiter attemptLimiter) {
         this.authService = authService;
+        this.attemptLimiter = attemptLimiter;
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public SessionResponse register(@Valid @RequestBody RegisterRequest request) {
+    public SessionResponse register(@Valid @RequestBody RegisterRequest request, HttpServletRequest http) {
+        attemptLimiter.checkRequest(http.getRemoteAddr());
         return SessionResponse.from(authService.register(request.email(), request.password(), request.phoneNumber()));
     }
 
     @PostMapping("/login")
-    public SessionResponse login(@Valid @RequestBody LoginRequest request) {
+    public SessionResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        // 전달 헤더(X-Forwarded-For)는 조작할 수 있어 믿지 않는다. 프록시 뒤에 배포하면
+        // server.forward-headers-strategy 로 실제 주소를 remoteAddr 에 반영해야 한다.
+        attemptLimiter.checkRequest(http.getRemoteAddr());
         return SessionResponse.from(authService.login(request.email(), request.password()));
     }
 

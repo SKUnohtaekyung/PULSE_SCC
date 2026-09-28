@@ -183,6 +183,34 @@ Refresh Token은 `/api/v1/auth/refresh` 요청 본문에서만 받고 매 성공
 
 Google 로그인 요청은 Android가 받은 `idToken`을 본문으로 전달한다. 서버는 Google 공개키로 서명과 만료를 검증하고 `issuer`, `audience=GOOGLE_CLIENT_ID`, `email_verified=true`를 확인한다. 같은 이메일의 기존 자체 계정에는 자동 연결하지 않고 `409 ACCOUNT_LINK_REQUIRED`를 반환한다.
 
+### 4.3 가입 여부 노출과 시도 제한
+
+[ADR-008](../decisions/ADR-008-authentication-policy.md) 11·12번(2026-09-28, #32).
+
+- 가입 요청의 이메일이 이미 있으면 `409 EMAIL_ALREADY_EXISTS` 를 돌려준다. 가입 여부를 숨기지 않는다.
+- 같은 이메일로 로그인에 10번 실패하면 15분 동안 그 이메일의 로그인이 막힌다. 존재하지 않는 이메일도 같다. 시도는 첫 시도부터 15분 창 안에서 세고, 로그인에 성공하면 초기화된다.
+- 같은 클라이언트 주소에서 `POST /api/v1/auth/login`·`POST /api/v1/auth/register` 요청이 10분에 60번을 넘으면 10분 동안 막힌다. IPv6 는 /64 단위로 센다. 본문 형식 검증에 실패한 요청(`400 INVALID_REQUEST`)은 세지 않는다.
+- 서버가 기록할 수 있는 이메일·주소 수가 가득 차면 새 이메일·주소의 요청도 같은 `429` 로 막힌다.
+- 막힌 요청의 응답:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 900
+```
+
+```json
+{
+  "error": {
+    "code": "TOO_MANY_ATTEMPTS",
+    "message": "시도가 너무 많습니다. 잠시 뒤에 다시 시도해 주세요.",
+    "retryable": true,
+    "traceId": "01J..."
+  }
+}
+```
+
+`Retry-After` 는 다시 시도할 수 있을 때까지의 초다. 잠긴 이메일의 로그인은 비밀번호가 맞아도 기한까지 `429` 다.
+
 ---
 
 ## 5. 분석 작업 계약

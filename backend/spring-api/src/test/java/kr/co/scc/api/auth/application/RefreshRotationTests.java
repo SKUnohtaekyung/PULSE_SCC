@@ -49,7 +49,8 @@ class RefreshRotationTests {
                 mock(PasswordEncoder.class),
                 tokenService,
                 mock(GoogleIdTokenVerifier.class),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new LoginAttemptLimiter(Clock.fixed(NOW, ZoneOffset.UTC)));
     }
 
     private RefreshSession session(Instant revokedAt, UUID replacedBy) {

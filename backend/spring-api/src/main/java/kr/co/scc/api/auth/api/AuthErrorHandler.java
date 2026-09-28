@@ -1,11 +1,13 @@
 package kr.co.scc.api.auth.api;
 
+import java.time.Duration;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import kr.co.scc.api.auth.application.AuthException;
 import kr.co.scc.api.common.web.TraceId;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,8 +19,16 @@ public class AuthErrorHandler {
 
     @ExceptionHandler(AuthException.class)
     ResponseEntity<ErrorEnvelope> handleAuth(AuthException exception) {
+        Duration retryAfter = exception.retryAfter();
+        if (retryAfter == null) {
+            return ResponseEntity.status(exception.status())
+                    .body(ErrorEnvelope.of(exception.code(), exception.getMessage(), List.of()));
+        }
+        // 초 단위로 올림해 알려 준다. 내림하면 알려 준 시각에 다시 보내도 막힌다.
+        long seconds = Math.max(1, (retryAfter.toNanos() + 999_999_999L) / 1_000_000_000L);
         return ResponseEntity.status(exception.status())
-                .body(ErrorEnvelope.of(exception.code(), exception.getMessage(), List.of()));
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
+                .body(ErrorEnvelope.of(exception.code(), exception.getMessage(), true, List.of()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -42,10 +52,14 @@ public class AuthErrorHandler {
     public record ErrorEnvelope(ErrorBody error) {
 
         static ErrorEnvelope of(String code, String message, List<FieldError> fieldErrors) {
+            return of(code, message, false, fieldErrors);
+        }
+
+        static ErrorEnvelope of(String code, String message, boolean retryable, List<FieldError> fieldErrors) {
             return new ErrorEnvelope(new ErrorBody(
                     code,
                     message,
-                    false,
+                    retryable,
                     fieldErrors.isEmpty() ? null : fieldErrors,
                     TraceId.current()));
         }
