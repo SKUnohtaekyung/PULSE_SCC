@@ -672,6 +672,9 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 쓰지 않는 `markRunning`·`@EnableAsync`
 - Google 가입은 약관 동의를 기록하지 않는다
 - Tomcat `/error` 가 `denyAll` 에 걸려 400·500 이 403 으로 보일 수 있다(확인 필요)
+- (재검토 권고) 테스트 공백: 큐 `inFlight` 중복 track, 러너의 `JobOwnershipLostException` 분기, 설정 행 없는 사용자의 `failExhaustedJobs` 경로
+- (재검토 권고) 비용: 근거 인덱스 검증이 이미지 3장 생성 뒤에 돌아 실패하면 재시도마다 이미지 비용이 다시 든다. `openai.APIError` 전체(인증 401·모델 없음 포함)를 503 재시도로 보내 설정 오류도 3회 시도한다
+- (재검토 권고) 완료 저장 소유권은 "작업이 `RUNNING` 인가" 로만 판정한다. 재회수된 작업이면 원 워커 저장이 성공하고 새 워커 결과가 버려진다(ADR-012 의 at-least-once 한계 안)
 
 ## Unresolved
 
@@ -819,7 +822,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`c61f432` — 브랜치 전체 검토 결함·권고 코드 수정까지(그 뒤 문서 커밋은 코드 변경 없음). 이 코드로 Spring build·test {SPRING}, Python lint·format PASS·pytest 156개. 실제 분석·Visual QA 미실행.
+`c61f432` — 브랜치 전체 검토 결함·권고 코드 수정까지(그 뒤 문서 커밋은 코드 변경 없음). 이 코드로 Spring build·test PASS(`build --rerun-tasks`, Docker 29.8.0, BUILD SUCCESSFUL, tests=112 failures=0 errors=0 skipped=0), Python lint·format PASS·pytest 156개. 실제 분석·Visual QA 미실행.
 
 `dbf6d02` — `main`(PR #27) 연결·ADR 번호 변경·문서 불일치 정리까지. 코드는 `e17fe61` 과 같다. `e17fe61` 에서 Spring 99개 skip 0, Python 128개, 로컬 DB `bootRun` 인증 흐름 확인. 브랜치 전체 독립 Reviewer 는 아직이다.
 

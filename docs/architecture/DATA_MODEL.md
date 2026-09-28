@@ -426,7 +426,7 @@ V3는 API 조회용 `analysis_result_documents` JSONB read model과 문서 종�
 | | `document_type` varchar(32) | `TERMS_OF_SERVICE`, `PRIVACY_POLICY` |
 | | `document_version` varchar(32) | 동의한 문서 버전 |
 | | `accepted_at` timestamptz | 동의 시각 |
-| | | `(user_id, document_type, document_version)` unique |
+| | | `(user_id, document_type, document_version)` unique, 인덱스 `ix_legal_consents_user_accepted (user_id, accepted_at DESC)` |
 
 V4는 작업 큐 임대 컬럼 `lease_expires_at`·`last_heartbeat_at` 과 부분 인덱스 2개를 추가했다([ADR-012](../decisions/ADR-012-durable-analysis-job-queue.md)).
 
