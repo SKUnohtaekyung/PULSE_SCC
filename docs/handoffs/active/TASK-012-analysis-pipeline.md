@@ -565,7 +565,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## 2026-09-28 결정 없이 처리한 기술 과제 2건
 
-사용자 요청("다음 작업이나 이슈 하나씩")으로 진행했다. 결정 대기 이슈(#31·#32·#33)에는 새 결정이 없고 #34 는 프론트 담당 몫이라, 인수인계의 기술 과제 중 `role:feature` 소유이면서 결정이 필요 없는 것을 골랐다.
+사용자 요청("다음 작업이나 이슈 하나씩")으로 진행했다. 결정 대기 이슈(#31·#32·#33)에는 새 결정이 없고 #34 는 프론트 담당 몫이라, 인수인계의 기술 과제 중 `role:feature` 소유이면서 결정이 필요 없는 것을 골랐다. 3번은 이후 사용자 요청으로 추가했고 `role:platform` 영역으로 볼 수 있는 파일(`core/logs.py`, `__main__.py`)을 포함한다.
 
 ### 1. 손님 유형이 4개 이상이면 리뷰 수 상위 3개만 남김 (`47c1130`)
 
@@ -589,8 +589,27 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | 검증 | ruff PASS, pytest 124개(새 테스트 2개). 소스를 되돌리면 1개 실패. uvicorn `LOGGING_CONFIG` 적용 상태에서 stderr 출력 확인. 독립 Reviewer PASS — `parse_text` 경로와 FastAPI `response_model` 재검증에서 로그가 중복되지 않음을 probe 로 확인 |
 
 - Python 서비스에는 로그 설정이 없어 이 경고는 logging 의 lastResort 로 **레벨·로거 이름·시각 없이 메시지만** stderr 에 나온다. 운영에서 자체 log config 를 넣으면(`disable_existing_loggers` 기본값 등) 사라질 수 있다.
+  > 이후 조치(2026-09-28): 로그 설정을 추가했다(`ea45b4a`, 아래 3번). 이제 시각·레벨·로거 이름·작업 ID 가 붙는다.
 - 로그에 작업 ID 가 없다. 여러 작업이 겹치면 어느 분석의 로그인지 구분할 수 없고, 검증이 다른 이유로 실패해 재시도된 시도의 로그도 남는다.
-- 실제 서버(`python -m scc_analysis`)와 실제 OpenAI 응답으로는 확인하지 않았다.
+  > 이후 조치(2026-09-28): 작업 ID 는 붙게 됐다(`ea45b4a`). 같은 작업의 재시도는 같은 ID 아래 섞여 시도끼리는 여전히 구분되지 않는다.
+- 필터 경고는 실제 서버(`python -m scc_analysis`)와 실제 OpenAI 응답으로 확인하지 않았다(아래 3번의 실서버 실행은 50건 게이트에서 멈춰 필터 경로를 타지 않는다).
+
+### 3. Python 서비스 로그 설정 (`ea45b4a`)
+
+사용자 요청으로 이어서 진행했다.
+
+| 항목 | 내용 |
+|---|---|
+| 문제 | 로그 설정이 없어 서비스 로그는 lastResort 로 메시지만 나오고 INFO 는 버려졌다. 작업 ID 가 없었다 |
+| 수정 | `core/logs.py` — uvicorn `LOGGING_CONFIG` 복사본에 `scc_analysis` 로거만 더한다(INFO, stderr, `시각 레벨 로거 job=<작업 ID> 메시지`, propagate 끔). 작업 ID 는 `current_job_id` ContextVar 로 두고 필터가 붙인다. `__main__.py` 가 `uvicorn.run(log_config=...)` 로 넘긴다. uvicorn 자체 로그 형식은 그대로다 |
+| 분석 요청 로그 | `api/analysis.py` — 인증 뒤 작업 ID 를 설정하고 시작 INFO, 완료 INFO(유효 리뷰 수·손님 유형 수·초), 실패 WARNING(HTTP 오류는 detail.code, 그 밖은 예외 이름만·초). 예외→HTTP 변환은 `_run` 으로 옮겼을 뿐 같다. traceback 은 uvicorn 이 남기므로 여기서는 남기지 않는다(검증 오류에 모델 출력·리뷰 인용이 들어 있을 수 있어서) |
+| 검증 | ruff PASS, pytest 128개(새 `test_logging.py` 4개, `test_runtime.py` 기대값 갱신). `reset` 을 지우면 복구 테스트가 실패하는 것을 확인(구현 세션·Reviewer 재검토 모두). 실제 서버(`SCC_REVIEW_COLLECTION_LIMIT=20`, reload 켜짐) + Spring 으로 50건 게이트 실패 작업을 두 번 돌렸다(OpenAI 호출 없음). 1회차(13:18)는 권고 반영 전 작업 트리, **2회차(13:26)는 커밋된 `ea45b4a` 코드 그대로**다. 2회차 출력: `2026-09-28 13:26:29,658 WARNING scc_analysis.api.analysis job=6a19742c-… 분석이 실패했습니다: INSUFFICIENT_VALID_REVIEWS (27초)` — 작업 ID 는 Spring 상태 응답의 jobId 와 같았다 |
+| 독립 Reviewer | 1차 PASS(권고 5건) → 반영(효과 없던 복구 assert 를 같은 컨텍스트에서 직접 확인하는 테스트로 교체, 부정확한 주석 삭제, 작업 ID 설정 직후를 `try` 안으로) → 재검토에서 반영분 PASS. 동시 요청 5개에서 코루틴·`to_thread` 의 작업 ID 가 섞이지 않음을 Reviewer 가 probe 로 확인했다(실제 uvicorn 서버가 아니라 httpx `ASGITransport` 로 프로세스 안에서) |
+
+- **소유 영역**: `core/logs.py`·`__main__.py` 는 서비스 전역 런타임 설정이라 `role:platform` 영역으로 보는 편이 안전하다(Reviewer 의견). PR 본문에 소유 영역 밖 수정으로 적고 platform 리뷰어를 지정한다(AGENTS.md 5장 4번).
+- 성공 경로 INFO("분석을 마쳤습니다…")는 OpenAI 비용 때문에 실제로 출력해 보지 않았다.
+- uvicorn 은 `0.52.4` 로 고정돼 있다. 버전을 올렸을 때 `test_logging.py` 가 잡는 것은 uvicorn 로거 이름이 없어진 경우, `formatters`·`handlers`·`loggers` 키가 없어진 경우, uvicorn 로그 줄 형식(`INFO:     …`)이 바뀐 경우다. 그 밖의 구조 변화까지 잡는다고 보장하지 않는다.
+- openai·httpx 등 외부 라이브러리 로거는 설정하지 않아 이전과 같다.
 
 ## Unresolved
 
@@ -641,7 +660,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 > - 브랜치 push 완료
 > 세션 종료 시 확인한 외부 상태: PR #27·#35 OPEN·리뷰 결정 없음. #31·#32 댓글 0, #33 은 2026-09-25 진행 댓글 뒤로 결정 없음.
 > 이어서 할 것(우선순위 순)
-> 1. ~~결정 없이 할 수 있는 기술 과제 2건~~ — 같은 세션에서 처리(`47c1130`, `c87b4a7`). "2026-09-28 결정 없이 처리한 기술 과제 2건" 절
+> 1. ~~결정 없이 할 수 있는 기술 과제 2건~~ — 같은 세션에서 처리(`47c1130`, `c87b4a7`). 이어서 사용자 요청으로 Python 로그 설정(`ea45b4a`)도 처리. "2026-09-28 결정 없이 처리한 기술 과제 2건" 절
 > 2. 남은 이슈: #33(업종 범위 결정) → #32(PR #27 병합 후) → #31(지식 출처 결정)
 > 3. PR #27 병합 뒤 `main` 연결·인증 충돌 수동 병합·TASK-012 PR 생성("막혀 있는 순서")
 > 스크롤 로딩이 120건보다 적게 된 경우의 수집 수정 효과는 수집만 실측으로 확인했고 전체 분석으로는 확인하지 않았다(필요할 때만, 비용 발생).
@@ -710,7 +729,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 2. 환경은 준비돼 있다. Docker 정상, 로컬 PostgreSQL 18 에 `scc` DB·계정 존재, `backend/.env` 설정 완료(OpenAI 키 포함).
 3. 검증 명령
    - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 53개, skip 0 이어야 한다(Docker 필요)
-   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 124개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
+   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 128개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
 4. E2E 를 돌릴 때는 **OpenAI 실제 비용이 발생한다.** 수집만 확인하려면 `SCC_REVIEW_COLLECTION_LIMIT=20` 으로 띄운다. 50건 게이트에서 막혀 모델을 호출하지 않는다.
 5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
 6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.
@@ -721,7 +740,9 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`c87b4a7` — 결정 없이 처리한 기술 과제 2건(손님 유형 상위 3개 자르기 `47c1130`, 필터 건수 로그)까지. 이 커밋 기준으로 Python lint·format PASS, pytest 124개 PASS, 두 변경 모두 독립 Reviewer PASS. Spring 은 변경 없음(직전 확인 53개 skip 0). 실제 분석은 이 두 변경 뒤로 실행하지 않았다(비용).
+`ea45b4a` — Python 서비스 로그 설정까지. 이 커밋 기준으로 Python lint·format PASS, pytest 128개 PASS, 독립 Reviewer PASS(반영분 재검토 포함), 이 커밋 코드 그대로 실제 서버 + Spring 으로 50건 게이트 실패 작업 1개에서 로그 형식·작업 ID 확인(OpenAI 호출 없음). Spring 은 변경 없음(직전 확인 53개 skip 0).
+
+이전 기준 `c87b4a7` — 결정 없이 처리한 기술 과제 2건(손님 유형 상위 3개 자르기 `47c1130`, 필터 건수 로그)까지. 이 커밋 기준으로 Python lint·format PASS, pytest 124개 PASS, 두 변경 모두 독립 Reviewer PASS. Spring 은 변경 없음(직전 확인 53개 skip 0). 실제 분석은 이 두 변경 뒤로 실행하지 않았다(비용).
 
 이전 기준 `4177727` — "접기" 중복 수집 수정까지. 이 커밋 기준으로 Python lint·format PASS, pytest 118개 PASS(독립 Reviewer 재검토에서도 실행), 실제 수집(OpenAI 없음) 1회로 "접기" 중복 0 확인. Spring 은 변경 없음(직전 확인 53개 skip 0). API 수준 실제 분석 1회 완료(`76975f3` 에서 실행, 코드는 이 커밋과 같음. 앱 화면·Visual QA 미실행) — "2026-09-28 새 프롬프트·수집 수정으로 실제 분석 1회" 절.
 
