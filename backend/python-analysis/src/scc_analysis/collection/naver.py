@@ -155,12 +155,18 @@ def _reject_non_public_host(hostname: str) -> None:
     try:
         addresses = socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)
     except socket.gaierror as error:
+        # 허용된 네이버 host 의 이름 조회 실패는 일시 장애다. 가게가 없다고 확정하지 않는다.
         raise ReviewCollectionError(
-            "STORE_NOT_FOUND", "네이버 가게 주소를 확인할 수 없습니다.", retryable=False
+            "REVIEW_COLLECTION_BLOCKED",
+            "네이버 가게 주소를 지금 확인할 수 없습니다. 잠시 뒤에 다시 시도해 주세요.",
+            retryable=True,
         ) from error
     for address in addresses:
-        ip = ipaddress.ip_address(address[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+        ip = ipaddress.ip_address(address[4][0].split("%", 1)[0])
+        # 공개 인터넷 주소만 허용한다. 사설·loopback·link-local 뿐 아니라 CGNAT(100.64/10)·
+        # 문서용 대역도 막는다. IPv4 매핑 IPv6 도 is_global 이 함께 판단한다.
+        # 멀티캐스트는 is_global 을 통과하므로 따로 막는다.
+        if not ip.is_global or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
             raise ReviewCollectionError(
                 "INVALID_NAVER_PLACE_URL", "공개 주소만 수집할 수 있습니다.", retryable=False
             )

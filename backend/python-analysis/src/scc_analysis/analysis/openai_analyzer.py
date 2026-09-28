@@ -2,7 +2,9 @@ import base64
 import calendar
 from datetime import date
 
+import openai
 from openai import OpenAI
+from pydantic import ValidationError
 
 from scc_analysis.analysis.models import (
     CollectedReview,
@@ -37,6 +39,18 @@ class AnalysisConfigurationError(RuntimeError):
     pass
 
 
+class AnalysisOutputInvalidError(RuntimeError):
+    """모델 출력이 구조화 스키마나 근거 연결 검증을 통과하지 못했다(API.md 5.3, 재시도 대상)."""
+
+
+class ImageGenerationError(RuntimeError):
+    """페르소나 이미지를 만들지 못했다(API.md 5.3 IMAGE_GENERATION_FAILED, 재시도 대상)."""
+
+
+class ModelServiceUnavailableError(RuntimeError):
+    """OpenAI 호출이 연결·한도·서버 오류로 실패했다(재시도 대상)."""
+
+
 class OpenAiReviewAnalyzer:
     def __init__(self, *, api_key: str | None, analysis_model: str, image_model: str) -> None:
         if not api_key:
@@ -51,7 +65,28 @@ class OpenAiReviewAnalyzer:
         review_lines = "\n".join(
             f"[{index}] {review.normalized_content[:1200]}" for index, review in enumerate(reviews)
         )
-        response = self.client.responses.parse(
+        try:
+            response = self._parse(review_lines)
+        except ValidationError as error:
+            # 오류 문자열에는 모델 출력과 리뷰 인용이 들어 있으므로 원인으로만 연결한다.
+            raise AnalysisOutputInvalidError(
+                "구조화된 분석 결과가 검증을 통과하지 못했습니다."
+            ) from error
+        except openai.APIError as error:
+            raise ModelServiceUnavailableError("분석 모델을 호출하지 못했습니다.") from error
+        analysis = response.output_parsed
+        if analysis is None:
+            raise AnalysisOutputInvalidError("OpenAI가 구조화된 분석 결과를 반환하지 않았습니다.")
+        images = []
+        for persona in analysis.personas:
+            try:
+                images.append(self._generate_image(persona.rank, persona.image_prompt))
+            except (openai.APIError, ValueError, RuntimeError) as error:
+                raise ImageGenerationError("손님 유형 이미지를 만들지 못했습니다.") from error
+        return analysis, images
+
+    def _parse(self, review_lines: str):
+        return self.client.responses.parse(
             model=self.analysis_model,
             input=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -59,14 +94,6 @@ class OpenAiReviewAnalyzer:
             ],
             text_format=StructuredAnalysis,
         )
-        analysis = response.output_parsed
-        if analysis is None:
-            raise RuntimeError("OpenAI가 구조화된 분석 결과를 반환하지 않았습니다.")
-        images = [
-            self._generate_image(persona.rank, persona.image_prompt)
-            for persona in analysis.personas
-        ]
-        return analysis, images
 
     def _generate_image(self, rank: int, prompt: str) -> PersonaImage:
         response = self.client.images.generate(

@@ -2,10 +2,16 @@ import hmac
 import logging
 import time
 
-from fastapi import APIRouter, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+from pydantic import ValidationError
 
 from scc_analysis.analysis.models import AnalyzeRequest, AnalyzeResponse
-from scc_analysis.analysis.openai_analyzer import AnalysisConfigurationError
+from scc_analysis.analysis.openai_analyzer import (
+    AnalysisConfigurationError,
+    AnalysisOutputInvalidError,
+    ImageGenerationError,
+    ModelServiceUnavailableError,
+)
 from scc_analysis.analysis.pipeline import MINIMUM_VALID_REVIEWS, run_analysis
 from scc_analysis.collection.naver import ReviewCollectionError
 from scc_analysis.core.config import get_settings
@@ -24,12 +30,17 @@ def _authorize(service_token: str | None) -> None:
         )
 
 
-@router.post("/analysis-jobs", response_model=AnalyzeResponse)
-async def analyze(
-    request: AnalyzeRequest,
-    x_scc_service_token: str | None = Header(default=None),
-) -> AnalyzeResponse:
+def require_service_token(x_scc_service_token: str | None = Header(default=None)) -> None:
+    """본문 검증보다 먼저 실행된다. 토큰 없는 요청에 입력값을 되돌려 주는 422 를 내지 않는다."""
     _authorize(x_scc_service_token)
+
+
+@router.post(
+    "/analysis-jobs",
+    response_model=AnalyzeResponse,
+    dependencies=[Depends(require_service_token)],
+)
+async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     started = time.monotonic()
     token = current_job_id.set(request.job_id)
     try:
@@ -65,6 +76,34 @@ async def _run(request: AnalyzeRequest) -> AnalyzeResponse:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": error.code, "message": str(error), "retryable": error.retryable},
+        ) from error
+    except (AnalysisOutputInvalidError, ValidationError) as error:
+        # 모델 출력·근거 연결 검증 실패. 오류 문자열(모델 출력·리뷰 인용)은 응답에 넣지 않는다.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "code": "ANALYSIS_OUTPUT_INVALID",
+                "message": "분석 결과를 검증하지 못했습니다.",
+                "retryable": True,
+            },
+        ) from error
+    except ImageGenerationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "code": "IMAGE_GENERATION_FAILED",
+                "message": "손님 유형 이미지를 만들지 못했습니다.",
+                "retryable": True,
+            },
+        ) from error
+    except ModelServiceUnavailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE",
+                "message": "분석 모델을 호출하지 못했습니다.",
+                "retryable": True,
+            },
         ) from error
     except AnalysisConfigurationError as error:
         raise HTTPException(

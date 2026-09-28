@@ -103,7 +103,7 @@ def test_job_id_is_cleared_after_the_request(monkeypatch: pytest.MonkeyPatch) ->
 
     async def call() -> str:
         with pytest.raises(HTTPException):
-            await analysis_api.analyze(AnalyzeRequest(**_REQUEST), x_scc_service_token="t")
+            await analysis_api.analyze(AnalyzeRequest(**_REQUEST))
         return current_job_id.get()
 
     assert asyncio.run(call()) == "-"
