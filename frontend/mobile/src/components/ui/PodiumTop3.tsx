@@ -22,9 +22,10 @@ const blockHeights: Record<number, number> = {
 /**
  * 단상 안에는 순위와 `보는 중`이 두 줄로 들어간다. 글자를 키우면 가장 낮은 3위 단상에서 글자가 잘린다
  * (글자 크기 200%, 2026-09-28). 세 단상에 같은 값을 더해 늘리므로 높이 차이와 순위 순서는 그대로다.
+ * 두 줄의 줄높이 합(head5 28 + caption 18 = 46)이 배율대로 커져도 3위 단상(48 × 배율)에 들어가도록 48씩 더한다.
  */
 function podiumBlockHeight(rank: number, fontScale: number) {
-  return blockHeights[rank] + spacing[10] * Math.max(0, fontScale - 1);
+  return blockHeights[rank] + spacing[12] * Math.max(0, fontScale - 1);
 }
 
 export function PodiumTop3({

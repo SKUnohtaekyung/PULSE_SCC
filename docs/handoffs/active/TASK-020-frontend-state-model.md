@@ -51,7 +51,7 @@
 
 ## Changed
 
-- (글자 크기 200% 확인, 2026-09-28) `features/result/ResultView.tsx`(`sectionHead` — 자리가 모자라면 `리뷰 수 순서`를 다음 줄로), `components/ui/PodiumTop3.tsx`(`podiumBlockHeight` — 세 단상에 `spacing[10] × (fontScale − 1)`을 똑같이 더해 3위 단상의 `보는 중` 잘림을 막음, 100%에서는 그대로). 둘 다 PR #35부터 있던 결함. evidence `font200-*` 11장
+- (글자 크기 200% 확인, 2026-09-28) `features/result/ResultView.tsx`(`sectionHead` — 자리가 모자라면 `리뷰 수 순서`를 다음 줄로), `components/ui/PodiumTop3.tsx`(`podiumBlockHeight` — 세 단상에 `spacing[12] × (fontScale − 1)`을 똑같이 더해(두 줄 줄높이 합 46 × 배율보다 3위 단상 48 × 배율이 늘 큼) 3위 단상의 `보는 중` 잘림을 막음, 100%에서는 그대로). 둘 다 PR #35부터 있던 결함. evidence `font200-*` 11장
 - (마이페이지 저장 이미지, 2026-09-28) `features/mypage/MyPageScreen.tsx`(`StoredPersonaRow` — 동그란 그림 + 순위·유형 이름, 순위 순 정렬), `components/ui/PersonaAvatar.tsx`(`usePersonaImageRetry`·`PersonaImageError` — 홈 카드와 공유), `features/result/ResultView.tsx`(공유 도구로 교체), `components/ui/PersonaImageBlock.tsx` 삭제, 보드 `generate.mjs`·`svg/10`(MyPage-Images 화면 추가), `SCREEN_STATES` §8 `STORED-IMAGES-NORMAL`, `DESIGN_SYSTEM` §3.6, evidence `mypage-images-*` 2장. 독립 Reviewer PASS(차단 0·P3 3 — 주석, Unresolved 16 서술, 생성기의 안 쓰는 줄 → 반영)
 
 - (선택 유형 요약 카드, 2026-09-28) 결과 화면의 큰 이미지 칸을 사용자가 고른 F안 카드로 바꿨다 — 손님 그림·순위·리뷰 수·분석 리뷰 대비 비율 막대·관점별 근거 수 칩. `features/result/ResultView.tsx`(`PersonaStatsCard`, 이미지 실패 시 다시 불러오기), `components/ui/PersonaAvatar.tsx`(`compact` 크기, `onLoadError`), 보드 `generate.mjs`·`svg/08`(Image-States 화면), `SCREEN_STATES` §6.1·§6.4·§11, `DESIGN_SYSTEM` §3.6·§6 SC-007, `RESULT_IA` 구조도·트리, evidence `stats-card-*` 3장. 독립 Reviewer 1차 FAIL(P1 — 카드 묶음 라벨이 서버 대체 텍스트를 가림, P2 1·P3 5) → 반영 후 2차 PASS(P3 3 — 주석 위치 반영, altText 형식·가상 서버 대체 텍스트가 음식을 설명하는 차이는 실제 서버 연결 때 확인)
