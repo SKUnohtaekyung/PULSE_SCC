@@ -82,7 +82,10 @@ async def _run(request: AnalyzeRequest) -> AnalyzeResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "code": "INSUFFICIENT_VALID_REVIEWS",
-                    "message": f"유효 리뷰가 {count}건으로 분석 기준 {MINIMUM_VALID_REVIEWS}건보다 적습니다.",
+                    "message": (
+                        f"유효 리뷰가 {count}건으로 "
+                        f"분석 기준 {MINIMUM_VALID_REVIEWS}건보다 적습니다."
+                    ),
                     "retryable": False,
                     # 앱이 '현재 N건 / 기준 50건'을 보여 줄 수 있게 구조화해 넘긴다(REVIEW-008).
                     "valid_review_count": count,

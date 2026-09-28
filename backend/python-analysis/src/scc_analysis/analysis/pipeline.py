@@ -6,8 +6,8 @@ from scc_analysis.analysis.openai_analyzer import OpenAiReviewAnalyzer, contains
 from scc_analysis.collection.naver import NaverPublicReviewCollector
 from scc_analysis.core.config import get_settings
 
-
-# 분석에 필요한 최소 유효 리뷰 수(PRD FR-009). Spring AnalysisRepository.MINIMUM_VALID_REVIEWS 와 같다.
+# 분석에 필요한 최소 유효 리뷰 수(PRD FR-009).
+# Spring AnalysisRepository.MINIMUM_VALID_REVIEWS 와 같다.
 MINIMUM_VALID_REVIEWS = 50
 
 
