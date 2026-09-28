@@ -2,7 +2,7 @@
 
 4명이 Claude Code와 Codex를 함께 사용해 개발하는 프로젝트.
 
-> **현재 상태: 백엔드 실행 골격, Flyway V1·V2, 인증 API 구현 완료. 분석 비즈니스 API·프론트엔드 구현 전.**
+> **현재 상태: 백엔드 실행 골격, Flyway V1·V2, 인증 API와 Expo Android 프론트엔드 실행 골격·Design Foundation 구현 완료. 분석 비즈니스 API 구현 전.**
 > Spring Boot·FastAPI 단위 검증은 가능하며 재현 가능한 PostgreSQL 통합 테스트 실행에는 Docker가 필요하다.
 
 **코드만 두는 저장소가 아니다.** 제품 문서, 조사 근거, 발표 자료, 회의·인터뷰 기록을 함께 관리한다.
@@ -53,6 +53,9 @@ backend/                  백엔드 실행 프로젝트
 ├─ python-analysis/       FastAPI + Python 3.13
 ├─ compose.yaml           PostgreSQL 18.6 로컬 환경
 └─ .env.example           환경변수 예시
+
+frontend/                 프론트엔드 실행 프로젝트
+└─ mobile/                Expo SDK 57 + React Native 0.86 + Expo Router
 ```
 
 **`docs/` 와 `research/` 는 성격이 다르다.** `docs/` 는 갱신하면 이전 값이 사라지는 정본이고,
@@ -74,15 +77,15 @@ backend/                  백엔드 실행 프로젝트
 | 데이터베이스 | Flyway V1 초기 스키마와 V2 인증 세션, Testcontainers PostgreSQL 통합 테스트 구현 |
 | 인증 API | 자체 가입·로그인, Google ID Token 검증, 토큰 갱신·로그아웃·세션 복원 구현 |
 | 분석 API | 설계 계약은 있지만 실제 endpoint·DTO는 아직 구현 전 |
-| 프론트엔드 | Expo 세부 버전과 workflow를 프론트 담당자가 확정한 뒤 생성 |
+| 프론트엔드 | `frontend/mobile`에 Expo SDK 57·React Native 0.86·Expo Router·development build 골격과 semantic token·Pretendard 구현. 실제 기능 화면 전 |
 | `.github/workflows/` (CI) | 로컬 검증 명령은 생겼지만 배포 환경과 CI 정책은 아직 미정 |
 | `.claude/rules/` | 규칙을 여기에 두면 `AGENTS.md` 와 중복된다. Claude는 `CLAUDE.md` 의 `@AGENTS.md` import로 이미 전부 읽는다 |
 | `.codex/`, `.agents/skills/` | Codex 0.147.0이 프로젝트 레벨에서 읽지 않음 ([ADR-001](docs/decisions/ADR-001-agent-config-strategy.md)) |
-| `.claude/commands`, `hooks`, `output-styles`, `workflows` | 반복 자동화 필요성이 아직 확인되지 않음 |
+| `.claude/commands`, `output-styles`, `workflows` | 반복 자동화 필요성이 아직 확인되지 않음. `.claude/hooks/`는 문서 동기화 알림 훅 1개가 있다 ([CLAUDE.md](CLAUDE.md)) |
 
 각 항목은 필요성이 생긴 시점에 추가한다.
 
-백엔드 설치·실행 방법은 [backend/README.md](backend/README.md), 상세 결정은 [ADR-006](docs/decisions/ADR-006-backend-bootstrap.md)을 따른다.
+백엔드 설치·실행 방법은 [backend/README.md](backend/README.md), 프론트엔드는 [frontend/mobile/README.md](frontend/mobile/README.md)를 따른다. 상세 결정은 [ADR-006](docs/decisions/ADR-006-backend-bootstrap.md), [ADR-011](docs/decisions/ADR-011-frontend-bootstrap.md)에 기록했다.
 
 ---
 

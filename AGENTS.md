@@ -34,26 +34,28 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 
 ## 2. 기술 스택
 
-**상위 수준 스택은 2026-09-12, 백엔드 실행 스택은 2026-09-16 확정했다.** 결정 근거는 [ADR-003](docs/decisions/ADR-003-application-stack.md), [ADR-006](docs/decisions/ADR-006-backend-bootstrap.md)이다. 프론트엔드 세부 버전은 확정 전까지 추측해서 코드·설정·문서를 작성하지 않는다.
+**상위 수준 스택은 2026-09-12, 백엔드 실행 스택은 2026-09-16, 프론트엔드 실행 스택은 2026-09-18 확정했다.** 결정 근거는 [ADR-003](docs/decisions/ADR-003-application-stack.md), [ADR-006](docs/decisions/ADR-006-backend-bootstrap.md), [ADR-011](docs/decisions/ADR-011-frontend-bootstrap.md)이다.
 
 | 항목 | 상태 |
 |---|---|
 | 프로젝트 유형 | Android 앱 + 자체 API + Python AI 처리 |
-| Frontend framework | Expo 기반 React Native |
+| Frontend framework | Expo SDK 57.0.24·React Native 0.86.3·React 19.2.3·Expo Router 57.0.22 |
 | Backend | Spring Boot 4.1.1·Java 21·Gradle Wrapper 9.7.1 + FastAPI 0.141.1·Python 3.13 |
 | 데이터베이스 | PostgreSQL 18.6, migration은 Spring Boot Flyway가 단독 소유 |
-| 언어 | TypeScript, Java 21, Python 3.13 |
+| 언어 | TypeScript 6.0.3, Java 21, Python 3.13 |
 | 이미지 생성 | OpenAI API |
-| 패키지 매니저 | 백엔드: Gradle Wrapper, Python venv + pip / 프론트엔드: 확정 필요 |
-| 테스트 러너 | 백엔드: JUnit Platform, Testcontainers 2.0.5, pytest / 프론트엔드: 확정 필요 |
+| 패키지 매니저 | 백엔드: Gradle Wrapper, Python venv + pip / 프론트엔드: npm + `package-lock.json` |
+| 테스트 러너 | 백엔드: JUnit Platform, Testcontainers 2.0.5, pytest / 프론트엔드: 단위 테스트 미도입, ESLint·TypeScript·Expo Android export 검증 |
 
-로컬에서 실제 실행 확인된 도구 (2026-09-16 기준):
+로컬에서 실제 실행 확인된 도구:
 
 ```
-java 21.0.8   python 3.13.2
+java 21.0.8   python 3.13.2 (2026-09-16)
 Gradle 9.7.1 → backend/spring-api/gradlew.bat으로 실행 확인
 Docker → CLI 29.8.0 설치됨. Virtual Machine Platform 기능이 꺼져 데몬 미기동 → Testcontainers skip
 PostgreSQL 18 → 로컬 Windows 서비스로 실행 확인 (2026-09-19). Docker 없이 bootRun 가능
+node 24.19.0   npm 11.17.0 → frontend/mobile install·lint·typecheck·Android export 확인 (2026-09-18)
+Android SDK·adb·emulator → `%LOCALAPPDATA%\Android\Sdk`, `Medium_Phone` AVD(Android 17/API 37)에서 Expo Go 실행 확인 (2026-09-21). 네이티브 development build·실기기 검증 미실행
 ```
 
 ### 스택 확정 시 반드시 함께 갱신할 것
@@ -69,7 +71,7 @@ PostgreSQL 18 → 로컬 Windows 서비스로 실행 확인 (2026-09-19). Docker
 
 ## 3. 실행 명령
 
-백엔드 명령은 저장소 루트에서 실행한다. 프론트엔드는 아직 프로젝트가 없어 명령이 없다.
+아래 명령은 저장소 루트에서 실행한다.
 
 | 목적 | 명령 |
 |---|---|
@@ -82,6 +84,13 @@ PostgreSQL 18 → 로컬 Windows 서비스로 실행 확인 (2026-09-19). Docker
 | Python format check | `.\backend\python-analysis\.venv\Scripts\python.exe -m ruff format --check --no-cache backend\python-analysis` |
 | Python test | `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest backend\python-analysis` |
 | Backend typecheck | 없음 — 현재 정의하지 않음 |
+| Frontend install | `npm --prefix frontend/mobile install` |
+| Frontend design token 검증 | `npm --prefix frontend/mobile run verify:tokens` |
+| Frontend lint | `npm --prefix frontend/mobile run lint` |
+| Frontend typecheck | `npm --prefix frontend/mobile run typecheck` |
+| Frontend Android bundle | `npm --prefix frontend/mobile run export:android` |
+| Frontend dev server | `npm --prefix frontend/mobile run start` |
+| Frontend local Android build | `npm --prefix frontend/mobile run android` — Android SDK·에뮬레이터 또는 기기 필요 |
 
 ## 4. Source of Truth
 
@@ -92,8 +101,8 @@ PostgreSQL 18 → 로컬 Windows 서비스로 실행 확인 (2026-09-19). Docker
 | 제품 목표·요구사항 | `docs/product/PRD.md` |
 | 상세 기능 요구사항 | `docs/product/requirements/*` (기능이 커지면 신설) |
 | UI/UX 원칙 | `docs/design/DESIGN_SYSTEM.md` |
-| 실제 디자인 토큰 값 | 토큰 코드 (위치 미정 — 스택 확정 후) |
-| 재사용 UI 컴포넌트 | 컴포넌트 코드 (위치 미정 — 스택 확정 후) |
+| 실제 디자인 토큰 값 | `frontend/mobile/src/design/tokens/foundation.ts` |
+| 재사용 UI 컴포넌트 | `frontend/mobile/src/components/ui/**` (현재 미구현) |
 | 시스템 구조 | `docs/architecture/ARCHITECTURE.md` |
 | API 계약 | `docs/architecture/API.md` 설계 계약 + 실제 controller/DTO 코드 (인증 구현됨, OpenAPI 파일은 아직 없음) |
 | DB 구조 | 실제 Flyway migration `backend/spring-api/src/main/resources/db/migration/**` + `docs/architecture/DATA_MODEL.md` |

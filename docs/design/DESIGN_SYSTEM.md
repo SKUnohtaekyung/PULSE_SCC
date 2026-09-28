@@ -1,13 +1,13 @@
 # SCC — Design System
 
-**이 문서는 SCC 손님분석 MVP의 UI/UX 원칙과 구현 전 디자인 기준의 정본이다.**
+**이 문서는 SCC 손님분석 MVP의 UI/UX 원칙과 디자인 기준의 정본이다.**
 
-실제 디자인 토큰과 컴포넌트가 생기면 값과 동작의 정본은 코드가 된다. 이 문서는 코드가 지켜야 할 의미·우선순위·사용 규칙과, 코드 생성 전 이식할 기준값을 관리한다.
+실제 디자인 토큰 값의 정본은 코드다. 이 문서는 코드가 지켜야 할 의미·우선순위·사용 규칙과 구현 근거를 관리한다.
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **PULSE 디자인 기준·핵심 결과 IA 반영 / 구현 전 초안** |
-| 최종 수정 | 2026-09-15 |
+| 상태 | **Design Foundation 구현 — 토큰·Pretendard·접근성 기준 코드 반영. 화면 상태 모델 기준 재확인(2026-09-22)** |
+| 최종 수정 | 2026-09-22 |
 | 소유 역할 | `role:design-system` |
 | 제품 요구사항 | [`../product/PRD.md`](../product/PRD.md) |
 | 상세 기능명세 | [`../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md`](../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
@@ -37,9 +37,9 @@ Google 소셜 로그인과 서비스 자체 로그인은 MVP 범위다. 대시�
 | 정보 | 정본 |
 |---|---|
 | 제품 기능과 범위 | `docs/product/PRD.md` |
-| 화면·기능·상태 | `docs/product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` |
+| 화면·기능·상태 | `docs/product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md`, 상태 목록은 [`SCREEN_STATES.md`](../product/requirements/SCREEN_STATES.md) |
 | 디자인 의미와 사용 원칙 | 이 문서 |
-| 실제 색상·간격·타입 값 | 구현 후 토큰 코드 |
+| 실제 색상·간격·타입 값 | `frontend/mobile/src/design/tokens/foundation.ts` |
 | 컴포넌트 props와 동작 | 구현 후 컴포넌트 코드와 타입 |
 
 ---
@@ -59,7 +59,7 @@ PULSE에서 사용한 `Modern Professional & Universal Clarity`를 SCC의 기본
 ### 2.2 시각적 성격
 
 - 딥 로얄 블루와 화이트를 신뢰·분석의 기본 인상으로 사용한다.
-- 오렌지는 분석 시작, 재시도, 제안 확인 등 사용자의 명확한 행동에 제한해 사용한다.
+- 오렌지는 **작고 결정적인 지점**에만 쓴다: 입력 포커스, 지금 하는 입력 단계, 저장 완료 표시, 하단 내비게이션 중앙 버튼. 넓은 버튼 배경에는 쓰지 않는다(2026-09-27 디자인 리뷰 #2·#7). 주요 행동 버튼은 딥 로얄 블루다.
 - 넓은 여백, 명확한 제목 계층, 둥근 카드로 복잡한 분석 결과를 짧은 판단 단위로 나눈다.
 - 상태색은 의미 전달에 사용하되 색상만으로 긍정·부정·오류를 표현하지 않는다.
 - AI 생성 이미지는 정보보다 앞에 나오지 않으며 실제 고객 사진처럼 보이게 사용하지 않는다.
@@ -70,19 +70,23 @@ PULSE에서 사용한 `Modern Professional & Universal Clarity`를 SCC의 기본
 
 ### 3.1 토큰 정본 위치
 
-현재 코드가 없어 토큰 파일 위치와 표현 방식은 미정이다.
+Expo React Native·TypeScript 실행 스택과 아래 경로는 [ADR-011](../decisions/ADR-011-frontend-bootstrap.md)에서 결정했다. 실제 값은 코드가 정본이며, 이 문서는 사용 의미와 변경 절차를 설명한다.
 
 | 항목 | 상태 |
 |---|---|
-| 토큰 표현 방식 | 기술 스택 확정 후 결정 |
-| 토큰 파일 경로 | 기술 스택 확정 후 결정 |
-| 공용 컴포넌트 경로 | 기술 스택 확정 후 결정 |
+| 토큰 표현 방식 | TypeScript readonly semantic theme object (`as const`) — 구현됨 |
+| 토큰 정본 | `frontend/mobile/src/design/tokens/foundation.ts` |
+| 공개 export | `frontend/mobile/src/design/tokens/index.ts` |
+| 자동 검증 | `frontend/mobile/scripts/verify-design-tokens.mjs` |
+| 공용 컴포넌트 경로 | `frontend/mobile/src/components/ui/` — 경로 확정, 컴포넌트 구현 전 |
 
-스택 확정 후 ADR을 작성하고 이 표를 실제 경로로 교체한다. CSS variables, Tailwind theme, theme object 중 선택한 프레임워크의 관례를 우선한다.
+MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyle: "light"`로 시스템 다크 모드를 따르지 않으며, 다크 테마 토큰은 PRD 범위가 바뀌기 전에는 만들지 않는다.
+
+웹 전용 CSS variables나 Tailwind를 정본으로 두지 않는다. 컴포넌트는 `palette` 원시값보다 `colors` 의미 토큰을 우선 사용한다. 값 변경 시 토큰 검증, lint, typecheck, Android bundle을 함께 실행한다.
 
 ### 3.2 색상 이식 기준
 
-아래 값은 사용자 제공 PULSE 대조본에서 확인된 기존 코드 값이다. SCC 토큰 코드를 만들 때의 **초기 이식 기준**이며, 아직 이 저장소에서 실행 검증된 값은 아니다.
+아래 값은 사용자 제공 PULSE 대조본에서 확인된 기존 코드 값, SCC가 채택한 불투명 action 원색, 그리고 화면 상태 모델 대조 뒤 SCC가 추가한 값(표에 `SCC 추가`로 표시)이다. 전체 원시 팔레트와 실제 의미 매핑은 토큰 코드가 정본이다.
 
 | 의미 토큰 후보 | 값 | 용도 |
 |---|---|---|
@@ -93,7 +97,9 @@ PULSE에서 사용한 `Modern Professional & Universal Clarity`를 SCC의 기본
 | `primary-border` | `#002B7A66` | 강조 경계선 |
 | `primary-tint` | `#002B7A1A` | 선택·정보 배경 |
 | `primary-stripe` | `#002B7A0D` | 아주 연한 구분 배경 |
-| `action` | `#FF5A36CC` | 분석 시작·재시도 등 행동 CTA |
+| `action-source-overlay` | `#FF5A36CC` | 기존 PULSE의 반투명 값 보존. 단독 CTA 배경으로 쓰지 않음 |
+| `action-primary` | `#FF5A36` | 저장 완료 표시·하단 내비게이션 중앙 버튼처럼 작고 결정적인 지점. **넓은 버튼 배경으로 쓰지 않는다**(2026-09-27) |
+| `focus-orange` | `#E03E16` | 입력 포커스 링과 진행 단계 표시. `action-primary`는 화면 배경 위에서 2.89:1이라 비텍스트 기준 3:1을 넘지 못해 따로 둔다 |
 | `action-bg` | `#FF5A361A` | 행동 관련 연한 배경 |
 | `action-hover` | `#FF5A3633` | 기존 코드의 action hover 후보 |
 | `background-page` | `#F5F7FA` | 페이지 배경 |
@@ -103,73 +109,111 @@ PULSE에서 사용한 `Modern Professional & Universal Clarity`를 SCC의 기본
 | `neutral-100` | `#F1F5F9` | 태그·보조 배경 |
 | `neutral-200` | `#E2E8F0` | 구분선·카드 경계 |
 | `neutral-300` | `#CBD5E1` | 비활성 배경 |
-| `neutral-400` | `#94A3B8` | placeholder·힌트 후보 |
+| `neutral-400` | `#94A3B8` | 비활성 콘텐츠. 일반 본문·placeholder에 쓰지 않음 |
+| `neutral-500` | `#64748B` | 입력·선택 컨트롤 경계(`border.control`). SCC 추가 |
 | `neutral-600` | `#475569` | 보조 본문 |
 | `neutral-900` | `#0F172A` | 강한 제목 |
 | `success` | `#059669` | 성공 |
-| `warning` | `#D97706` | 주의·근거 한계 |
-| `error` | `#DC2626` | 오류 |
+| `warning` | `#D97706` | 주의 비텍스트 신호(막대·점). 카드(흰 배경) 위에서만 사용 |
+| `warning-strong` | `#B45309` | 주의 문장과 주의 아이콘(`status.warningText`, 아이콘 겸용). SCC 추가 |
+| `error` | `#DC2626` | 오류·부정 비텍스트 신호(`status.error`)와 입력 오류 경계(`border.error`) |
+| `error-strong` | `#B91C1C` | 오류 문장과 오류 아이콘(`status.errorText`, 아이콘 겸용), 되돌릴 수 없는 행동(`destructive`). SCC 추가 |
 
-8자리 HEX 색상은 알파값을 포함한다. 실제 배경에 합성됐을 때 대비가 달라지므로, `action`, `primary-sub`, `neutral-400` 등을 텍스트나 버튼에 사용할 때는 구현 화면에서 WCAG 대비를 검증한다. 검증 전에는 “접근성 충족”으로 판정하지 않는다.
+8자리 HEX는 알파를 포함하므로 배경에 따라 대비가 바뀐다. 따라서 원래의 `#FF5A36CC`는 `sourceOverlay`로만 보존한다. 주황 위에 글자나 기호를 올릴 때는 불투명 `#FF5A36` 위에 `#191F28`을 쓴다(검증 5.34:1). 2026-09-27부터 주요 버튼은 남색이므로 이 조합은 저장 완료 표시 같은 작은 지점에만 나온다. `neutral-400`은 비활성 표현에만 쓰고 일반 보조 본문과 placeholder는 7.58:1인 `neutral-600`을 사용한다.
+
+2026-09-22 화면 상태 모델([SCREEN_STATES](../product/requirements/SCREEN_STATES.md))과 대조하면서 기존 값의 한계를 계산으로 확인했다. 수치는 `verify:tokens` 출력이다.
+
+| 조합 | 대비 | 판정 | 대응 |
+|---|---:|---|---|
+| `error` 텍스트 / 화면 배경 `#F5F7FA` | 4.4999:1 | 4.5:1 미만 | 오류 문장은 배경과 관계없이 `status.errorText`(화면 배경 6.03:1) |
+| `warning` 아이콘 / 화면 배경 | 2.97:1 | 3:1 미만 | 주의 아이콘은 배경과 관계없이 `status.warningText`(화면 배경 4.68:1) |
+| `warning` 텍스트 / 카드 | 3.19:1 | 4.5:1 미만 | 주의 문장은 배경과 관계없이 `status.warningText` |
+| `border.strong` 경계 / 카드 | 1.48:1 | 3:1 미만 | 입력 컨트롤 경계는 `border.control`(카드 4.76:1, 화면 배경 4.43:1) |
+| 포커스 링 / `destructive.primary` | 1.5005:1 | 3:1 미만 | 포커스 링을 버튼 가장자리에서 띄워 그린다(5.4절). 링은 화면 배경·카드와 대비한다 |
+| 포커스 링 / `brand.primary` | 2.9941:1 | 3:1 미만 | 같은 규칙. 주요 버튼이 전부 남색이므로 가장 자주 맞닿는 조합이다 |
+
+포커스 링은 2026-09-27에 `royalBlue`에서 `focusOrange`(`#E03E16`)로 바꿨다. 위 두 줄은 그 값으로 다시 잰 수치다. 통과하는 새 조합은 포커스 링 / 카드 4.31:1, 포커스 링 / 화면 배경 4.02:1, 성공 아이콘 / 연한 성공 배경 3.32:1, 활성 강조 아이콘 / 브랜드 원 12.91:1이다.
+
+기존 `warning`·`error`·`neutral-*` 값은 Tailwind CSS v3 기본 팔레트(HEX 정의)의 amber-600·red-600·slate 단계와 같은 값이다. 추가 값 세 개도 같은 팔레트의 amber-700·red-700·slate-500을 골랐다. 새 브랜드색이 아니다. `verify:tokens`는 위 미달 조합을 `knownLimits`로 고정해, 원래 값이 바뀌면 이 규칙을 다시 보게 한다.
 
 ### 3.3 색상 사용 규칙
 
 - `primary`는 브랜드와 분석 정보의 기본색이다.
-- `action`은 사용자가 실행하는 핵심 CTA에만 사용한다. 화면마다 오렌지 CTA를 여러 개 경쟁시키지 않는다.
+- **주요 버튼은 `brand.primary`(남색)다.** 주황을 넓은 버튼 배경에 쓰면 화면을 잡아먹어, 정작 읽어야 할 결과보다 버튼이 먼저 눈에 들어온다(2026-09-27 디자인 리뷰 #2·#7).
+- `action`(주황)은 **작고 결정적인 지점**에만 쓴다: 입력 포커스 링, 진행 중인 입력 단계 표시, 저장 완료 표시, 하단 내비게이션 중앙 버튼.
+- 초록을 넓은 면에 깔지 않는다. 완료 표시는 `status.successSubtle` 바탕에 `status.success` 기호를 올린다(2026-09-27 디자인 리뷰 #8).
 - 긍정·부정 신호에 success/error 색상을 사용할 수 있지만 반드시 아이콘·레이블·문장을 함께 둔다.
 - “리뷰에서 확인된 것”과 “AI 해석”은 색만 바꾸지 말고 제목, 배지, 카드 구조로 구분한다.
 - 경고색은 리뷰 부족, 데이터 편향, 결과 한계처럼 사용자의 판단에 필요한 주의에 사용한다.
+- 오류·주의 **문장과 아이콘**은 배경과 관계없이 `status.errorText`·`status.warningText`를 쓴다.
+- `status.error`·`status.success`는 부정·긍정 신호 막대처럼 문장이 아닌 신호에 쓰고, `status.warning`은 카드 위의 같은 용도에만 쓴다. 입력 오류 경계는 `border.error`를 쓴다.
+- 주의·오류 안내는 색 막대나 배경만으로 구분하지 않는다. 표시 기호와 원인·다음 행동 문장을 함께 둔다.
+- 입력·선택 컨트롤의 경계는 `border.control`을 쓴다. `border.default`·`border.strong`은 카드와 구분선처럼 식별에 필요하지 않은 경계에만 쓴다.
+- 되돌릴 수 없는 행동은 `destructive` 토큰을 쓴다. `action`(오렌지)을 쓰지 않는다. 사용 방식은 5.4절을 따른다.
 - 기능마다 새로운 임시 브랜드색을 추가하지 않는다. 필요한 경우 `role:design-system` 검토 후 토큰으로 추가한다.
 - 컴포넌트 안에 HEX, RGB, HSL 값을 직접 적지 않는다.
 
 ### 3.4 타이포그래피 이식 기준
 
-기본 글꼴은 PULSE에서 사용한 Pretendard 계열을 우선한다.
+기본 글꼴은 Pretendard v1.3.9다. 구형 Android의 가변 폰트 동작에 의존하지 않도록 Regular·Medium·SemiBold·Bold 정적 OTF를 `frontend/mobile/assets/fonts/`에 포함하고 `expo-font`로 로드한다. 이 선택은 최소 지원 OS를 확정하지 않는다. 원본과 OFL 라이선스, SHA-256은 같은 폴더의 `README.md`가 기록한다.
 
-```text
-"Pretendard Variable", Pretendard, -apple-system,
-BlinkMacSystemFont, system-ui, Roboto, sans-serif
-```
+기존 PULSE 타입 스케일에 모바일 본문용 행간을 확정해 구현했다.
 
-기존 PULSE 코드에서 확인된 타입 스케일을 초기 이식 기준으로 사용한다.
-
-| 토큰 후보 | 크기 | 굵기 | 행간 후보 | 주 사용처 |
+| 코드 토큰 | 크기 | 굵기 | 행간 | 주 사용처 |
 |---|---:|---:|---:|---|
-| `head-1` | 34px | 700 | 1.4 | 결과 페이지 제목 |
-| `head-2` | 32px | 600 | 1.4 | 주요 섹션 제목 |
-| `head-3` | 26px | 600 | 1.4 | 결과 그룹 제목 |
-| `head-4` | 22px | 600 | 1.4 | 카드 묶음 제목 |
-| `head-5` | 20px | 600 | 1.4 | 카드 제목 |
-| `body-1` | 18px | 700 | 확정 필요 | 강한 본문·핵심 수치 |
-| `body-2` | 18px | 500 | 확정 필요 | 강조 본문 |
-| `body-3` | 18px | 400 | 확정 필요 | 넓은 화면 본문 후보 |
-| `body-4` | 16px | 400 | 확정 필요 | 기본 본문 |
-| `body-5` | 14px | 700 | 확정 필요 | 작은 강조문 |
-| `body-6` | 14px | 600 | 확정 필요 | 레이블 |
-| `body-7` | 14px | 400 | 확정 필요 | 보조 정보 |
-| `caption` | 12px | 400 | 확정 필요 | 날짜·출처·메타데이터 |
-| `button-main` | 16px | 600 | 확정 필요 | 주요 버튼 |
-| `button-sub` | 15px | 500 | 확정 필요 | 보조 버튼 |
-| `error-text` | 13px | 500 | 확정 필요 | 입력 오류 |
+| `head1` | 34px | 700 | 48px | 결과 페이지 제목 |
+| `head2` | 32px | 600 | 45px | 주요 섹션 제목 |
+| `head3` | 26px | 600 | 37px | 결과 그룹 제목 |
+| `head4` | 22px | 600 | 31px | 카드 묶음 제목 |
+| `head5` | 20px | 600 | 28px | 카드 제목 |
+| `body1` | 18px | 700 | 27px | 강한 본문·핵심 수치 |
+| `body2` | 18px | 500 | 27px | 강조 본문 |
+| `body3` | 18px | 400 | 27px | 넓은 화면 본문 후보 |
+| `body4` | 16px | 400 | 24px | 기본 본문 |
+| `body5` | 14px | 700 | 21px | 작은 강조문 |
+| `body6` | 14px | 600 | 21px | 레이블 |
+| `body7` | 14px | 400 | 21px | 보조 정보 |
+| `caption` | 12px | 400 | 18px | 날짜·출처·메타데이터 |
+| `buttonMain` | 16px | 600 | 24px | 주요 버튼 |
+| `buttonSub` | 15px | 500 | 22px | 보조 버튼 |
+| `errorText` | 13px | 500 | 20px | 입력 오류 |
 
-모든 타입 토큰의 자간 후보는 기존 값인 `-0.02em`이다. 모바일에서 `head-1`이 과도하면 반응형 타입 토큰을 별도로 정의한다. 본문은 기본 16px를 우선하고, 12~14px 텍스트는 부가 정보에만 사용한다.
+모든 타입 토큰의 자간은 글자 크기의 `-2%`를 React Native 절대값으로 변환해 저장한다. 본문은 기본 16px를 우선하고 12~14px 텍스트는 부가 정보에만 사용한다. 시스템 글자 크기 확대를 막는 `allowFontScaling={false}`는 사용하지 않는다.
 
 ### 3.5 간격·모서리·그림자 기준
 
-기존 PULSE 문서의 계층 기준을 SCC의 시작점으로 사용한다.
+기존 PULSE 문서의 계층 기준을 다음 값으로 구현했다.
 
-| 대상 | 기준 후보 |
+| 대상 | 기준 |
 |---|---|
-| 페이지 좌우 여백 | 모바일 16px 이상, 실제 breakpoint별 값은 토큰으로 확정 |
+| spacing | 4px 기본 단위. `0, 4, 8, 12, 16, 20, 24, 32…128` |
+| 페이지 좌우 여백 | compact 16px / medium 24px / expanded 32px |
+| breakpoint | compact 0~599 / medium 600~1023 / expanded 1024 이상 |
+| 콘텐츠 최대 너비 | 일반 960px / 긴 문장 640px |
+| 제품 터치 영역 | 최소 44px |
 | 메인 결과 패널 | radius 24px |
 | 내부 카드·버튼 | radius 12px |
 | 배지·작은 요소 | radius 8px 또는 pill |
-| 부드러운 강조 그림자 | `0 4px 20px rgba(0, 43, 122, 0.15)` 후보 |
+| 부드러운 강조 그림자 | `0 4px 20px rgba(0, 43, 122, 0.15)`, Android 7 fallback elevation 4 |
 
 - spacing, radius, shadow는 토큰으로 정의한다.
 - 분석 카드마다 서로 다른 모서리값을 임의로 추가하지 않는다.
 - 그림자로만 카드 경계를 표현하지 않는다. 저대비 환경을 위해 배경이나 경계선도 고려한다.
 - 기존 PULSE에서 관찰된 28px, 30px, 32px 예외값은 SCC의 전역 토큰으로 자동 승격하지 않는다.
+
+### 3.6 Asset Rules
+
+- 제품에 포함하는 외부 에셋은 출처, 버전, 라이선스, 무결성 해시를 같은 디렉터리에 기록한다.
+- ImageGen으로 만드는 Step 4 시안은 UX 가설 탐색 자료다. 선택 전에는 앱의 제품 에셋으로 넣지 않는다.
+- 선택된 래스터 에셋만 `frontend/mobile/assets/images/`에 넣고, Android 밀도별 파일이 필요하면 React Native의 `@2x`·`@3x` 규칙을 따른다.
+- 아이콘과 로고는 이미지 생성으로 대체하지 않는다. 일관된 벡터·코드 자산을 사용하고 아이콘 버튼에는 접근 가능한 이름을 제공한다.
+- 페르소나 이미지는 실제 인물 사진처럼 오인시키지 않으며, 생성 사실·기능 중심 대체 텍스트·로딩·실패 대체 상태를 함께 제공한다.
+- 이미지가 없어도 유형명, 관찰 특성, 근거 리뷰, 결과 한계를 이해할 수 있어야 한다.
+- 이미지 로딩·로드 실패·생성 실패(`IMAGE-LOADING`, `IMAGE-LOAD-ERROR`, `IMAGE-GENERATION-FAILED`)의 대체 표현은 생성 이미지가 아니라 코드로 그린다. 같은 크기의 `background.emphasized` 영역에 상태 문장을 두어 레이아웃이 흔들리지 않게 하고, 실패 대체 표현을 정상 이미지처럼 보이게 하지 않는다.
+- 에셋 폴더의 기록(README)에는 출처·버전·라이선스·해시와 함께 **사용처와 사용 금지 조건**을 적는다. 프로토타입 전용 에셋은 제품 화면에 쓰지 않는다는 사실을 금지 조건으로 적는다.
+- 아이콘은 `react-native-svg`로 그린다. 제품 공용 아이콘은 `frontend/mobile/src/components/icons/**`에 두고, 24×24 격자에 굵기 2, 둥근 끝·둥근 모서리를 공유한다. 색은 토큰으로 맞추고 아이콘 버튼에는 접근 가능한 이름을 준다.
+  2026-09-22 Step 7에는 `View` 도형으로 그리기로 했으나, 도형을 겹치는 방식은 아이콘마다 굵기와 모서리가 달라져 급조한 인상을 줬다. 2026-09-27 디자인 리뷰 #4에서 이 결정을 뒤집었다.
+- 아이콘 이외의 장식 그림(손님 유형 자리표시 캐릭터)도 같은 디렉터리에 두고 `colors.illustration` 토큰만 쓴다. 이 색은 장식 전용이라 본문·상태색과 섞지 않으며, 유형을 색으로 구분하지 않는다.
 
 ---
 
@@ -179,12 +223,14 @@ BlinkMacSystemFont, system-ui, Roboto, sans-serif
 
 사용자가 결과를 다음 순서로 이해하게 한다.
 
-1. 어떤 리뷰를 언제 얼마나 분석했는가
-2. TOP3 중 어떤 손님 사용 상황이 가장 많이 반복되는가
-3. 선택한 페르소나의 긍정·부정·인식·우선순위는 무엇인가
-4. 그 판단을 뒷받침하는 대표 리뷰는 무엇인가
-5. AI는 무엇을 해석했는가
-6. 어떤 행동을 검토할 수 있는가
+1. TOP3 중 어떤 손님 사용 상황이 가장 많이 반복되는가
+2. 선택한 페르소나의 긍정·부정·인식·우선순위는 무엇인가
+3. 그 판단을 뒷받침하는 대표 리뷰는 무엇인가
+4. AI는 무엇을 해석했는가
+5. 어떤 행동을 검토할 수 있는가
+6. 어떤 리뷰를 언제 얼마나 분석했는가
+
+분석 수치는 2026-09-27 디자인 리뷰 #3으로 맨 아래로 내렸다. 그 전에는 1번이었다. 먼저 보여 줄 것은 손님 유형이고, 리뷰 수와 수집 시점은 결과를 다 읽은 뒤 신뢰도를 판단할 때 필요하다.
 
 페르소나 이미지가 근거 리뷰나 핵심 우선순위보다 먼저 시선을 독점하지 않게 한다.
 
@@ -245,40 +291,48 @@ default / hover / focus / active / disabled / loading / error
 loading / empty / error / normal
 ```
 
+로딩 자리표시는 `background.emphasized` 영역과 무엇을 불러오는지 알리는 문장으로 만든다. 자리표시가 실제 결과 수치나 이미지처럼 보이게 하지 않고, 모션 감소 설정에서는 반복 반짝임을 끈다.
+
 정상 결과의 TOP3 페르소나 이미지 3개는 P0 완료 조건이다. 유형 부족 결과에서는 실제 도출된 모든 페르소나 이미지가 있어야 완료 상태로 표현한다.
 
 ### 5.3 MVP 컴포넌트 목록
 
-경로와 props는 구현 후 채운다.
+경로는 구현된 것만 적는다. 2026-09-22 Step 7 Vertical Slice에서 첫 흐름에 필요한 것만 만들었다.
 
 | 컴포넌트 | 책임 | 경로 |
 |---|---|---|
-| AuthMethodSelector | Google 로그인과 서비스 자체 로그인 진입 선택 | TBD |
-| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·전화번호 입력과 오류·제출 상태 | TBD |
-| StoreInput | 가게 이름·업종·네이버 가게 URL 입력과 검증 안내 | TBD |
-| StoreConfirmation | 입력값과 URL에서 확인한 매장 정보 대조 | TBD |
-| AnalysisProgress | 수집·분석 단계와 현재 상태 표시 | TBD |
-| InsightSummary | 선택한 페르소나의 4개 관점 결과 요약 | TBD |
-| EvidenceReviewList | 대표 근거 1~2개와 작성자 정보 없는 전체 근거 리뷰 표시 | TBD |
-| FactInterpretationBlock | `리뷰에서 확인`과 `AI 해석`을 별도 카드·배지·제목으로 구분 | TBD |
-| PersonaCard | 손님 유형, 관찰 특성, 근거와 한계 표시 | TBD |
-| PersonaImage | AI 생성 이미지와 고지·대체 상태 표시 | TBD |
-| AdviceCard | 리뷰 사실·검토할 행동 기본 노출과 AI 해석·지식 펼쳐보기 | TBD |
-| DataLimitNotice | 리뷰 부족·편향·대표성 한계 안내 | TBD |
-| ResultMetadata | 플랫폼, 리뷰 수, 수집·분석 시점 표시 | TBD |
-| AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | TBD |
-| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조 | TBD |
-| PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | TBD |
-| ErrorState | 오류 이유와 재시도 가능 행동 표시 | TBD |
+| AuthMethodSelector | Google 로그인과 서비스 자체 로그인 진입 선택 | 미구현 — Google 로그인은 앱 식별자·OAuth 설정이 정해진 뒤(§13) |
+| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·전화번호 입력과 오류·제출 상태 | `frontend/mobile/src/features/auth/LoginScreen.tsx`·`SignupScreen.tsx` (입력 한 칸은 `components/ui/TextField.tsx`, 동의는 `components/ui/CheckRow.tsx`) |
+| StoreInput | 가게 이름·업종·네이버 가게 URL 입력과 검증 안내 | `frontend/mobile/src/features/analysis/AnalyzeScreen.tsx` |
+| StoreConfirmation | 입력값과 URL에서 확인한 매장 정보 대조 | 미구현 — API 없음(SCREEN_STATES §4.3) |
+| AnalysisProgress | 수집·분석 단계와 현재 상태 표시 | `frontend/mobile/src/components/ui/ProgressList.tsx` |
+| InsightSummary | 선택한 페르소나의 4개 관점 결과 요약 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| EvidenceReviewList | 대표 근거 1~2개와 작성자 정보 없는 전체 근거 리뷰 표시 | 대표 근거는 `ResultView.tsx`, 전체 목록은 `frontend/mobile/src/features/result/EvidenceScreen.tsx`(cursor 방식) |
+| FactInterpretationBlock | `리뷰에서 확인`과 `AI 해석`을 별도 카드·배지·제목으로 구분 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| PersonaCard | 손님 유형, 관찰 특성, 근거와 한계 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| PersonaImage | AI 생성 이미지와 고지·대체 상태 표시 | `frontend/mobile/src/features/result/ResultView.tsx` (조회 실패 대체 포함) |
+| AdviceCard | 리뷰 사실·검토할 행동 기본 노출과 AI 해석·지식 펼쳐보기 | `frontend/mobile/src/features/result/ResultView.tsx` (지식 참고는 서버가 아직 빈 배열) |
+| DataLimitNotice | 리뷰 부족·편향·대표성 한계 안내 | `frontend/mobile/src/components/ui/Notice.tsx` + `ResultView.tsx` |
+| ResultMetadata | 플랫폼, 리뷰 수, 수집·분석 시점 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | 첫 저장은 `frontend/mobile/src/features/analysis/FirstSaveScreen.tsx`, 교체·유지는 `features/result/PreviewResultScreen.tsx`(확인 대화상자는 `components/ui/ConfirmDialog.tsx`) |
+| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 지금 그 화면에 있다는 사실을 알린다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | `frontend/mobile/src/components/ui/BottomNavigation.tsx` |
+| PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | `frontend/mobile/src/features/mypage/MyPageScreen.tsx` |
+| ErrorState | 오류 이유와 재시도 가능 행동 표시 | `frontend/mobile/src/components/ui/Notice.tsx` + 화면별 버튼 |
 
 ### 5.4 버튼
 
 - 한 화면의 주요 CTA는 원칙적으로 하나다.
-- 주요 분석 행동에는 action 색상을 사용할 수 있다.
+- 주요 행동 버튼은 `primary`(남색)다. `action`(주황) 배경 버튼은 쓰지 않는다(2026-09-27 디자인 리뷰 #2·#7).
 - 정보 탐색·근거 확인에는 primary 또는 ghost 계열을 사용한다.
 - disabled와 loading을 시각적으로 구분하고 둘 다 실제 클릭을 막는다.
+- **disabled**는 `background.emphasized` 배경과 `text.disabled` 글자를 쓰고 테두리를 없앤다. 색만으로 알리지 않도록 접근성 상태(`disabled`)를 함께 준다(2026-09-22 Step 7 확정).
+- **loading**은 버튼 색을 그대로 두고 글자만 수행 중인 행동 문구로 바꾼다(예: `분석하기` → `분석 요청을 보내는 중이에요`). 앞에 작은 진행 표시를 두되 모션 감소 설정에서는 문구만 남기고, 접근성 상태로 `busy`를 준다(2026-09-22 Step 7 확정).
 - 로딩 중 버튼의 텍스트를 단순히 숨기지 말고 수행 중인 행동을 알린다.
 - 포커스 링을 제거하지 않는다.
+- 되돌릴 수 없는 행동(계정 탈퇴)의 진입점은 `destructive.text` 텍스트 버튼으로 두고, 삭제 범위를 보여준 뒤의 최종 확인 버튼만 `destructive.primary` 배경에 `destructive.onPrimary` 텍스트를 쓴다. 한 화면에 주요 CTA와 `destructive` 버튼을 나란히 두지 않는다.
+- 로그아웃은 되돌릴 수 있으므로 `destructive`를 쓰지 않는다.
+- 되돌릴 수 없는 결과를 낳지만 화면의 기대 행동인 경우(새 결과로 저장본 교체)는 진입 버튼을 `primary`로 두고 확인 대화상자를 연다. 되돌릴 수 없는 일이 실제로 일어나는 대화상자의 최종 확인 버튼만 `destructive.primary`를 쓴다([Step 5 합성](synthesis/TASK-020/README.md)).
+- 포커스 링(`focus.ring`, `strokes.focus`)은 버튼 가장자리에서 띄워 그려 링이 화면 배경·카드와 대비하게 한다. 링이 `destructive.primary`와 맞닿으면 1.5005:1, `brand.primary`와 맞닿으면 2.9941:1로 둘 다 3:1에 못 미친다. 주요 버튼이 전부 남색이므로 후자가 더 자주 생긴다.
 
 ### 5.5 입력
 
@@ -303,18 +357,18 @@ loading / empty / error / normal
 | 화면 | 디자인 적용 기준 |
 |---|---|
 | SC-AUTH 로그인 | Google과 서비스 자체 로그인 방식을 명확히 구분하고 인증 오류·진행·세션 복원 상태를 제공 |
-| SC-001 시작·가게 지정 | 가게 이름·업종·네이버 가게 URL의 필수 입력 3개와 분석 CTA 하나를 제공한다. 서비스 설명은 입력을 밀어내지 않게 한다 |
-| SC-002 가게 확인 | 입력한 가게 이름·업종과 네이버 URL에서 확인한 매장 정보가 맞는지 짧게 확인한다 |
-| SC-003 분석 진행 | 현재 단계, 진행 중임, 화면을 닫아도 되는지 여부를 문장으로 표시. 확정되지 않은 퍼센트는 만들지 않는다 |
+| SC-001 시작·가게 지정 | 가게 이름·업종·네이버 가게 URL의 필수 입력 3개를 같은 화면에서 차례로 펼치고, 답한 칸은 수정할 수 있게 접어 둔다. 주요 버튼은 단계마다 하나(`다음` 또는 `분석하기`)다([Step 5 합성](synthesis/TASK-020/README.md)). 서비스 설명은 입력을 밀어내지 않게 한다 |
+| SC-002 가게 확인 | 입력한 가게 이름·업종과 네이버 URL에서 확인한 매장 정보가 맞는지 짧게 확인한다. 작업 생성 전 가게 식별 API가 없어 보류 중이다([SCREEN_STATES §4.3](../product/requirements/SCREEN_STATES.md)) |
+| SC-003 분석 진행 | 입력 요약 아래에 서버가 보낸 단계를 도착 순서대로 쌓는 목록으로 표시하고, 실패는 목록 끝에 실패 결과 행을 붙여 원인·다음 행동을 보여주고 실패 단계는 표시하지 않는다([Step 5 합성](synthesis/TASK-020/README.md)). 확정되지 않은 퍼센트나 오지 않은 단계를 만들지 않는다. 화면을 닫아도 되는지는 진행 중 이탈 정책이 정해진 뒤 표시한다([SCREEN_STATES §11](../product/requirements/SCREEN_STATES.md)) |
 | SC-004 결과 요약 | 포디움에서 선택한 페르소나의 4개 관점을 동일한 정보 계층으로 제공하되 우선순위를 먼저 인지할 수 있게 한다 |
 | SC-005 근거 상세 | 닉네임·프로필 없이 리뷰 본문과 필요한 메타데이터만 제공 |
-| SC-006 손님 유형 | 분석 메타정보 다음에 TOP3 포디움을 두고 유형이 있으면 최초 1위를 선택한다. 이미지보다 유형명·관찰 특성·근거·한계가 우선이며 유형 부족 시 빈 슬롯과 이유를 표시한다. 유형이 0개면 선택 콘텐츠를 표시하지 않는다 |
+| SC-006 손님 유형 | **TOP3 시상대를 화면 맨 위에** 두고(2026-09-27 디자인 리뷰 #3) 유형이 있으면 최초 1위를 선택한다. 1위를 가운데 가장 높게 두어 순위를 배치로도 알린다. 분석 메타정보는 결과를 다 읽은 뒤 신뢰도를 판단하는 자리라 맨 아래에 둔다. 이미지보다 유형명·관찰 특성·근거·한계가 우선이며 유형 부족 시 빈 슬롯과 이유를 표시한다. 유형이 0개면 선택 콘텐츠를 표시하지 않는다 |
 | SC-007 페르소나 이미지 | AI 생성 고지와 대체 텍스트를 제공하고, 정상 결과는 3개, 유형 부족 결과는 도출된 모든 이미지가 준비되기 전까지 완료 상태로 표시하지 않음 |
 | SC-008 실행 제안 | 리뷰 사실과 검토할 행동을 먼저 보여주고 AI 해석·전문 지식은 펼쳐서 확인하게 한다 |
 | SC-009 오류·한계 | 원인, 현재 상태, 사용자가 할 수 있는 다음 행동을 함께 제공 |
-| SC-010 결과 저장 | 첫 결과 자동 저장 상태와 새 결과 교체·기존 결과 유지 선택을 명확히 표시 |
+| SC-010 결과 저장 | 첫 결과 자동 저장은 별도 완료 화면으로 알린다. 새 결과 미리보기에는 교체·유지 선택을 하단에 고정하고, 교체만 확인 대화상자를 거친다([Step 5 합성](synthesis/TASK-020/README.md)) |
 | SC-011 홈 | 첫 분석 완료 후 저장된 분석 결과 1개와 포디움 기반 유형별 결과를 표시. 저장 결과가 없으면 가게 입력으로 이동 |
-| SC-012 마이페이지 | 분석 완료·실패 인앱 알림, 알림 설정·서비스 정보, 로그아웃, 현재 저장 결과 이미지 최대 3개만 제공 |
+| SC-012 마이페이지 | 분석 완료·실패 인앱 알림, 알림 설정·서비스 정보, 로그아웃, 계정 탈퇴, 현재 저장 결과 이미지 최대 3개만 제공. 계정 탈퇴는 되돌릴 수 없는 행동이므로 action 색 대신 `destructive` 토큰(5.4절)을 쓰고 삭제 범위를 먼저 보여준 뒤 재확인한다 |
 
 ---
 
@@ -348,13 +402,15 @@ loading / empty / error / normal
 
 ### 8.2 정량 기준
 
-WCAG 목표 등급과 지원 Android·보조기술 조합은 확정 필요다. 확정 전에도 일반 텍스트와 컨트롤의 대비, 외부 키보드 흐름, 포커스, 글자 크기 확대를 검증한다.
+제품 목표는 [WCAG 2.2](https://www.w3.org/TR/WCAG22/) **AA**다. 일반 텍스트는 4.5:1 이상, 큰 텍스트와 의미 있는 비텍스트 요소는 3:1 이상으로 검증한다. WCAG 2.2 AA의 포인터 대상 최소값은 24×24px이지만, PULSE 제품 터치 영역은 44×44px 이상을 사용한다. 포커스 표시는 제거하지 않고 최소 2px 토큰을 제공한다.
+
+토큰 자동 검증은 대표 전경·배경 조합과 상태 아이콘 대비를 검사한다. 개별 화면에서는 이미지 위 텍스트, 합성된 반투명색, 모든 interaction state를 실제 렌더링으로 다시 확인해야 한다. 지원 Android 기기와 TalkBack 조합은 아직 확정되지 않았으므로 네이티브 접근성 완료로 판정하지 않는다.
 
 ---
 
 ## 9. 모션
 
-기존 PULSE에서 Button 0.15초, Modal 0.2초, Drawer 0.25초, 일반 fade-in 0.3초가 사용됐다. SCC 구현 시 참고할 수 있지만 자동 확정값은 아니다.
+상태 전환 토큰은 quick 150ms, standard 200ms, emphasized 250ms, reveal 300ms로 확정했다. 어떤 컴포넌트가 어떤 토큰을 쓰는지는 해당 컴포넌트 구현에서 검증한다.
 
 - 모션은 상태 변화와 화면 관계를 설명할 때만 사용한다.
 - 분석 결과가 실제보다 빠르거나 확정적인 것처럼 보이게 하는 가짜 진행 애니메이션을 사용하지 않는다.
@@ -412,17 +468,17 @@ UI 변경은 `.claude/skills/visual-qa/SKILL.md` 절차를 읽고 실제 렌더�
 
 ---
 
-## 13. 구현 전 확정할 디자인 항목
+## 13. 남은 디자인 결정
 
 | 항목 | 결정 시점 |
 |---|---|
-| 토큰 표현 방식과 파일 경로 | 프론트엔드 스택 확정 직후 |
-| action 계열 8자리 HEX의 실제 합성색과 대비 | 첫 버튼 구현 전 |
-| 타입 토큰의 body·caption 행간 | 첫 화면 구현 전 |
-| 모바일·태블릿·데스크톱 breakpoint | 레이아웃 구현 전 |
 | 최소 Android OS와 지원 기기 범위 | Visual QA 기준 작성 전 |
-| WCAG 목표 등급 | 공용 컴포넌트 완료 전 |
 | 페르소나 이미지 화풍·톤·구성 | FR-004 구현 전 |
 | 사실·해석·지식·제안 카드 시안 | 결과 화면 구현 전 |
 | 긴 근거 리뷰의 접기·펼치기 방식 | SC-005 구현 전 |
-| 로딩 단계 표시 방식과 모션 시간 | SC-003 구현 전 |
+| ~~로딩 단계 표시 방식~~ | 2026-09-22 Step 5 합성으로 해소 — 받은 단계를 쌓는 진행 목록 |
+| ~~아이콘 공급원 — 라이브러리 채택 여부와 라이선스 기록~~ | **2026-09-27에 다시 정했다** — `react-native-svg`로 그려 `components/icons`에 둔다. 규칙 정본은 §3.6이다. 2026-09-22 Step 7의 `View` 도형 결정은 아이콘마다 굵기와 모서리가 달라지는 문제가 있어 뒤집었다(디자인 리뷰 #4). `react-native-svg`는 의존성 목록에 올라가는 추적 대상이다 |
+| ~~로딩 자리표시·이미지 실패·빈 포디움 슬롯의 시각 구분~~ | 2026-09-22 Step 5 합성으로 해소 — 빈 칸은 점선 테두리, 로딩과 조회 실패는 같은 영역에 아이콘·문장·버튼으로 구분 |
+| 오프라인 안내의 표현(오류인지 안내인지) | 오프라인 정책 확정 후(SCREEN_STATES §11). 인증 만료(`AUTH-EXPIRED`)는 2026-09-22 Step 7에서 해소 — 오류가 아니라 `warning` 안내로 로그인 화면 위에 이유와 다음 행동을 표시한다 |
+| 하단 내비게이션 일시 비활성(`NAV-DISABLED-TRANSITION`) | 해당 공용 컴포넌트 구현 전. 버튼 loading·disabled는 2026-09-22 Step 7에서 §5.4로 확정. ~~알림 설정 토글의 상태 표현~~은 2026-09-23 Step 9에서 해소 — 스위치 옆에 `켜짐`·`꺼짐` 글자를 함께 두고, 바꾸는 중에는 조작을 막고 `바꾸는 중`을 표시한다(`components/ui/ToggleRow.tsx`) |
+| ~~되돌릴 수 없는 행동의 버튼 색 토큰~~ | 2026-09-22 `colors.destructive`로 해소 |
