@@ -125,6 +125,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ### 브랜치 관계 (가장 먼저 읽을 것)
 
+> **해소(2026-09-28)**: PR #27 이 merge commit 으로 `main` 에 병합됐고(`fcd095a`), 이 브랜치에 `main` 을 연결했다(`e17fe61`). 아래 서술은 병합 전 기록이다. "2026-09-28 `main` 연결과 문서 정리" 절을 본다.
+
 - 이 브랜치는 PR #27(`feat/TASK-011-authentication`)의 **수정 전** 인증 커밋 3개(`7773443`, `e61e713`, `948e404`)를 포함한다.
 - PR #27 에는 그 뒤로 오류 계약 준수·Google issuer 500 수정·계정 열거·회전 경합 수정(`aa0dfa1`, `74d6df8`, `bc6439b`)이 추가됐다. 이 브랜치에는 **없다.**
 - PR #27 이 squash 병합되면 이 브랜치에 `main` 을 **merge commit 으로 연결**한다. force push 금지.
@@ -614,6 +616,27 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - uvicorn 은 `0.52.4` 로 고정돼 있다. 버전을 올렸을 때 `test_logging.py` 가 잡는 것은 uvicorn 로거 이름이 없어진 경우, `formatters`·`handlers`·`loggers` 키가 없어진 경우, uvicorn 로그 줄 형식(`INFO:     …`)이 바뀐 경우다. 그 밖의 구조 변화까지 잡는다고 보장하지 않는다.
 - openai·httpx 등 외부 라이브러리 로거는 설정하지 않아 이전과 같다.
 
+## 2026-09-28 `main` 연결과 문서 정리 (PR #27 병합 뒤)
+
+사용자가 PR #27 을 안전한 방식(merge commit)으로 병합하라고 해 `fcd095a` 로 병합한 뒤, 이 브랜치에 `main` 을 연결했다.
+
+| 작업 | 커밋 | 내용 |
+|---|---|---|
+| `main` 연결 | `e17fe61` | 텍스트 충돌 2곳: `SecurityConfigTests`(두 mock 모두 유지), `ARCHITECTURE.md`(분석 API·Python 파이프라인 + Expo 앱·프론트 ADR, 결정된 미결 항목 제거). 인증 파일은 자동 병합됐고 양쪽 기능(약관 동의·기본 알림 설정 / `traceId` 오류 계약·미끼 해시·회전 유예·320자)이 남은 것을 확인했다. **의미 충돌 2곳**: `MyPageErrorHandler` 가 바뀐 `ErrorBody` 생성자를 못 써 컴파일 실패 → 공통 오류 계약(`traceId`, 필드 오류 생략)으로 맞춤. `AuthCredentialTests` 의 가입 호출(인자 3개)을 현재 약관 버전을 넘기는 도우미로 바꿈 |
+| ADR 번호 | `b0e6175` | 작업 큐 ADR-011 → **ADR-012**. `main` 의 `ADR-011-frontend-bootstrap` 이 먼저 공개됐다(TASK-019 인수인계 8장의 "먼저 공개된 쪽 유지" 원칙). 이 인수인계의 ADR-011 참조 8곳도 ADR-012 로 바꿨다 |
+| 문서 불일치 | `dbf6d02` | PR #36 본문 "알려진 문서 불일치": ARCHITECTURE·API 의 "재시작 복구 미지원" → ADR-012 임대 큐, API §10 에서 확정된 토큰 정책·탈퇴 제거, DATA_MODEL `error_code` 설명, ADR-012 결정 5번 #30 갱신 주석(원문 유지), API §5.3 "최대 3회 시도(재시도 2회)" |
+
+| 검증 | 명령 | 결과 |
+|---|---|---|
+| Spring build·test | `.\backend\spring-api\gradlew.bat -p backend\spring-api build --rerun-tasks` (Docker 29.8.0) | `e17fe61` 에서 PASS — tests=99 failures=0 errors=0 skipped=0 |
+| Python test | `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` | PASS — 128 passed |
+| 상대 링크 | 저장소 전체 `*.md` 상대 링크 검사(스크래치 스크립트) | 문서 92개·링크 300개, 깨진 링크 0 |
+| 실제 서버 | 로컬 PostgreSQL + `bootRun`, 새 테스트 계정 | Flyway 4개 검증·적용 없음. 약관 버전 없는 가입 400, 가입 201, 재가입 409(`traceId`), 틀린 비밀번호 401(`traceId`), 대문자 이메일 로그인 200, 세션 200, 회전 200, 옛 토큰 재사용 401 뒤 새 토큰 200(회전 유예), 알림 설정 200, 로그아웃 204 |
+
+- V2 migration 은 옛 인증 커밋(`7773443`) 이후 바뀌지 않아 로컬 DB 와 checksum 이 맞는다.
+- **PR #41(로그인 시도 제한)과의 충돌**: #41 과 이 브랜치가 둘 다 `AuthController`·`AuthService`·`AuthCredentialTests` 를 고친다. 둘 중 늦게 병합되는 쪽에서 손으로 합쳐야 한다(병합 전 시뮬레이션에서 `AuthController` 충돌 확인). #41 의 `AuthService` 생성자 인자 추가와 이 브랜치의 가입 인자 추가가 함께 들어가야 한다.
+- `frontend/mobile/INTEGRATION_GUIDE.md` 206행(프론트 소유)은 ADR 번호 충돌을 아직 "미결정"으로 적고 있다. PR 본문으로 알린다.
+
 ## Unresolved
 
 ### 제품·법무 결정
@@ -704,9 +727,9 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ### 막혀 있는 순서
 
-1. **사람**: PR #27 에 `role:product`·`role:platform` 리뷰어를 지정하고 병합한다.
-2. 병합 후 이 브랜치에 `main` 을 merge commit 으로 연결한다. **인증 파일 충돌은 손으로 합친다**(2026-09-22 절 참조). force push 금지.
-3. 합친 뒤 Spring test 전체와 로컬 DB `bootRun` + 가입·로그인·회전 호출로 재확인한다.
+1. ~~PR #27 병합~~ — 2026-09-28 merge commit `fcd095a`
+2. ~~`main` 연결·인증 충돌 수동 병합~~ — 2026-09-28 `e17fe61`
+3. ~~Spring test 전체와 로컬 DB `bootRun` + 가입·로그인·회전 호출~~ — 2026-09-28, "2026-09-28 `main` 연결과 문서 정리" 절
 4. 독립 Reviewer 검토 후 TASK-012 PR 을 만든다. PR 본문 관련 이슈에 #28~#33 을 후속 결정으로 연결하되 `Refs` 로 쓴다. `Closes` 를 쓰면 결정 전인 SPEC 이슈가 병합 때 닫힌다.
 
 ### 사람만 할 수 있는 것 (2026-09-26 기준)
@@ -751,7 +774,9 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`ea45b4a` — Python 서비스 로그 설정까지. 이 커밋 기준으로 Python lint·format PASS, pytest 128개 PASS, 독립 Reviewer PASS(반영분 재검토 포함), 이 커밋 코드 그대로 실제 서버 + Spring 으로 50건 게이트 실패 작업 1개에서 로그 형식·작업 ID 확인(OpenAI 호출 없음). Spring 은 변경 없음(직전 확인 53개 skip 0).
+`dbf6d02` — `main`(PR #27) 연결·ADR 번호 변경·문서 불일치 정리까지. 코드는 `e17fe61` 과 같다. `e17fe61` 에서 Spring 99개 skip 0, Python 128개, 로컬 DB `bootRun` 인증 흐름 확인. 브랜치 전체 독립 Reviewer 는 아직이다.
+
+이전 기준 `ea45b4a` — Python 서비스 로그 설정까지. 이 커밋 기준으로 Python lint·format PASS, pytest 128개 PASS, 독립 Reviewer PASS(반영분 재검토 포함), 이 커밋 코드 그대로 실제 서버 + Spring 으로 50건 게이트 실패 작업 1개에서 로그 형식·작업 ID 확인(OpenAI 호출 없음). Spring 은 변경 없음(직전 확인 53개 skip 0).
 
 이전 기준 `c87b4a7` — 결정 없이 처리한 기술 과제 2건(손님 유형 상위 3개 자르기 `47c1130`, 필터 건수 로그)까지. 이 커밋 기준으로 Python lint·format PASS, pytest 124개 PASS, 두 변경 모두 독립 Reviewer PASS. Spring 은 변경 없음(직전 확인 53개 skip 0). 실제 분석은 이 두 변경 뒤로 실행하지 않았다(비용).
 
