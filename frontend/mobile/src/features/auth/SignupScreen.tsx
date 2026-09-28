@@ -254,6 +254,7 @@ export function SignupScreen() {
             <CheckRow
               checked={agreedTerms}
               description={legal ? `이용약관 ${legal.termsVersion}` : undefined}
+              invalid={Boolean(errors.consent) && !agreedTerms}
               label="이용약관에 동의해요"
               onToggle={() => {
                 setAgreedTerms((value) => !value);
@@ -264,6 +265,7 @@ export function SignupScreen() {
               checked={agreedPrivacy}
               description={legal ? `개인정보 처리방침 ${legal.privacyVersion}` : undefined}
               error={errors.consent}
+              invalid={Boolean(errors.consent) && !agreedPrivacy}
               label="개인정보 처리방침에 동의해요"
               onToggle={() => {
                 setAgreedPrivacy((value) => !value);

@@ -51,6 +51,7 @@
 
 ## Changed
 
+- (가입 약관 오류 표시, 2026-09-28) `components/ui/CheckRow.tsx`(`invalid` — 빨간 테두리만 따로, 읽기 이름에 `오류: 동의가 필요해요`, 읽기 이름은 늘 값을 줌(Android에 이전 이름이 남는 문제), `✓` 글자는 화면 읽기에서 뺌), `features/auth/SignupScreen.tsx`(체크하지 않은 약관 칸마다 `invalid`). PR #35부터 둘째 칸만 빨갛던 것. evidence `consent-*` 2장
 - (글자 크기 200% 확인, 2026-09-28) `features/result/ResultView.tsx`(`sectionHead` — 자리가 모자라면 `리뷰 수 순서`를 다음 줄로), `components/ui/PodiumTop3.tsx`(`podiumBlockHeight` — 세 단상에 `spacing[12] × (fontScale − 1)`을 똑같이 더해(두 줄 줄높이 합 46 × 배율보다 3위 단상 48 × 배율이 늘 큼) 3위 단상의 `보는 중` 잘림을 막음, 100%에서는 그대로). 둘 다 PR #35부터 있던 결함. evidence `font200-*` 11장
 - (마이페이지 저장 이미지, 2026-09-28) `features/mypage/MyPageScreen.tsx`(`StoredPersonaRow` — 동그란 그림 + 순위·유형 이름, 순위 순 정렬), `components/ui/PersonaAvatar.tsx`(`usePersonaImageRetry`·`PersonaImageError` — 홈 카드와 공유), `features/result/ResultView.tsx`(공유 도구로 교체), `components/ui/PersonaImageBlock.tsx` 삭제, 보드 `generate.mjs`·`svg/10`(MyPage-Images 화면 추가), `SCREEN_STATES` §8 `STORED-IMAGES-NORMAL`, `DESIGN_SYSTEM` §3.6, evidence `mypage-images-*` 2장. 독립 Reviewer PASS(차단 0·P3 3 — 주석, Unresolved 16 서술, 생성기의 안 쓰는 줄 → 반영)
 
@@ -178,6 +179,7 @@
 - (선택 유형 요약 카드, 2026-09-28) 같은 4종 종료 0, `check.mjs` 0건, Android 캡처 `stats-card-*` 3장(1위·2위·이미지 조회 실패), 독립 Reviewer 1차 FAIL → 2차 PASS. 원격 이미지 로딩·다시 불러오기·TalkBack 실제 낭독 미확인
 - (마이페이지 저장 이미지, 2026-09-28) 같은 4종 종료 0, `check.mjs` 0건, Android 캡처 `mypage-images-*` 2장(정상·실패), 독립 Reviewer PASS. 원격 이미지·200%·TalkBack 미확인
 - (글자 크기 200% 확인, 2026-09-28) `font_scale 2.0`에서 가입(빈 칸·불일치 오류)·홈 TOP3·1위/3위 요약 카드·이미지 조회 실패·마이페이지 저장 이미지를 Android로 확인. 결함 2건(제목 줄 밀림, 3위 단상 글자 잘림)을 고쳐 다시 확인했고, `1.0`으로 되돌려 회귀 없음 확인. 요약 카드 3위 선택도 이때 확인(24%). `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, `check.mjs` 0건. 근거는 [evidence README](../../design/evidence/TASK-020/README.md) "글자 크기 200%·요약 카드 3위 선택"
+- (가입 약관 오류 표시·TalkBack, 2026-09-28) 앱을 완전히 다시 실행한 뒤 네 단계(처음·둘 다 비움·하나 체크·다시 가입하기)의 체크 칸 읽기 이름을 `uiautomator`로 확인, 캡처 2장. `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0. TalkBack은 켜서 초점 표시까지만 확인했고, 항목 이동 순서·실제 소리는 미확인(`adb` 쓸기·키가 TalkBack 동작으로 인식되지 않음). TalkBack은 꺼서 원래대로 되돌렸고, 그때 뜬 TalkBack 알림 권한은 거부 상태로 남았다. 근거는 [evidence README](../../design/evidence/TASK-020/README.md) "가입 약관 오류 표시·TalkBack 확인"
 - (Figma, 2026-09-28) 보드 반영은 사용자 보고만 있다 — 에이전트는 MCP 한도로 파일을 보지 못했다(보드 README "Import 결과 (2026-09-28)")
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
