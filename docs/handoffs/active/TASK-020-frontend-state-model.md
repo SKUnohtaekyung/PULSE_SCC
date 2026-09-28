@@ -218,7 +218,7 @@
 
 ## Last Verified Commit
 
-> 2026-09-28 브랜치 이동: 아래 첫 두 문단의 커밋 번호는 `feat/TASK-020-design-followup`(PR #38)의 번호다. 옮기기 전 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`의 번호(예: `af1b6c2` ← `3891823`, `a547871` ← `974e0a3`)는 원격에 없다. `10161ab` 뒤 옛 커밋 22개와 새 커밋 22개를 순서대로 짝지어 `git diff --stat <옛> <새>`가 모두 비어 있음(내용 같음)을 확인했다. 세 번째 문단부터의 옛 번호(`10161ab` 이하)는 PR #35 head에 들어 있다. 원격 브랜치 `feat/TASK-020-frontend-mobile`은 병합 뒤 지워져, GitHub에서는 `git fetch origin pull/35/head`로만 닿는다(2026-09-28 `git ls-remote origin`에 `refs/pull/35/head` = `10161ab`만 있음).
+> 2026-09-28 브랜치 이동: 아래 첫 두 문단의 커밋 번호는 `feat/TASK-020-design-followup`(PR #38)의 번호다. 옮기기 전 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`의 번호(예: `af1b6c2` ← `3891823`, `a547871` ← `974e0a3`)는 원격에 없다. `10161ab` 뒤 옛 커밋 22개와 새 커밋 22개를 순서대로 짝지어 `git diff --stat <옛> <새>`가 모두 비어 있음(내용 같음)을 확인했다. 세 번째 문단부터의 옛 번호(`10161ab` 이하)는 PR #35 head에 들어 있다. 원격 브랜치 `feat/TASK-020-frontend-mobile`은 병합 뒤 지워져, GitHub에서는 `git fetch origin pull/35/head`로 닿는다(2026-09-28 `git ls-remote origin`에 `refs/pull/35/head` = `10161ab`만 있음).
 
 `af1b6c2` (2026-09-28) — 마지막으로 코드·보드를 바꾸고 검증한 커밋. 이 커밋은 `PersonaAvatar.tsx` 주석과 `generate.mjs`의 안 쓰는 줄만 바꿨고 `lint`·`typecheck` 종료 0, 보드를 다시 뽑아 `check.mjs` 0건. 바로 앞 `50f061a`(마이페이지 저장 이미지)에서 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 2장, 독립 Reviewer PASS. 그 뒤 `25d1b61`과 인계 정리는 문서만 바꾼다. 이 세션의 코드 변경은 손님 캐릭터(`5a76bd9`·`51d6298`), 요약 카드(`4a70c4e`·`09931b6`·`badc58e`), 마이페이지(`50f061a`·`af1b6c2`)이고 각각 독립 Reviewer PASS다.
 
