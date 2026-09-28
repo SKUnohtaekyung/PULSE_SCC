@@ -17,10 +17,12 @@
 | `frontend/mobile/src/design/**`·`src/components/ui/**` | `role:design-system` | 토큰과 공용 컴포넌트 |
 | `docs/product/requirements/SCREEN_STATES.md` | `role:product` | 상태 모델 갱신과 Step 7·9 검증 기록 |
 | `frontend/mobile/src/components/ui/**`(Step 9 신설 4종 포함) | `role:design-system` | CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock(2026-09-28 삭제) |
+| `docs/product/requirements/RESULT_IA.md`·`USER_FLOW.md`·`GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` | `role:product` | Step 12 결과 화면 순서 반영(2026-09-28) |
+| `AGENTS.md`(공용) | 공용 — PR 리뷰 | Step 12 테스트 러너 행 갱신(2026-09-28) |
 
 ## Branch
 
-`docs/TASK-020-frontend-state-model`
+`feat/TASK-020-design-followup` — PR #38(2026-09-28 생성, 열림). 앞선 작업은 로컬 `docs/TASK-019-step0-rebaseline`(원격 `feat/TASK-020-frontend-mobile`, PR #35로 2026-09-28 squash 병합)에서 했다. 이 절의 처음 값 `docs/TASK-020-frontend-state-model`은 2026-09-18까지 쓴 로컬 브랜치다(마지막 커밋 `9734ffb`, 그 커밋들은 모두 `docs/TASK-019-step0-rebaseline`에 들어 있다).
 
 ## Goal
 
@@ -207,7 +209,7 @@
 
 ## Next Action
 
-워크플로 0~12단계와 그 뒤 디자인 수정 3건이 끝났다(2026-09-28). 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15·16(platform 문서 2건), SCREEN_STATES §11의 리뷰 중복 계산 확인(role:feature), 로컬 커밋 push·PR(사용자 지시 전 금지), 실제 백엔드 연결, Unresolved 1~6·8~12·14. 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
+워크플로 0~12단계와 그 뒤 디자인 수정 3건이 끝났다(2026-09-28). 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15·16(platform 문서 2건), SCREEN_STATES §11의 리뷰 중복 계산 확인(role:feature), PR #38 리뷰 대응(리뷰어는 사용자가 요청, 병합도 사용자가 한다), 실제 백엔드 연결, Unresolved 1~6·8~12·14. 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
 
 (이전 기록) 발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
 
@@ -215,8 +217,10 @@
 
 ## Last Verified Commit
 
-`3891823` (2026-09-28) — 마지막으로 코드·보드를 바꾸고 검증한 커밋. 이 커밋은 `PersonaAvatar.tsx` 주석과 `generate.mjs`의 안 쓰는 줄만 바꿨고 `lint`·`typecheck` 종료 0, 보드를 다시 뽑아 `check.mjs` 0건. 바로 앞 `a21c323`(마이페이지 저장 이미지)에서 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 2장, 독립 Reviewer PASS. 그 뒤 `6c63086`과 인계 정리는 문서만 바꾼다. 이 세션의 코드 변경은 손님 캐릭터(`b580bf8`·`51f152c`), 요약 카드(`098a22b`·`36599af`·`a3eb399`), 마이페이지(`a21c323`·`3891823`)이고 각각 독립 Reviewer PASS다.
+> 2026-09-28 브랜치 이동: 아래 첫 두 문단의 커밋 번호는 `feat/TASK-020-design-followup`(PR #38)의 번호다. 옮기기 전 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`의 번호(예: `af1b6c2` ← `3891823`, `a547871` ← `974e0a3`)는 원격에 없다. `10161ab` 뒤 옛 커밋 22개와 새 커밋 22개를 순서대로 짝지어 `git diff --stat <옛> <새>`가 모두 비어 있음(내용 같음)을 확인했다. 세 번째 문단 이전의 번호는 원격 `feat/TASK-020-frontend-mobile`에 있다.
 
-이전 값: `974e0a3` (2026-09-28) — 마지막으로 코드·보드를 검증한 커밋. 앱 코드는 `6d9ac20`의 `SignupScreen.tsx`가 마지막 변경이고 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 5장, 독립 Reviewer PASS. `974e0a3`은 보드 `generate.mjs`를 고치고 `check.mjs` 0건을 다시 확인했다. 그 뒤 커밋(`51bd83c`·`923734f`·`7fb0e30`·`08b13d3`·인계 정리)은 문서만 바꾼다.
+`af1b6c2` (2026-09-28) — 마지막으로 코드·보드를 바꾸고 검증한 커밋. 이 커밋은 `PersonaAvatar.tsx` 주석과 `generate.mjs`의 안 쓰는 줄만 바꿨고 `lint`·`typecheck` 종료 0, 보드를 다시 뽑아 `check.mjs` 0건. 바로 앞 `50f061a`(마이페이지 저장 이미지)에서 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 2장, 독립 Reviewer PASS. 그 뒤 `25d1b61`과 인계 정리는 문서만 바꾼다. 이 세션의 코드 변경은 손님 캐릭터(`5a76bd9`·`51d6298`), 요약 카드(`4a70c4e`·`09931b6`·`badc58e`), 마이페이지(`50f061a`·`af1b6c2`)이고 각각 독립 Reviewer PASS다.
+
+이전 값: `a547871` (2026-09-28) — 마지막으로 코드·보드를 검증한 커밋. 앱 코드는 `8e3f853`의 `SignupScreen.tsx`가 마지막 변경이고 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 5장, 독립 Reviewer PASS. `a547871`은 보드 `generate.mjs`를 고치고 `check.mjs` 0건을 다시 확인했다. 그 뒤 커밋(`22ef259`·`8df630e`·`0226ba7`·`b753c91`·인계 정리)은 문서만 바꾼다.
 
 이전 값: `ea6ea03` — 7차 리뷰 반영 커밋(check.mjs 테두리 두께 정규식 `[\d.]`, 캐릭터 입 `fill="none"`). 그 앞 `88fdfda`는 R2·R4를 반영했지만 R1 정규식이 `[d.]` 오타라 R1은 실제로 동작하지 않았다. 8차 독립 Reviewer PASS(권고 3 — 문서 정합성, 이 절과 evidence README로 반영). 이 뒤 커밋은 문서만 바꾼다.

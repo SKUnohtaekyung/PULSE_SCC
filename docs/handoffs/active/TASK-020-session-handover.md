@@ -17,9 +17,9 @@
 | 손님 캐릭터 교체 | 끝남(2026-09-28). 독립 Reviewer PASS |
 | 결과 화면 선택 유형 요약 카드 | 끝남(2026-09-28). 1차 FAIL(대체 텍스트) → 2차 PASS |
 | 마이페이지 저장 이미지 | 끝남(2026-09-28). 독립 Reviewer PASS |
-| Figma 파일 | 사용자 보고로 지금 보드와 같다(2026-09-28, 기준 커밋 `6c63086`의 `svg/`). MCP가 막혀 **사용자가 직접** 넣었다. 보드 10장 전체 → 5장 교체 → 보드 10 교체. 에이전트는 파일을 직접 보지 못했다 |
+| Figma 파일 | 사용자 보고로 지금 보드와 같다(2026-09-28, 기준 커밋 `25d1b61`의 `svg/`). MCP가 막혀 **사용자가 직접** 넣었다. 보드 10장 전체 → 5장 교체 → 보드 10 교체. 에이전트는 파일을 직접 보지 못했다 |
 | 통합 테스트 인계 문서 | 끝남. [frontend/mobile/INTEGRATION_GUIDE.md](../../../frontend/mobile/INTEGRATION_GUIDE.md) |
-| GitHub | PR #35는 2026-09-28 squash 병합됐다. 그 뒤 작업은 새 로컬 브랜치 `feat/TASK-020-design-followup`에 있고 **아직 push 전**이다(아래 Git 상태, 다음 세션 첫 작업) |
+| GitHub | PR #35는 2026-09-28 squash 병합됐다. 그 뒤 작업은 `feat/TASK-020-design-followup`으로 push했고 **PR #38**(https://github.com/SKUnohtaekyung/PULSE_SCC/pull/38)을 열었다(2026-09-28). 리뷰어 요청·병합은 사용자가 한다(아래 Git 상태) |
 
 ## 2026-09-28 세션에서 한 것
 
@@ -39,7 +39,7 @@
 - **실제 서버 연결 뒤 확인** — 원격 이미지의 로딩 회색 원·다시 불러오기, 서버 `altText` 형식(마침표로 끝나면 읽기 문장에 마침표가 겹친다). 가상 데이터의 대체 텍스트는 음식을 설명해 보이는 사람 그림과 다르다(가상 서버에서만).
 - **미확인 Visual QA** — 글자 크기 200%, TalkBack 실제 낭독, 실기기, 요약 카드 3위 선택.
 - **Figma 미확인** — 잘림·굵기 4단계·팀원 PC 글꼴. 에이전트는 MCP 한도로 파일을 볼 수 없다.
-- **push·PR** — 사용자가 말하기 전에는 하지 않는다. PR을 올릴 때 `docs/product/**`(role:product)·`docs/design/**`·`src/design/**` 토큰·`components/ui/**`(role:design-system — 토큰 변경은 리뷰 필수), 공용 파일 `AGENTS.md`, 앞 단계의 `docs/architecture/**` 수정과 위 platform 이관 2건을 본문에 밝힌다(AGENTS 5장). 전체 목록은 상태 정본 Owner 표.
+- **PR #38 리뷰 대응** — 2026-09-28 push·PR 완료(아래 Git 상태). 리뷰어 요청과 병합은 사용자가 GitHub에서 한다. 소유 영역 밖 수정·이관 2건·백엔드 확인·미확인 항목은 PR 본문에 밝혔다. 전체 소유 영역 목록은 상태 정본 Owner 표.
 - 상태 정본 Unresolved 1~6·8~12·14(오프라인·polling·TalkBack·브랜치와 TASK 불일치 등), 요구사항 문서 머리의 "기준일"(2026-09-21~22 그대로, 보류).
 
 ## 사용자가 정한 것 (되묻지 않는다)
@@ -81,7 +81,7 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 - 예시 계정은 `src/api/fixtures/server.ts`의 `fixtureAccount`다. 로그인 화면 이메일 칸에 예시 이메일이 미리 채워져 있으니 이어 쓰지 않는다.
 - 가상 서버 상황은 분석하기 화면 위 `가상 서버 상황: … 바꾸기`로 고른다(`이미지 조회 실패`로 IMAGE-LOAD-ERROR 재현).
 - `adb`는 `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`. 한글 입력은 안 된다. 뒤로 가기(`keyevent 4`)는 앱을 닫을 수 있다. 입력 칸 좌표는 키보드가 뜨면 바뀌므로 `uiautomator dump`로 매번 다시 읽는다. 화면 아래 Expo 경고 알림(scheme 미설정)을 누르면 개발 경고 창이 열린다 — `Dismiss`로 닫는다.
-- Figma MCP: SCC 팀 포함 소속 팀이 모두 Starter라 호출 한도에 걸린다(2026-09-28). 넣을 일이 생기면 보드 README "Figma에 넣는 법"대로 사용자가 직접 넣는다. 바뀐 보드만 `git diff --stat 6c63086 HEAD -- docs/design/figma/TASK-020/svg/`로 뽑아 안내한다(`6c63086` = 사용자가 마지막으로 넣은 보드 상태). 새로 넣게 하면 이 기준 커밋도 갱신한다.
+- Figma MCP: SCC 팀 포함 소속 팀이 모두 Starter라 호출 한도에 걸린다(2026-09-28). 넣을 일이 생기면 보드 README "Figma에 넣는 법"대로 사용자가 직접 넣는다. 바뀐 보드만 `git diff --stat 25d1b61 HEAD -- docs/design/figma/TASK-020/svg/`로 뽑아 안내한다(`25d1b61` = 사용자가 마지막으로 넣은 보드 상태. 옮기기 전 옛 번호 `6c63086`과 내용 같음). 새로 넣게 하면 이 기준 커밋도 갱신한다.
 - Figma 파일: https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — 페이지 `TASK-020 Vertical Slice (2026-09-28)`가 지금 보드, `… (2026-09-22)`는 옛 보드. 보드는 X=0에 01→10 세로 배치(좌표는 보드 README).
 - 독립 리뷰는 `reviewer` 서브에이전트에게 맡긴다. 에뮬레이터·`npm install`·`generate.mjs`(svg/를 덮어씀)를 금지하고 판정과 근거만 받는다.
 
@@ -89,13 +89,14 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 
 - **PR #35(`feat/TASK-020-frontend-mobile` → `main`)는 2026-09-28 05:08(UTC) squash 병합됐다.** main의 병합 커밋 `e07b6b1`은 옛 로컬 브랜치의 `10161ab`와 내용이 같다(`git diff 10161ab e07b6b1` 비어 있음).
 - 병합된 PR에는 커밋을 더할 수 없고, squash라 옛 브랜치를 그대로 올리면 이미 들어간 커밋이 다시 딸려 간다. 그래서 **새 로컬 브랜치 `feat/TASK-020-design-followup`을 `origin/main`에서 만들고, `10161ab` 뒤의 로컬 커밋 22개를 cherry-pick으로 옮겼다**(충돌 없음, 옛 브랜치와 내용 차이 없음을 `git diff`로 확인).
-- 이 브랜치는 **아직 push하지 않았다.** 범위는 `git log --oneline origin/main..HEAD`로 뽑는다(이 문서를 고친 커밋까지 포함).
-  - 비밀번호 확인 칸·Figma 기록·12단계, 첫 인계 정리, 손님 캐릭터·요약 카드·마이페이지 이미지·Figma 재교체 기록, 마감 인계 정리
+- **2026-09-28 push했고 PR #38(`feat/TASK-020-design-followup` → `main`)을 열었다.** 라벨 `type:feature`·`type:ui`·`role:feature`를 조회로 확인했다. 범위는 `git log --oneline origin/main..HEAD`로 뽑는다.
+  - 비밀번호 확인 칸·Figma 기록·12단계, 첫 인계 정리, 손님 캐릭터·요약 카드·마이페이지 이미지·Figma 재교체 기록, 마감 인계 정리, PR 뒤 인계 문서 정리
+- 옛 로컬 커밋 번호는 원격에 없다. 인계 문서 두 개의 번호는 새 번호로 바꿨고, 대응은 상태 정본 "Last Verified Commit" 머리 주석에 있다. `docs/design/figma/TASK-020/README.md` 118줄의 `923734f`(= 새 `8df630e`)는 그때의 기록이라 고치지 않았다.
 - 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`은 지우지 않고 남겨 두었다(원격 `feat/TASK-020-frontend-mobile` 추적). 새 작업은 `feat/TASK-020-design-followup`에서 한다.
 
-## 다음 세션 첫 작업 — GitHub 반영 (사용자가 요청함, 2026-09-28)
+## GitHub 반영 — 끝남 (2026-09-28)
 
-사용자가 새 채팅에서 "지금까지 한 것을 GitHub에 올려 달라"고 요청하기로 했다. 순서:
+아래 1~4를 2026-09-28에 했다. main은 바뀌지 않아(`HEAD..origin/main` 0개) rebase하지 않았다. 검증 5개는 모두 종료 0이었고 실제 출력은 PR #38 검증 표에 있다. PR 전 독립 리뷰는 새 커밋이 없어 다시 돌리지 않았다. 남은 것은 5번이다. 기록으로 남기는 원래 순서:
 
 1. `git status`·`git branch --show-current`(= `feat/TASK-020-design-followup`)·`git log --oneline origin/main..HEAD` 확인. `git fetch origin`으로 main이 그 뒤 바뀌었는지 보고, 바뀌었으면 rebase가 필요한지 사용자에게 먼저 알린다.
 2. 자동 검증을 한 번 더 돌린다: `verify:tokens`·`lint`·`typecheck`·`export:android`, 보드 `check.mjs`. 결과를 PR 검증 표에 실제 출력대로 적는다.
