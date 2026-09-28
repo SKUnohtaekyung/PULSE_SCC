@@ -1,4 +1,5 @@
 import base64
+import json
 import time
 from datetime import UTC, datetime
 
@@ -90,12 +91,60 @@ def test_equal_topic_review_counts_keep_the_model_order() -> None:
     assert [(p.rank, p.label) for p in analysis.personas] == [(1, "첫째"), (2, "둘째")]
 
 
-def test_more_than_three_topics_are_rejected() -> None:
-    # rank 4 는 PersonaOutput 에서 먼저 막히므로, 목록 길이 제한만 따로 확인한다.
-    personas = [_persona(rank, 10).model_dump() for rank in (1, 2, 3, 3)]
+def _persona_payload(rank: int, topic_review_count: int, label: str) -> dict:
+    # rank 4 이상은 PersonaOutput 생성자에서 막히므로 모델 응답처럼 dict 로 만든다.
+    return {**_persona(1, topic_review_count, label).model_dump(), "rank": rank}
+
+
+def test_more_than_three_topics_keep_the_top_three_by_review_count() -> None:
+    personas = [
+        _persona_payload(1, 10, "가장 적은"),
+        _persona_payload(2, 50, "가장 많은"),
+        _persona_payload(3, 30, "둘째"),
+        _persona_payload(4, 20, "셋째"),
+    ]
+
+    analysis = StructuredAnalysis.model_validate({"personas": personas})
+
+    assert [(p.rank, p.label) for p in analysis.personas] == [
+        (1, "가장 많은"),
+        (2, "둘째"),
+        (3, "셋째"),
+    ]
+
+
+def test_trimmed_topics_with_equal_counts_keep_the_model_order() -> None:
+    personas = [_persona_payload(rank, 10, f"{rank}위") for rank in (5, 4, 3, 2, 1)]
+
+    analysis = StructuredAnalysis.model_validate({"personas": personas})
+
+    assert [(p.rank, p.label) for p in analysis.personas] == [(1, "1위"), (2, "2위"), (3, "3위")]
+
+
+def test_extra_topics_without_integer_counts_are_rejected() -> None:
+    personas = [_persona_payload(rank, 10, "가") for rank in (1, 2, 3)]
+    personas.append({"rank": 4, "label": "리뷰 수 없음"})
 
     with pytest.raises(ValidationError, match="at most 3"):
         StructuredAnalysis.model_validate({"personas": personas})
+
+
+def test_topics_parsed_from_the_model_json_are_trimmed_too() -> None:
+    # 운영 경로(responses.parse)는 JSON 문자열을 model_validate_json 으로 검증한다.
+    personas = [
+        _persona_payload(rank, count, f"{count}건") for rank, count in enumerate((5, 9, 7, 8), 1)
+    ]
+
+    analysis = StructuredAnalysis.model_validate_json(json.dumps({"personas": personas}))
+
+    assert [(p.rank, p.label) for p in analysis.personas] == [(1, "9건"), (2, "8건"), (3, "7건")]
+
+
+def test_schema_sent_to_the_model_still_caps_topics_at_three() -> None:
+    schema = StructuredAnalysis.model_json_schema()
+
+    assert schema["properties"]["personas"]["maxItems"] == 3
+    assert schema["$defs"]["PersonaOutput"]["properties"]["rank"]["maximum"] == 3
 
 
 # 2026-09-28 실제 분석에서 사장님 화면에 그대로 나온 문장들이다.

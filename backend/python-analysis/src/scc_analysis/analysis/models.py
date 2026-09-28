@@ -1,6 +1,6 @@
 import re
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -58,6 +58,8 @@ def reader_facing(text: str) -> str:
 
 
 _DEFAULT_CAVEAT = "리뷰에서 반복된 상황을 묶은 유형이며 실제 개인이나 전체 손님을 뜻하지 않습니다."
+# 손님 유형은 근거 리뷰 수 상위 3개까지다(PERSONA-002, 2026-09-27 사용자 결정).
+_MAX_PERSONAS = 3
 
 
 class AnalyzeRequest(BaseModel):
@@ -120,7 +122,7 @@ class PersonaOutput(BaseModel):
 
 
 class StructuredAnalysis(BaseModel):
-    personas: list[PersonaOutput] = Field(min_length=1, max_length=3)
+    personas: list[PersonaOutput] = Field(min_length=1, max_length=_MAX_PERSONAS)
     limitations: list[str] = Field(default_factory=list, max_length=5)
 
     @field_validator("limitations")
@@ -129,6 +131,28 @@ class StructuredAnalysis(BaseModel):
         # 항목 길이에는 스키마 상한이 없다. 비정상적으로 긴 출력에서 필터가 느려지지 않도록
         # caveat 상한과 같은 1,000자까지만 본다.
         return [cleaned for item in value if (cleaned := reader_facing(item[:1000]))]
+
+    @field_validator("personas", mode="before")
+    @classmethod
+    def keep_top_three_personas(cls, value: Any) -> Any:
+        # 스키마는 3개 상한(maxItems)을 모델에 보내지만 Structured Outputs 가 이를 강제하는지
+        # 공식 문서로 확인하지 못했다. 넘치면 검증 실패가 재시도로 이어져 수집·모델 호출이
+        # 반복되므로, 근거 리뷰 수 상위 3개만 남기고 순위를 다시 매긴다(PERSONA-002).
+        # 모델이 매긴 rank 는 정렬의 동률 기준으로만 쓰므로 범위·연속 검사는 여기서 풀리고,
+        # 잘려 나간 항목은 검증하지 않는다. rank·리뷰 수가 정수가 아니면 자르지 않고 거부한다.
+        if not isinstance(value, list) or len(value) <= _MAX_PERSONAS:
+            return value
+        if not all(
+            isinstance(item, dict)
+            and isinstance(item.get("topic_review_count"), int)
+            and isinstance(item.get("rank"), int)
+            for item in value
+        ):
+            return value
+        ordered = sorted(value, key=lambda item: (-item["topic_review_count"], item["rank"]))
+        return [
+            {**item, "rank": rank} for rank, item in enumerate(ordered[:_MAX_PERSONAS], start=1)
+        ]
 
     @field_validator("personas")
     @classmethod
