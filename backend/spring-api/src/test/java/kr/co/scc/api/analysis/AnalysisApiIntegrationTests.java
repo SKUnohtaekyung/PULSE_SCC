@@ -382,6 +382,39 @@ class AnalysisApiIntegrationTests {
     }
 
     @Test
+    void requestFormatErrorsUseTheCommonErrorContract() throws Exception {
+        mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType("application/json")
+                        .content("{\"storeName\":\"\",\"category\":\"한식\","
+                                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("storeName"))
+                .andExpect(jsonPath("$.error.traceId").exists())
+                .andExpect(jsonPath("$.error.fields").doesNotExist())
+                .andExpect(jsonPath("$.error.timestamp").doesNotExist());
+        mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .contentType("application/json")
+                        .content("{\"storeName\":\"식당\",\"category\":\"한식\","
+                                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("Idempotency-Key"));
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", "not-a-uuid").with(userJwt()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("jobId"));
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", UUID.randomUUID()).with(userJwt()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_NOT_FOUND"))
+                .andExpect(jsonPath("$.error.traceId").exists())
+                .andExpect(jsonPath("$.error.fieldErrors").doesNotExist());
+    }
+
+    @Test
     void aRevokedSessionCannotDeleteTheAccount() throws Exception {
         jdbc.sql("UPDATE auth_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE id = :id")
                 .param("id", sessionId).update();
