@@ -171,7 +171,7 @@
 | `ANALYSIS-COLLECTING` / `COLLECTING_REVIEWS` | 네이버 리뷰 수집 중 | 수집 완료 | 차단·페이지 변경·시간 초과 구분 |
 | `ANALYSIS-PREPROCESSING` / `PREPROCESSING` | 리뷰를 정리 중 | 비식별화·중복·무효 리뷰 제외 완료 | 현재 작업을 완료로 표시하지 않음 |
 | `ANALYSIS-ANALYZING` / `ANALYZING` | 반복되는 손님 경험 분석 중 | 상위 토픽과 4관점 생성 | 모델·응답 검증 오류 안내 |
-| `ANALYSIS-KNOWLEDGE` / `RETRIEVING_KNOWLEDGE` | 관련 운영·마케팅 지식 확인 중 | 승인 지식 검색 완료 | 근거 없는 제안을 만들지 않음 |
+| `ANALYSIS-KNOWLEDGE` / `RETRIEVING_KNOWLEDGE` | 관련 운영·마케팅 지식 확인 중 | 승인 지식 검색 완료 | 근거 없는 제안을 만들지 않음. MVP 에서는 RAG 를 제외해 이 단계가 오지 않는다(2026-09-28, #31). 오더라도 알려진 단계로 표시한다 |
 | `ANALYSIS-ADVICE` / `GENERATING_ADVICE` | 검토할 행동 정리 중 | 근거가 연결된 제안 생성 | 재시도 가능 여부 표시 |
 | `ANALYSIS-IMAGE` / `GENERATING_IMAGE` | 손님 유형 이미지 생성 중 | 실제 도출된 모든 유형 이미지 생성 | 일부 이미지 상태로 완료하지 않음 |
 | `ANALYSIS-VALIDATING` / `VALIDATING_RESULT` | 결과와 근거 확인 중 | 스키마·근거·금지 표현 검증 통과 | 검증 실패 안내 |
@@ -399,7 +399,7 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 작업 생성 전 가게 식별 API 제공 여부 (`role:feature`·`role:product`) | `SC-002`, INPUT-007 (§4.3) | 가게 확인 화면 구현 전 |
 | 전체 근거 조회 endpoint 구현 (`role:feature`) | `SC-005` `EVIDENCE-*`, `근거 리뷰 전체 보기` | 근거 상세 화면 구현 전 |
 | `IMAGE_GENERATION_FAILED`·`ANALYSIS_TIMEOUT` 코드와 세부 `progressStep` 기록 (`role:feature`) | `IMAGE-GENERATION-FAILED`, §5 단계 표시 | 분석 진행 화면 구현 전 |
-| RAG 지식 참고 구현 (`role:feature`) — 현재 `knowledgeReferences`가 비어서 온다 | `ADVICE-EXPANDED`의 전문 지식, PRD FR-005 | 제안 상세 화면 구현 전 |
+| RAG 지식 참고 구현 (`role:feature`) — 2026-09-28 결정(#31): MVP 에서 제외. `knowledgeReferences`는 빈 목록으로 오고 화면은 `ADVICE-NO-KNOWLEDGE`를 표시한다 | `ADVICE-EXPANDED`의 전문 지식, PRD FR-005 | 제안 상세 화면 구현 전 |
 | 분석 API 오류 봉투를 API.md §2.1(`fieldErrors`·`traceId`)에 맞출지 (`role:feature`·`role:platform`) — 현재 `retryable`·`fields`(빈 값)·`timestamp` | `STORE-FIELD-ERROR`의 필드별 안내, 불변식 9 | 가게 입력 화면 구현 전 |
 | 인증 실패 401의 응답 형식 명시 (`role:feature`) — 현재 서버 기본 동작이며 실제 응답은 미확인 | 불변식 12 | 인증 API 연동 전 |
 | 유효 리뷰 부족 실패에 현재 유효 리뷰 수 필드 제공 (`role:feature`) — PRD §10 공통·AC-04가 요구 | `ANALYSIS-INSUFFICIENT` | 분석 진행 화면 구현 전 |
