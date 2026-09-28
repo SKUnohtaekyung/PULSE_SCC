@@ -34,6 +34,10 @@ import tools.jackson.databind.ObjectMapper;
 @Repository
 public class AnalysisRepository {
 
+    /** 분석에 필요한 최소 유효 리뷰 수. Python 50건 게이트(pipeline.py)와 같다(PRD FR-009). */
+    static final int MINIMUM_VALID_REVIEWS = 50;
+    private static final String INSUFFICIENT_VALID_REVIEWS = "INSUFFICIENT_VALID_REVIEWS";
+
     /** 자동 재시도를 모두 쓴 실패의 메시지 코드이자 앱에 보내는 공개 오류 코드. */
     public static final String RETRY_EXHAUSTED = "ANALYSIS_RETRY_EXHAUSTED";
 
@@ -122,7 +126,7 @@ public class AnalysisRepository {
         return jdbc.sql("""
                         SELECT j.id, j.status, j.progress_step, j.message_code,
                                j.error_code, j.retryable, j.created_at, j.updated_at,
-                               a.id AS analysis_id
+                               j.valid_review_count, a.id AS analysis_id
                         FROM analysis_jobs j
                         LEFT JOIN analyses a ON a.job_id = j.id
                         WHERE j.id = :jobId AND j.user_id = :userId
@@ -286,7 +290,12 @@ public class AnalysisRepository {
      * {@code false} 다. 재시도할 수 있는 원인은 서버가 먼저 자동으로 다시 시도한다.
      */
     public void markFailed(UUID jobId, String code) {
-        fail(jobId, code, "ANALYSIS_FAILED", 0);
+        fail(jobId, code, "ANALYSIS_FAILED", 0, null);
+    }
+
+    /** 유효 리뷰가 기준보다 적어 실패한 작업을 현재 건수와 함께 마감한다(REVIEW-008). */
+    public void markFailed(UUID jobId, String code, int validReviewCount) {
+        fail(jobId, code, "ANALYSIS_FAILED", 0, validReviewCount);
     }
 
     /**
@@ -299,15 +308,15 @@ public class AnalysisRepository {
     public boolean markRetryExhausted(UUID jobId, String causeCode, int maxAttempts) {
         // 시도 횟수가 상한에 닿은 작업만 마감한다. 임대가 끝나 다른 워커가 이 작업을 다시
         // 가져간 뒤라면 다시 넣기가 실패해도 시도 횟수가 남아 있으므로 건드리지 않는다.
-        return fail(jobId, causeCode, RETRY_EXHAUSTED, maxAttempts);
+        return fail(jobId, causeCode, RETRY_EXHAUSTED, maxAttempts, null);
     }
 
     /** @return 이 호출이 작업을 실패로 바꿨는지 */
-    private boolean fail(UUID jobId, String code, String messageCode, int minAttempts) {
+    private boolean fail(UUID jobId, String code, String messageCode, int minAttempts, Integer validReviewCount) {
         int updated = jdbc.sql("""
                         UPDATE analysis_jobs
                         SET status = 'FAILED', progress_step = 'FAILED', message_code = :messageCode,
-                            error_code = :code, retryable = false,
+                            error_code = :code, retryable = false, valid_review_count = :validReviewCount,
                             completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                         WHERE id = :jobId AND status IN ('QUEUED', 'RUNNING')
                           AND attempt_count >= :minAttempts
@@ -316,6 +325,7 @@ public class AnalysisRepository {
                 .param("code", code)
                 .param("messageCode", messageCode)
                 .param("minAttempts", minAttempts)
+                .param("validReviewCount", validReviewCount, java.sql.Types.INTEGER)
                 .update();
         if (updated == 0) {
             // 이미 끝났거나 다른 워커가 처리 중인 작업이다. 이 호출이 실패시킨 것이 아니므로
@@ -806,9 +816,23 @@ public class AnalysisRepository {
                 // 이 규칙 이전에 retryable = true 로 저장된 실패 작업도 즉시 재시도 대상으로 보이지 않게 한다.
                 !"FAILED".equals(status) && rs.getBoolean("retryable"),
                 rs.getObject("analysis_id", UUID.class),
-                errorCode == null ? null : new JobError(errorCode, messageFor(null, errorCode)),
+                jobError(errorCode, rs.getObject("valid_review_count", Integer.class)),
                 rs.getObject("created_at", OffsetDateTime.class).toInstant(),
                 rs.getObject("updated_at", OffsetDateTime.class).toInstant());
+    }
+
+    private static JobError jobError(String errorCode, Integer validReviewCount) {
+        if (errorCode == null) {
+            return null;
+        }
+        if (INSUFFICIENT_VALID_REVIEWS.equals(errorCode) && validReviewCount != null) {
+            return new JobError(
+                    errorCode,
+                    "분석 가능한 리뷰가 " + validReviewCount + "건으로 기준 " + MINIMUM_VALID_REVIEWS + "건보다 적습니다.",
+                    validReviewCount,
+                    MINIMUM_VALID_REVIEWS);
+        }
+        return new JobError(errorCode, messageFor(null, errorCode));
     }
 
     private static String messageFor(String messageCode, String errorCode) {
@@ -823,7 +847,8 @@ public class AnalysisRepository {
             };
         }
         return switch (String.valueOf(messageCode)) {
-            case "ANALYSIS_QUEUED" -> "분석 작업을 준비하고 있습니다.";
+            // 재시도로 다시 큐에 들어간 작업은 message_code 가 QUEUED 다.
+            case "ANALYSIS_QUEUED", "QUEUED" -> "분석 작업을 준비하고 있습니다.";
             case "COLLECTING_REVIEWS" -> "공개 리뷰를 수집하고 분석하고 있습니다.";
             case "ANALYSIS_COMPLETED" -> "리뷰 분석이 완료되었습니다.";
             default -> "분석 상태를 확인하고 있습니다.";

@@ -47,7 +47,8 @@ public class AnalysisGateway {
                             : HttpStatus.BAD_GATEWAY,
                     error.code(),
                     error.message(),
-                    error.retryable());
+                    error.retryable(),
+                    error.validReviewCount());
         } catch (RestClientException exception) {
             throw unavailable("분석 서비스에 연결할 수 없습니다.");
         }
@@ -62,7 +63,8 @@ public class AnalysisGateway {
                         textOrDefault(
                                 detail.path("message"),
                                 "리뷰 수집 또는 분석 서비스가 요청을 처리하지 못했습니다."),
-                        detail.path("retryable").asBoolean(exception.getStatusCode().is5xxServerError()));
+                        detail.path("retryable").asBoolean(exception.getStatusCode().is5xxServerError()),
+                        detail.path("valid_review_count").isInt() ? detail.path("valid_review_count").asInt() : null);
             }
         } catch (Exception ignored) {
             // The worker may return an HTML proxy error or an unstructured authentication error.
@@ -70,7 +72,8 @@ public class AnalysisGateway {
         return new WorkerError(
                 "ANALYSIS_SERVICE_REJECTED",
                 "리뷰 수집 또는 분석 서비스가 요청을 처리하지 못했습니다.",
-                exception.getStatusCode().is5xxServerError());
+                exception.getStatusCode().is5xxServerError(),
+                null);
     }
 
     private static String textOrDefault(JsonNode node, String defaultValue) {
@@ -86,6 +89,6 @@ public class AnalysisGateway {
                 true);
     }
 
-    private record WorkerError(String code, String message, boolean retryable) {
+    private record WorkerError(String code, String message, boolean retryable, Integer validReviewCount) {
     }
 }

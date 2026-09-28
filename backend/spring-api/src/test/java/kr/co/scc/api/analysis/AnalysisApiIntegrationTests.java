@@ -29,6 +29,7 @@ import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerPersona;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerReview;
 import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
+import kr.co.scc.api.analysis.application.AnalysisException;
 import kr.co.scc.api.analysis.domain.JobOwnershipLostException;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
 import kr.co.scc.api.analysis.infrastructure.AnalysisServiceProperties;
@@ -382,6 +383,35 @@ class AnalysisApiIntegrationTests {
     }
 
     @Test
+    void tooFewReviewsReportsTheCurrentCountAndTheThreshold() throws Exception {
+        when(gateway.analyze(any())).thenThrow(new AnalysisException(
+                org.springframework.http.HttpStatus.valueOf(422), "INSUFFICIENT_VALID_REVIEWS",
+                "유효 리뷰가 49건으로 분석 기준 50건보다 적습니다.", false, 49));
+        UUID jobId = createJob("리뷰 부족 식당");
+
+        JsonNode failed = awaitStatus(jobId, "FAILED");
+
+        assertThat(failed.at("/error/code").stringValue()).isEqualTo("INSUFFICIENT_VALID_REVIEWS");
+        assertThat(failed.at("/error/validReviewCount").asInt()).isEqualTo(49);
+        assertThat(failed.at("/error/minimumValidReviewCount").asInt()).isEqualTo(50);
+        assertThat(failed.at("/error/message").stringValue()).isEqualTo("분석 가능한 리뷰가 49건으로 기준 50건보다 적습니다.");
+        assertThat(failed.get("retryable").asBoolean()).isFalse();
+    }
+
+    @Test
+    void otherFailuresDoNotCarryAReviewCount() throws Exception {
+        when(gateway.analyze(any())).thenThrow(new AnalysisException(
+                org.springframework.http.HttpStatus.valueOf(422), "STORE_NOT_FOUND", "가게를 찾지 못했습니다.", false));
+        UUID jobId = createJob("없는 식당");
+
+        JsonNode failed = awaitStatus(jobId, "FAILED");
+
+        assertThat(failed.at("/error/code").stringValue()).isEqualTo("STORE_NOT_FOUND");
+        assertThat(failed.get("error").has("validReviewCount")).isFalse();
+        assertThat(failed.get("error").has("minimumValidReviewCount")).isFalse();
+    }
+
+    @Test
     void requestFormatErrorsUseTheCommonErrorContract() throws Exception {
         mockMvc.perform(post("/api/v1/analysis-jobs")
                         .with(userJwt())
@@ -484,6 +514,17 @@ class AnalysisApiIntegrationTests {
     private org.springframework.test.web.servlet.request.RequestPostProcessor userJwt() {
         return jwt().jwt(token -> token.subject(userId.toString())
                 .claim("sid", sessionId.toString()).claim("email", userId + "@scc.test"));
+    }
+
+    private JsonNode awaitStatus(UUID jobId, String expected) throws Exception {
+        for (int attempt = 0; attempt < 80; attempt++) {
+            String body = mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            JsonNode value = objectMapper.readTree(body);
+            if (expected.equals(value.get("status").stringValue())) return value;
+            Thread.sleep(100);
+        }
+        throw new AssertionError("analysis did not reach " + expected);
     }
 
     private JsonNode awaitCompleted(UUID jobId) throws Exception {

@@ -78,7 +78,7 @@ class InitialSchemaMigrationTests {
                         """)
                 .query(Long.class)
                 .single();
-        assertThat(migrations).isEqualTo(4L);
+        assertThat(migrations).isEqualTo(5L);
     }
 
     /** V4 는 작업 큐가 죽은 워커의 작업을 회수할 수 있도록 임대 컬럼을 추가한다. */

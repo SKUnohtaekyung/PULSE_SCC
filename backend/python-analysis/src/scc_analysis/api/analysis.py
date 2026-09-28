@@ -6,7 +6,7 @@ from fastapi import APIRouter, Header, HTTPException, status
 
 from scc_analysis.analysis.models import AnalyzeRequest, AnalyzeResponse
 from scc_analysis.analysis.openai_analyzer import AnalysisConfigurationError
-from scc_analysis.analysis.pipeline import run_analysis
+from scc_analysis.analysis.pipeline import MINIMUM_VALID_REVIEWS, run_analysis
 from scc_analysis.collection.naver import ReviewCollectionError
 from scc_analysis.core.config import get_settings
 from scc_analysis.core.logs import current_job_id
@@ -82,8 +82,11 @@ async def _run(request: AnalyzeRequest) -> AnalyzeResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "code": "INSUFFICIENT_VALID_REVIEWS",
-                    "message": f"유효 리뷰가 {count}건으로 분석 기준 50건보다 적습니다.",
+                    "message": f"유효 리뷰가 {count}건으로 분석 기준 {MINIMUM_VALID_REVIEWS}건보다 적습니다.",
                     "retryable": False,
+                    # 앱이 '현재 N건 / 기준 50건'을 보여 줄 수 있게 구조화해 넘긴다(REVIEW-008).
+                    "valid_review_count": count,
+                    "minimum_valid_review_count": MINIMUM_VALID_REVIEWS,
                 },
             ) from error
         raise

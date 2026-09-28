@@ -7,6 +7,10 @@ from scc_analysis.collection.naver import NaverPublicReviewCollector
 from scc_analysis.core.config import get_settings
 
 
+# 분석에 필요한 최소 유효 리뷰 수(PRD FR-009). Spring AnalysisRepository.MINIMUM_VALID_REVIEWS 와 같다.
+MINIMUM_VALID_REVIEWS = 50
+
+
 async def run_analysis(request: AnalyzeRequest) -> AnalyzeResponse:
     settings = get_settings()
     collector = NaverPublicReviewCollector(
@@ -15,7 +19,7 @@ async def run_analysis(request: AnalyzeRequest) -> AnalyzeResponse:
     )
     collected_at = datetime.now(UTC)
     reviews = await collector.collect(request.naver_place_url)
-    if len(reviews) < 50:
+    if len(reviews) < MINIMUM_VALID_REVIEWS:
         raise ValueError(f"INSUFFICIENT_VALID_REVIEWS:{len(reviews)}")
     analyzer = OpenAiReviewAnalyzer(
         api_key=settings.openai_api_key.get_secret_value() if settings.openai_api_key else None,

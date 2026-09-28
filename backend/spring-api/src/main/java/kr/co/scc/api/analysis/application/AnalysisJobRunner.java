@@ -62,16 +62,21 @@ public class AnalysisJobRunner {
             // 상태도 건드리지 않는다. 다시 넣거나 실패로 바꾸면 다른 경로의 결정을 덮어쓴다.
             log.warn("작업 소유권을 잃어 분석 결과를 저장하지 않았습니다. jobId={}", jobId);
         } catch (AnalysisException exception) {
-            finishFailure(jobId, exception.code(), exception.retryable());
+            finishFailure(jobId, exception.code(), exception.retryable(), exception.validReviewCount());
         } catch (RuntimeException exception) {
             log.error("분석 작업 처리 중 예기치 못한 오류가 발생했습니다. jobId={}", jobId, exception);
-            finishFailure(jobId, "ANALYSIS_OUTPUT_INVALID", true);
+            finishFailure(jobId, "ANALYSIS_OUTPUT_INVALID", true, null);
         }
     }
 
-    private void finishFailure(UUID jobId, String errorCode, boolean retryable) {
+    private void finishFailure(UUID jobId, String errorCode, boolean retryable, Integer validReviewCount) {
         if (!retryable) {
-            markFailed(jobId, errorCode);
+            if (validReviewCount == null) {
+                markFailed(jobId, errorCode);
+            } else {
+                transactions.executeWithoutResult(
+                        status -> repository.markFailed(jobId, errorCode, validReviewCount));
+            }
             return;
         }
         if (requeue(jobId)) {

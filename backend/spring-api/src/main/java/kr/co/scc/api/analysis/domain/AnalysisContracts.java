@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class AnalysisContracts {
@@ -37,7 +38,15 @@ public final class AnalysisContracts {
             Instant updatedAt) {
     }
 
-    public record JobError(String code, String message) {
+    /**
+     * 작업 실패 정보. 유효 리뷰가 기준보다 적은 실패면 현재 건수와 기준을 함께 준다(REVIEW-008).
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record JobError(String code, String message, Integer validReviewCount, Integer minimumValidReviewCount) {
+
+        public JobError(String code, String message) {
+            this(code, message, null, null);
+        }
     }
 
     public record WorkerRequest(
