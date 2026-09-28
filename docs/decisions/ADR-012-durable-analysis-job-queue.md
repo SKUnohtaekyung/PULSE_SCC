@@ -1,9 +1,10 @@
-# ADR-011 — 분석 작업 큐를 PostgreSQL 임대 방식으로 구현
+# ADR-012 — 분석 작업 큐를 PostgreSQL 임대 방식으로 구현
 
 | | |
 |---|---|
 | Status | Accepted |
 | Date | 2026-09-24 |
+| 번호 변경 | 2026-09-28 — 처음에는 ADR-011 로 추가했으나 `main` 에 먼저 들어간 [ADR-011](ADR-011-frontend-bootstrap.md)(프론트엔드 실행 스택)과 겹쳐 ADR-012 로 바꿨다. 내용은 바꾸지 않았다 |
 | 결정자 | `role:platform` (구현), 팀 확인 필요 |
 | 관련 결정 | [ADR-009](ADR-009-analysis-execution-boundary.md) |
 | 관련 TASK | [TASK-012](../handoffs/active/TASK-012-analysis-pipeline.md) |

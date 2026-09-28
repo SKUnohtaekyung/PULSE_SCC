@@ -118,7 +118,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 > **이 절의 상당 부분은 2026-09-24 에 해소됐다.** 아래 두 절을 먼저 읽는다.
 > 해소된 항목: WSL·Docker(완료), OpenAI 키(설정 완료), Testcontainers 실행(skip 0),
-> 내구성 있는 작업 큐(구현 완료, [ADR-011](../../decisions/ADR-011-durable-analysis-job-queue.md)),
+> 내구성 있는 작업 큐(구현 완료, [ADR-012](../../decisions/ADR-012-durable-analysis-job-queue.md)),
 > 전체 근거 조회(구현 완료).
 > **아직 유효한 항목**: 브랜치 관계와 인증 충돌 해결 지침, PR #27 리뷰어 지정,
 > 브랜치 보호 설정, 법률 검토, 실기기 확인, RAG, 제품 결정 목록(큐 방식 제외).
@@ -373,10 +373,10 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - (해소) 같은 날 Docker 가 정상 기동해 Spring test skip 0 과 새 알림 테스트 2개 통과를 확인했다(아래 #29 절 검증 표).
 - 모델이 4개 이상 토픽을 반환하면 스키마(`max_length=3`, `rank le=3`) 검증에서 실패해 재시도된다. 프롬프트로 3개 이하를 요구하지만, 넘겼을 때 상위 3개로 자르는 처리는 없다.
   > 정정(2026-09-28): 검증 전에 리뷰 수 상위 3개로 자르도록 수정했다(`47c1130`). 아래 "2026-09-28 결정 없이 처리한 기술 과제 2건" 절.
-- `docs/decisions/ADR-011` 31행의 "횟수를 다 쓰면 `ANALYSIS_TIMEOUT` 으로 마감"도 임대 만료 경로에만 맞는다. ADR 은 `role:platform` 소유라 고치지 않았다.
+- `docs/decisions/ADR-012` 31행의 "횟수를 다 쓰면 `ANALYSIS_TIMEOUT` 으로 마감"도 임대 만료 경로에만 맞는다. ADR 은 `role:platform` 소유라 고치지 않았다.
 - 실제 OpenAI 호출로 토픽 1~2개 결과가 나오는지는 확인하지 않았다(비용 발생).
 - **명세 문구 갱신 요청** — 기능명세 PERSONA-007·RESULT-013·인수조건(464행 부근), RESULT_IA, PRD FR-003 의 빈 슬롯 문구는 "리뷰 근거가 부족해 3개보다 적게 도출됐다" 이다. 사용자 결정(2026-09-27)으로 화면 문구를 "리뷰 수가 적어서 도출되지 않았다" 로 바꿨으니 `role:product` 에 명세 문구 갱신을 요청한다. 규칙 자체는 명세와 같다.
-- **소유 영역** — `docs/architecture/API.md` 는 `role:platform` 소유다. AGENTS.md 2장 7번(API 변경 시 동기화)에 따라 예시 문구를 함께 고쳤으므로 PR 본문에 명시하고 platform 리뷰어를 지정한다. ADR-011 은 결정 기록이라 고치지 않았다.
+- **소유 영역** — `docs/architecture/API.md` 는 `role:platform` 소유다. AGENTS.md 2장 7번(API 변경 시 동기화)에 따라 예시 문구를 함께 고쳤으므로 PR 본문에 명시하고 platform 리뷰어를 지정한다. ADR-012 은 결정 기록이라 고치지 않았다.
 - Docker 기동 실패 원인: `%LOCALAPPDATA%\Docker\run\sailor-ingest.sock.stale`(2026-09-19 잔여 소켓)이 남아 새 소켓 이름 변경이 실패하고 백엔드가 크래시한다(`com.docker.backend.exe.log`). 일반 권한으로는 이 파일이 지워지지 않았다("The file cannot be accessed by the system"). 같은 날 이후 Docker 29.8.0 이 정상 기동했는데, **그때도 `.stale` 파일은 그대로 남아 있었다.** 따라서 이 파일이 진짜 원인이 아니었을 수 있다. 어떤 조치로 풀렸는지는 이 세션에서 확인하지 못했다. 같은 증상이 다시 나면 `com.docker.backend.exe.log` 의 `backend crashed` 줄부터 본다.
 
 ### #29 작성일을 모르는 리뷰 안내 (2026-09-27)
@@ -424,7 +424,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 | 범위 밖 발견 | 앱에서 상태 조회가 5xx 로 실패하면 재시도 버튼이 기존 작업을 이어 조회하지 않고 새 작업을 만든다(`PulseApp.tsx` 의 `resume = code === 'NETWORK_ERROR'`). 서버 작업이 아직 도는 중이면 비용이 중복될 수 있다. 이번 변경 전부터 있던 문제라 별도 이슈로 다룬다 |
 | Frontend typecheck·lint·test | PASS — 30개 (기존 26 + 실패 표시 4) |
 
-- 경쟁 상황: 임대가 끝나 작업이 QUEUED 로 돌아갔거나 다른 워커가 다시 가져간 뒤 원래 워커가 실패하면 `requeueForRetry` 가 false 를 돌려준다. 이때 `markRetryExhausted` 는 시도 횟수가 상한 미만이면 아무것도 바꾸지 않는다. 다만 다른 워커가 세 번째 시도로 가져간 뒤라면(시도 횟수 3) 원래 워커가 그 작업을 마감할 수 있다. 워커 소유권 식별이 없는 at-least-once 큐의 기존 한계다(ADR-011).
+- 경쟁 상황: 임대가 끝나 작업이 QUEUED 로 돌아갔거나 다른 워커가 다시 가져간 뒤 원래 워커가 실패하면 `requeueForRetry` 가 false 를 돌려준다. 이때 `markRetryExhausted` 는 시도 횟수가 상한 미만이면 아무것도 바꾸지 않는다. 다만 다른 워커가 세 번째 시도로 가져간 뒤라면(시도 횟수 3) 원래 워커가 그 작업을 마감할 수 있다. 워커 소유권 식별이 없는 at-least-once 큐의 기존 한계다(ADR-012).
 - **비용 방지 효과의 한계**: "가게 정보로 돌아가기" 뒤 확인 화면에서 "리뷰 분석 시작"을 한 번 더 누르면 새 작업이 만들어져 다시 최대 3회 시도한다. 사용자가 고른 안(즉시 재시도 버튼만 없앰)의 범위다.
 - 문서 동기화: `docs/architecture/DATA_MODEL.md` 는 `error_code` 를 "공개 가능한 표준 오류 코드"로 설명하지만, 재시도 소진이면 공개 코드는 `message_code` 로 정해진다. `role:platform` 소유라 고치지 않았다. `C:\PULSE_SCC_FE\docs\architecture\API.md` 사본도 병합 후 동기화가 필요하다.
 - 재시도 불가(`retryable=false`)지만 사용자 입력 문제가 아닌 실패(예: 작업 정보를 찾지 못한 `ANALYSIS_OUTPUT_INVALID`)도 제목이 "입력 또는 설정 확인이 필요해요" 로 나온다. 드문 경로라 이번 범위에서 나누지 않았다.
@@ -634,7 +634,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 - **수집 안정성 실측은 매장 2곳뿐이다.** 음식점 `2080629959`(E2E 포함)와 카페 `2045844114`(수집만, 2026-09-26)에서 120건 수집을 확인했다. 커밋된 fixture 는 1회 수동 확인한 형태를 본뜬 합성 데이터다. 네이버가 필드를 바꾸면 테스트는 통과하면서 수집만 조용히 실패할 수 있다.
 - DOM 텍스트 앞에 별점 등 접두어가 붙으면 본문 매칭이 실패해 날짜가 비는 열화가 있다. 실제 수집에서 발생률을 측정해야 한다.
-- 큐는 at-least-once 다. 임대 만료 직후 원 워커가 되살아나면 수집·모델 호출 비용이 두 번 발생할 수 있다([ADR-011](../../decisions/ADR-011-durable-analysis-job-queue.md) Consequences).
+- 큐는 at-least-once 다. 임대 만료 직후 원 워커가 되살아나면 수집·모델 호출 비용이 두 번 발생할 수 있다([ADR-012](../../decisions/ADR-012-durable-analysis-job-queue.md) Consequences).
 - 폴링 주기·임대 시간·재시도 횟수는 로컬 실측 기준값이다. 운영 부하를 보고 조정한다.
 - 내부 호출 read timeout 15m 은 동기 호출 구조를 전제한 값이다. 작업을 더 쪼개면 줄일 수 있다.
 - Visual QA 미실행. 빈 포디움 슬롯·분석 불가 화면·알림 목록을 실기기에서 확인해야 한다.
@@ -666,7 +666,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 > 이어서 할 것(우선순위 순) — 비용 없는 선택적 수집 실측(주점 등 다른 매장 수집, DOM 본문 앞 별점 접두어로 날짜가 비는 발생률 — "지금 바로 할 수 있는 것" 절, 방법은 Claude Continuation 8번) 외에는, **에이전트가 결정·비용·외부 조건 없이 할 수 있는 과제는 남아 있지 않다**
 > 1. **사람**: PR #27 에 리뷰어 지정·병합. 이것이 풀려야 2·3번이 움직인다
 > 2. PR #27 병합 뒤 `main` 연결·인증 충돌 수동 병합 → draft PR #36 을 Ready 로("막혀 있는 순서", PR #36 본문 상단). **PR 을 만들 때 `git diff --name-only main...HEAD` 로 소유 영역 밖 파일을 전수 확인하고** PR 본문에 적은 뒤 해당 역할 리뷰어를 지정한다(AGENTS.md 5장 4번). 2026-09-28 Reviewer 가 PR #27 커밋을 빼고 대조한 알려진 목록(전수 확인을 대신하지 않는다):
->    - role:platform 명시 경로: `backend/spring-api/src/main/java/kr/co/scc/api/common/config/SecurityConfig.java`, `docs/architecture/API.md`("2026-09-27 임대 만료 실패 알림, 토픽 수 규칙, 빈 슬롯 문구" 절의 남은 것)·`DATA_MODEL.md`·`ARCHITECTURE.md`, `docs/decisions/ADR-009-*`·`ADR-011-*`
+>    - role:platform 명시 경로: `backend/spring-api/src/main/java/kr/co/scc/api/common/config/SecurityConfig.java`, `docs/architecture/API.md`("2026-09-27 임대 만료 실패 알림, 토픽 수 규칙, 빈 슬롯 문구" 절의 남은 것)·`DATA_MODEL.md`·`ARCHITECTURE.md`, `docs/decisions/ADR-009-*`·`ADR-012-*`
 >    - backend 빌드·환경 설정(role:platform): `backend/spring-api/src/main/resources/application.yml`, `backend/python-analysis/pyproject.toml`, `backend/.env.example`, `.gitignore`
 >    - 판단이 필요한 것(서비스 전역 런타임 설정이라 role:platform 으로 볼 수 있음): Python `core/logs.py`·`core/config.py`·`main.py`·`__main__.py`
 >    - 판단이 필요한 것(DB 구조 정본이라 `DATA_MODEL.md` 와 함께 role:platform 리뷰 대상): Flyway migration `V3__create_analysis_read_model_and_legal_consents.sql`, `V4__add_analysis_job_lease.sql`
