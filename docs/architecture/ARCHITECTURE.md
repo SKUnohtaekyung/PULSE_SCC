@@ -4,29 +4,31 @@
 
 | | |
 |---|---|
-| 상태 | **인증·분석 비즈니스 API와 내부 Python 분석 파이프라인 구현** |
-| 최종 수정 | 2026-09-17 |
+| 상태 | **인증·분석 비즈니스 API, 내부 Python 분석 파이프라인, 프론트엔드 앱 구현** |
+| 최종 수정 | 2026-09-28 |
 | 소유 역할 | `role:platform` |
 
 ---
 
 ## 1. 현재 상태
 
-상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md), 초기 DB 적용 범위는 [ADR-007](../decisions/ADR-007-initial-database-schema.md), 인증 정책은 [ADR-008](../decisions/ADR-008-authentication-policy.md), 분석 실행·저장 경계는 [ADR-009](../decisions/ADR-009-analysis-execution-boundary.md)로 확정했다. 공개 API와 PostgreSQL 모델은 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot 공개 분석 API, FastAPI의 Playwright/OpenAI 파이프라인, Flyway V1~V3가 존재한다.
+상위 수준 구조는 [ADR-003](../decisions/ADR-003-application-stack.md), 백엔드 실행 스택과 프로젝트 경계는 [ADR-006](../decisions/ADR-006-backend-bootstrap.md), 초기 DB 적용 범위는 [ADR-007](../decisions/ADR-007-initial-database-schema.md), 인증 정책은 [ADR-008](../decisions/ADR-008-authentication-policy.md), 분석 실행·저장 경계는 [ADR-009](../decisions/ADR-009-analysis-execution-boundary.md), 프론트엔드 실행 스택은 [ADR-011](../decisions/ADR-011-frontend-bootstrap.md), 내구성 있는 분석 작업 큐는 [ADR-012](../decisions/ADR-012-durable-analysis-job-queue.md)로 확정했다. 공개 API와 PostgreSQL 모델은 [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md)에 기록했다. 현재 Spring Boot 공개 인증·분석 API, FastAPI의 Playwright/OpenAI 파이프라인, Flyway V1~V4, `frontend/mobile` Expo 앱이 존재한다.
 
 | 항목 | 상태 |
 |---|---|
 | 프로젝트 유형 | Android 앱 + 자체 API + Python AI 처리 |
-| Frontend | Expo 기반 React Native + TypeScript |
+| Frontend | Expo SDK 57.0.24 + React Native 0.86.3 + React 19.2.3 + TypeScript 6.0.3 + Expo Router 57.0.22 |
 | Backend | Spring Boot 4.1.1 + Java 21 + Gradle Wrapper 9.7.1 |
 | AI·분석 | FastAPI 0.141.1 + Python 3.13 |
 | 데이터 저장소 | PostgreSQL 18.6, Flyway migration은 Spring 단독 소유 |
 | 인증 방식 | Google 소셜 로그인 + 서비스 자체 로그인 |
 | 페르소나 이미지 | OpenAI API |
 | 배포 환경 | 확정 필요 |
-| 저장소 구조 | 단일 저장소의 `backend/spring-api`, `backend/python-analysis` 독립 프로젝트 |
+| 저장소 구조 | 단일 저장소의 `frontend/mobile`, `backend/spring-api`, `backend/python-analysis` 독립 프로젝트 |
 
-프론트엔드는 별도 작업 폴더 `C:\PULSE_SCC_FE`에서 Expo 프로젝트로 관리 중이며 이 백엔드 저장소에는 커밋하지 않는다. 백엔드는 각 런타임의 관례를 유지하는 독립 프로젝트로 구성한다.
+프론트엔드 앱 안의 계층과 Step 8 Architecture Validation 결과는 [FRONTEND_STRUCTURE.md](FRONTEND_STRUCTURE.md)에 있다.
+
+프론트엔드는 `frontend/mobile`에서 npm lockfile과 Expo Continuous Native Generation을 사용한다. `android/`·`ios/` 생성물은 커밋하지 않고 앱 설정과 config plugin으로 재생성한다. 백엔드는 각 런타임의 관례를 유지하는 독립 프로젝트로 구성하며 공통 소스 패키지를 섣불리 만들지 않는다.
 
 ### 목표 호출 흐름
 
@@ -120,6 +122,14 @@ SCC/
 │  ├─ compose.yaml      로컬 PostgreSQL
 │  └─ .env.example      비밀이 없는 환경변수 예시
 │
+├─ frontend/
+│  └─ mobile/            Expo Android 클라이언트
+│     ├─ src/app/        Expo Router route 전용
+│     ├─ src/design/     semantic token, font loader, 개발용 토큰 견본
+│     ├─ assets/         Pretendard와 임시 앱 아이콘 자산
+│     ├─ app.json        Expo 앱 설정
+│     └─ package.json    실행·검증 명령과 의존성
+│
 ├─ docs/
 │  ├─ product/          제품 요구사항 정본
 │  ├─ design/           UI/UX 원칙 정본
@@ -129,15 +139,13 @@ SCC/
 │
 ├─ .claude/             Claude Code 설정 (팀 공용)
 │  ├─ settings.json
-│  ├─ rules/
+│  ├─ hooks/
 │  ├─ agents/
 │  └─ skills/
 │
 └─ .github/             이슈 / PR 템플릿
    └─ ISSUE_TEMPLATE/
 ```
-
-프론트엔드가 생성되면 실제 경로를 이 구조에 추가한다.
 
 ## 3. 구조 결정 시 지킬 것
 
@@ -160,7 +168,5 @@ SCC/
 
 | # | 질문 | 막고 있는 것 |
 |---|---|---|
-| 1 | Expo SDK·React Native 버전과 workflow | 클라이언트 생성·실행 명령 |
-| 2 | 내부 서비스 토큰 회전·비밀 저장 방식 | 운영 보안 |
-| 3 | 내구성 있는 작업 큐·재조정 방식 | 재시작 복구·다중 인스턴스 |
-| 4 | 배포 환경 | CI·컨테이너·비밀 관리 방식 |
+| 1 | 내부 HTTP 서비스 토큰 회전·비밀 저장 방식, timeout·재시도 값의 운영 기준 | 운영 보안·분석 서비스 호출 |
+| 2 | 배포 환경과 EAS 사용 범위 | CI·컨테이너·비밀 관리·Android 빌드 방식 |

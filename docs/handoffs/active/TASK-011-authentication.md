@@ -59,6 +59,26 @@ feat/TASK-011-authentication
 | PostgreSQL 통합 테스트 | 위 Spring 명령에서 Testcontainers 테스트 실행 시도 | 미실행 — 로컬 Docker 없음으로 4개 skipped |
 | Visual QA | UI 변경 없음 | 없음 |
 
+## 독립 검토 후속 수정 (2026-09-19)
+
+독립 검토 FAIL 판정 중 계약 위반과 테스트 공백을 처리했다.
+
+- `traceId` 를 오류 응답에 추가하고 `fieldErrors` 를 필드 오류가 있을 때만 포함하도록 고쳐 `docs/architecture/API.md` 2.1 을 준수한다. 요청마다 `TraceIdFilter` 가 값을 만들고 `X-Trace-Id` 헤더와 MDC 에 함께 싣는다. 클라이언트가 보낸 값은 신뢰하지 않는다.
+- **Google issuer 를 문자열 클레임으로 읽도록 고쳤다.** `getIssuer()` 는 URL 로 변환하므로 Google 이 스킴 없는 `accounts.google.com` 을 보내면 `IllegalArgumentException` 이 발생하고, 기존 catch 가 이를 잡지 않아 인증 실패가 아니라 **500** 이 되는 경로였다. 테스트로 고정했다.
+- 이메일에 `@Size(max = 320)` 을 추가했다. `users.login_email` 이 `varchar(320)` 이라 초과 입력이 DB 제약 위반으로 떨어져 `409 EMAIL_ALREADY_EXISTS` 로 잘못 보고되던 경로를 입력 단계에서 막는다.
+- `GoogleJwtVerifier` 에 테스트용 decoder 주입 생성자를 추가하고 audience 불일치·issuer 위조·`email_verified` 누락·서명 실패·클레임 유출을 테스트로 고정했다.
+- `login`·`register` 테스트를 추가했다. 계정 부재와 비밀번호 오류가 **같은 코드·상태·메시지**를 반환하는지, 실패 시 세션을 발급하지 않는지, 비밀번호 원문이 오류에 실리지 않는지를 확인한다.
+- `denyAll` 의 핵심 성질(유효한 JWT 로도 미등록 경로는 403)과 `logout`·`session` 인증 요구를 테스트로 고정했다.
+
+계속해서 검토 4·5번(계정 열거·회전 경합)도 처리했다.
+
+- **로그인 응답 시간을 평탄화했다.** 계정이 없거나 Google 전용 계정이어도 미끼 해시로 비밀번호 비교를 한 번 수행한다. 기존에는 BCrypt 를 건너뛰어 응답 시간만으로 가입 여부가 드러났다. 미끼 해시는 실제 인코더로 한 번만 계산해 캐시하며 로그인 성공 판정에 쓰이지 않는다.
+- **회전 경합이 전 기기 로그아웃을 일으키지 않게 했다.** 회전 직후 30초(`ROTATION_GRACE`) 안에 같은 토큰이 다시 들어오면 앱의 재시도로 보고 해당 요청만 거부한다. 유예 창을 넘긴 폐기 토큰과 로그아웃으로 폐기된 토큰은 그대로 전체 세션을 폐기한다.
+- **CAS 경합 패자가 고아 행을 남기지 않게 했다.** 교체 세션은 `replaced_by_session_id` FK 때문에 먼저 INSERT 해야 하므로, 회전 실패 시 `deleteUnusedSession` 으로 즉시 제거한다. 경합 패배는 오래된 토큰 재사용이 아니므로 전체 폐기 대상이 아니다.
+- `RefreshSession` 에 `replacedBySessionId` 를 추가해 회전 폐기와 로그아웃 폐기를 구분한다.
+
+테스트 12개 → **58개** (통과 54, Docker 부재로 skip 4).
+
 ## Unresolved
 - 이용약관·개인정보 처리 동의 시점과 저장 근거는 제품 결정이 필요하다. 결정 전 운영 가입 화면·API가 완결됐다고 간주하지 않는다.
 - 계정 복구·탈퇴·비밀번호 변경과 Google 계정 명시적 연결은 후속 범위다.
@@ -72,8 +92,82 @@ feat/TASK-011-authentication
 - Google 로그인은 동일 이메일 자체 계정에 자동 연결되지 않는다.
 - PostgreSQL migration은 컴파일됐지만 Docker 부재로 실제 DB에 적용 검증되지 않았다.
 
+## 2026-09-28 `main` 연결과 Testcontainers 첫 실행
+
+TASK-012 세션이 사용자 요청으로 처리했다. PR #35(`frontend/mobile`)가 `main` 에 병합되면서 PR #27 이 충돌 상태가 됐다.
+
+| 작업 | 내용 |
+|---|---|
+| `main` 연결 (`3c339d2`) | merge commit. force push 없음. 충돌은 `AGENTS.md`(로컬 도구 목록), `README.md`(현재 상태·구현 표), `docs/architecture/ARCHITECTURE.md`(상태·ADR 문단) 세 파일이었다. 모두 양쪽 사실을 남겼다(이 브랜치의 인증 API·Flyway V2, `main` 의 Expo 프론트엔드 골격·ADR-011). `PRD.md`·기능명세는 자동 병합됐다 |
+| 테스트 버그 수정 (`6b1b71f`) | `InitialSchemaMigrationTests.flywayCreatesTheExpectedInitialTables` 가 `version = '1'` 인 행만 세서 항상 1인데 기대값은 2였다. Docker 가 없어 이 테스트가 줄곧 skip 돼 드러나지 않았다. 성공한 migration 전체(V1·V2)를 세도록 고쳤다. TASK-012 브랜치도 같은 방식으로 고쳐 두었다 |
+
+| 검증 | 명령 | 결과 |
+|---|---|---|
+| Spring build·test | `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api build --rerun-tasks` (Docker 29.8.0) | 병합 직후: 58개 중 1개 FAIL(위 테스트). 수정 후 `6b1b71f`: **PASS — 58개, skip 0**. Testcontainers 테스트가 이 브랜치에서 처음으로 실제 실행됐다 |
+| 프론트엔드 | `git diff origin/main --stat -- frontend` | 차이 없음 — 이 브랜치는 프론트 코드를 바꾸지 않는다. 프론트 lint·typecheck 는 미실행 |
+
+- 로컬 Docker 는 2026-09-24 부터 동작한다(TASK-012 Handoff). 아래 "Docker 는 안 된다" 서술은 2026-09-22 기록이다.
+- 재사용 감지 폐기가 실제로 커밋되는지 확인하는 통합 테스트(검토 6번)는 아직 추가하지 않았다.
+- `AGENTS.md` 로컬 도구 목록의 Docker 줄은 2026-09-28 실행 결과로 고쳤다(데몬 동작, Testcontainers 실행 확인).
+
+### 병합 뒤 남은 문서 불일치 (소유 영역 밖이라 고치지 않음)
+
+`main` 에만 있던 문서가 이 브랜치의 API.md 와 어긋나게 됐다. 충돌도 자동 병합도 아니라 git 이 알려 주지 않는다. PR #27 병합 뒤 해당 역할에 정리를 요청한다.
+
+| 파일 | 소유 | 불일치 |
+|---|---|---|
+| `docs/architecture/FRONTEND_STRUCTURE.md` 82행 | role:platform | "`GET /api/v1/auth/session`(API.md 표에 없음)" — 병합된 API.md 에는 이 행이 있다 |
+| `docs/product/requirements/SCREEN_STATES.md` 381행 | role:product | API.md §4.2 세션 응답 필드가 `accessToken`·`expiresAt`·`hasSavedAnalysis` 라고 적었다 — 병합된 API.md 는 `accessTokenExpiresAt`·`refreshToken`·`refreshTokenExpiresAt` 다. `hasSavedAnalysis` 위치는 API.md(최상위)와 코드(`AuthController` 의 `user` 안)가 여전히 다르다 |
+| `docs/product/requirements/SCREEN_STATES.md` 10행 | role:product | ADR-008·API.md 를 원격 브랜치 커밋(`74d6df8`) 링크로 가리키며 "병합 후 상대 링크로 바꾼다"고 적었다 — PR #27 병합 뒤 할 일 |
+
+병합 전부터 있던 불일치(Reviewer 발견, 이번 병합과 무관): PRD FR-008 "전화번호 인증·복구 정책은 §13에서 확정" 인데 §13 에 해당 항목이 없음, API.md §10 1번이 ADR-008 로 이미 확정된 토큰 정책을 미확정으로 남김, `main` API.md 의 "탈퇴 API 는 계약에 추가하지 않는다" 와 기능명세·PRD FR-012 의 탈퇴 서술 충돌(FRONTEND_STRUCTURE 82행이 "결정 필요"로 추적 중).
+
 ## Next Action
-PR #27에서 독립 Reviewer와 `role:product`·`role:platform` 리뷰를 요청한다. 이어서 Docker 환경에서 PostgreSQL 통합 테스트 4개를 실행하고 모두 PASS일 때만 병합한다.
+
+1. ~~Docker 설치~~ — 2026-09-24 부터 동작
+2. ~~skip 0 확인~~ — 2026-09-28 `6b1b71f` 에서 58개 skip 0. 남은 것: 재사용 감지 폐기가 실제 커밋되는지(검토 6번) 통합 테스트 추가
+3. **사람**: PR #27 에 `role:product`·`role:platform` 리뷰어 지정
+4. **제품 결정**: `/register` 409 유지 여부, 로그인 시도 제한 → ADR-008 또는 이슈
+5. PR #27 병합 기준(실DB 검증으로 충분 / Testcontainers 대기)은 사용자 결정. 방식은 squash
+6. 병합 후 `feat/TASK-012-analysis-pipeline` 에 `main` 을 merge commit 으로 연결 (force push 금지). TASK-012 는 **수정 전** 인증 커밋 3개를 들고 있다
+
+## 2026-09-22 세션 종료 시점 상태
+
+### 실제 DB 검증 (2026-09-19, 커밋 `74d6df8` 코드 기준)
+
+Testcontainers 대신 **로컬 PostgreSQL 18 에 실제로 앱을 기동**해 인증 SQL 을 처음 실행했다. 독립 검토 FAIL 1번의 실질적 근거다. 단 Testcontainers 4개 자체는 여전히 미실행이다.
+
+| 검증 | 방법 | 결과 |
+|---|---|---|
+| 앱 기동 | `bootRun` + `GET /actuator/health` | PASS — `UP`. DB 연결·Flyway V1/V2·JPA validate 통과 |
+| 회원가입 | `POST /api/v1/auth/register` | PASS — 201 |
+| 로그인 | `POST /api/v1/auth/login` | PASS — 200 |
+| 세션 복원 | `GET /api/v1/auth/session` | PASS — 200 |
+| 토큰 회전 | `POST /api/v1/auth/refresh` | PASS — 200 |
+| 회전 토큰 재사용 | 같은 refresh 재전송 | PASS — 401, **`traceId` 포함·`fieldErrors` 생략** (API.md 2.1 준수) |
+| 회전 경합 유예 창 | R1 회전→R2 발급→R1 재사용(401)→R2 사용 | PASS — R2 200. 수정 전이면 전 기기 로그아웃 |
+
+### 로컬 환경
+
+- PostgreSQL 18 서비스 `postgresql-x64-18` 실행 중. `scc` 역할·DB 는 사용자가 생성했다.
+- `backend/.env` 생성됨(gitignore 확인). DB 비밀번호는 사용자가 입력. **`SCC_OPENAI_API_KEY` 는 비어 있다.**
+- PowerShell 에서 PostgreSQL 도구: `$env:Path += ";C:\Program Files\PostgreSQL\18\bin"` 후 실행. Git Bash 경로나 `&` 없는 따옴표 경로는 파싱 오류.
+- **Docker 는 안 된다.** CLI 29.8.0 설치됨, `Virtual Machine Platform` 기능 꺼짐 → "Virtualization support not detected". CPU(Intel Core Ultra 7 258V)는 가상화 지원·하이퍼바이저 실행 중이라 Windows 기능 문제로 판단. 해결: 관리자 PowerShell `wsl --install --no-distribution` → 재부팅. 안 되면 BIOS 에서 Intel VT-x 활성화.
+
+### 독립 검토 지적 처리 현황
+
+| # | 지적 | 상태 |
+|---|---|---|
+| 1 | 인증 SQL 미실행 | 실제 DB 로 확인. **Testcontainers 4개 미실행** |
+| 2 | `traceId`·`fieldErrors` 계약 위반 | 수정·실응답 확인 |
+| 3 | 리뷰어 미지정 | **미처리 — 사람이 지정** |
+| 4 | 계정 열거 | 응답 시간은 수정. `/register` 409·속도 제한은 **제품 결정 대기** |
+| 5 | 회전 경합 전 기기 로그아웃 | 수정·실동작 확인 |
+| 6 | 재사용 감지 `noRollbackFor` 의존 | 미처리 — Docker 통합 테스트로 커밋 검증 필요 |
+| 7 | 테스트 공백 | 12 → 58개 (통과 54, skip 4) |
 
 ## Last Verified Commit
-7773443 — 이 시점의 코드까지 위 Verification이 유효하다
+
+`6b1b71f` — `main`(PR #35) 연결과 migration 개수 테스트 수정까지. 이 커밋에서 Spring build·test 58개 PASS, skip 0(Testcontainers 포함).
+
+이전 기준 `74d6df8` — 계정 열거·회전 경합 수정까지. 이 코드로 2026-09-19 실제 DB 검증 수행

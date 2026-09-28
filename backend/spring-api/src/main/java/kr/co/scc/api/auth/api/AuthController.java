@@ -75,14 +75,14 @@ public class AuthController {
     }
 
     public record RegisterRequest(
-            @NotBlank @Email String email,
+            @NotBlank @Email @Size(max = 320) String email,
             @NotBlank @Size(min = 8, max = 72) String password,
             @NotBlank String phoneNumber,
             @NotBlank String termsVersion,
             @NotBlank String privacyVersion) {
     }
 
-    public record LoginRequest(@NotBlank @Email String email, @NotBlank String password) {
+    public record LoginRequest(@NotBlank @Email @Size(max = 320) String email, @NotBlank String password) {
     }
 
     public record GoogleLoginRequest(@NotBlank String idToken) {

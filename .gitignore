@@ -43,7 +43,7 @@ npm-debug.log*
 .cache/
 tmp/
 
-# ── Node (로컬에 node 22.16.0 / npm 10.9.2 설치 확인됨) ──
+# ── Node (프론트 생성 시 node 24.19.0 / npm 11.17.0 실행 확인됨) ──
 node_modules/
 .expo/
 .expo-shared/

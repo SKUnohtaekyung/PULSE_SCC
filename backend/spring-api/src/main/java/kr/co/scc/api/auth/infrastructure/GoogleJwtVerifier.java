@@ -6,8 +6,10 @@ import java.util.Set;
 import kr.co.scc.api.auth.application.AuthException;
 import kr.co.scc.api.auth.application.GoogleIdentity;
 import kr.co.scc.api.auth.application.GoogleIdTokenVerifier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -21,12 +23,24 @@ public class GoogleJwtVerifier implements GoogleIdTokenVerifier {
             "https://accounts.google.com");
 
     private final AuthProperties properties;
-    private final NimbusJwtDecoder decoder;
+    private final JwtDecoder decoder;
 
+    @Autowired
     public GoogleJwtVerifier(AuthProperties properties) {
+        this(properties, googleDecoder());
+    }
+
+    /** 테스트에서 서명 검증을 대신할 decoder 를 넣기 위한 생성자. */
+    GoogleJwtVerifier(AuthProperties properties, JwtDecoder decoder) {
         this.properties = properties;
-        this.decoder = NimbusJwtDecoder.withJwkSetUri("https://www.googleapis.com/oauth2/v3/certs").build();
-        this.decoder.setJwtValidator(new JwtTimestampValidator());
+        this.decoder = decoder;
+    }
+
+    private static JwtDecoder googleDecoder() {
+        NimbusJwtDecoder decoder =
+                NimbusJwtDecoder.withJwkSetUri("https://www.googleapis.com/oauth2/v3/certs").build();
+        decoder.setJwtValidator(new JwtTimestampValidator());
+        return decoder;
     }
 
     @Override
@@ -44,7 +58,14 @@ public class GoogleJwtVerifier implements GoogleIdTokenVerifier {
             Boolean emailVerified = jwt.getClaim("email_verified");
             String email = jwt.getClaimAsString("email");
 
-            if (!GOOGLE_ISSUERS.contains(jwt.getIssuer().toString())
+            // issuer 는 문자열 클레임으로 읽는다. getIssuer() 는 URL 로 변환하므로 Google 이
+            // 스킴 없는 "accounts.google.com" 을 보내면 IllegalArgumentException 이 나고,
+            // 그대로 두면 인증 실패가 아니라 500 이 된다.
+            String issuer = jwt.getClaimAsString("iss");
+
+            if (issuer == null
+                    || !GOOGLE_ISSUERS.contains(issuer)
+                    || audience == null
                     || !audience.contains(properties.googleClientId())
                     || !Boolean.TRUE.equals(emailVerified)
                     || email == null
@@ -52,7 +73,7 @@ public class GoogleJwtVerifier implements GoogleIdTokenVerifier {
                 throw invalidGoogleToken();
             }
             return new GoogleIdentity(jwt.getSubject(), email);
-        } catch (JwtException | NullPointerException exception) {
+        } catch (JwtException | IllegalArgumentException | NullPointerException exception) {
             throw invalidGoogleToken();
         }
     }

@@ -10,7 +10,7 @@ user-invocable: true
 
 ## 0. 전제
 
-백엔드 프로젝트와 검증 명령은 존재한다. 프론트엔드는 아직 프로젝트와 매니페스트가 없다.
+백엔드 프로젝트와 프론트엔드 `frontend/mobile` 프로젝트에 검증 명령이 존재한다.
 **따라서 아래 1단계로 실제 존재하는 명령을 먼저 찾고, `AGENTS.md` 3장의 현재 명령과 대조한다.**
 
 ## 1. 실행 가능한 명령 탐색
@@ -36,6 +36,18 @@ user-invocable: true
 .\backend\python-analysis\.venv\Scripts\python.exe -m ruff format --check --no-cache backend\python-analysis
 .\backend\python-analysis\.venv\Scripts\python.exe -m pytest backend\python-analysis
 ```
+
+현재 프론트엔드 기준 명령:
+
+```powershell
+npm --prefix frontend/mobile install
+npm --prefix frontend/mobile run verify:tokens
+npm --prefix frontend/mobile run lint
+npm --prefix frontend/mobile run typecheck
+npm --prefix frontend/mobile run export:android
+```
+
+네이티브 실행은 `npm --prefix frontend/mobile run android`를 사용하지만 Android SDK·에뮬레이터 또는 실제 기기가 필요하다. 해당 환경이 없으면 Android JS bundle과 네이티브 실행을 구분해 보고한다.
 
 `.venv`가 없으면 먼저 `AGENTS.md` 3장의 Python install 명령을 실행한다. PostgreSQL 통합 테스트가 추가되면 Docker 또는 외부 테스트 DB가 실제로 준비됐는지 확인하고 실행한다.
 

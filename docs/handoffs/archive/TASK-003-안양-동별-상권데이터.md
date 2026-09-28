@@ -14,7 +14,7 @@
 
 ## Goal
 
-[TASK-002](../active/TASK-002-중간발표-현황정리.md) Unresolved #4 와 [PROBLEM_BASELINE.md §2.4](../../product/PROBLEM_BASELINE.md) 의 미해결 항목
+[TASK-002](TASK-002-중간발표-현황정리.md) Unresolved #4 와 [PROBLEM_BASELINE.md §2.4](../../product/PROBLEM_BASELINE.md) 의 미해결 항목
 — *"명학역이 속한 행정동이 안양시 음식점업 상위 10위 안에 있는지 확인하지 않았다"* — 를 원자료로 확정한다.
 
 관련 문서: `SCC_중간발표.pdf` 분석 중 파생 (**이 PDF는 저장소에 없다** — Decisions #4)

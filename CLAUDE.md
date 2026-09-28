@@ -86,4 +86,4 @@
 훅은 **알리기만 한다.** 문서를 자동으로 고치지 않는다. 규칙 변경이 어느 문장에 영향을 주는지는 판단이 필요하고, 자동 수정은 틀린 내용을 조용히 퍼뜨릴 위험이 더 크다.
 저장소에 `jq` 가 없으므로 훅 스크립트는 bash 내장 기능만 쓴다.
 
-스택이 확정되면 `.claude/launch.json` 에 dev 서버를 등록한다. Visual QA에서 실제 화면을 띄우는 데 필요하다.
+Visual QA는 Android 에뮬레이터·기기 렌더링으로 판정한다(`.claude/skills/visual-qa/SKILL.md` §0). `.claude/launch.json` 은 web 보조 미리보기가 필요해질 때만 만든다.
