@@ -35,6 +35,7 @@ public class AuthService {
     private final TokenService tokenService;
     private final GoogleIdTokenVerifier googleVerifier;
     private final Clock clock;
+    private final LoginAttemptLimiter attemptLimiter;
     private volatile String decoyHash;
 
     public AuthService(
@@ -42,12 +43,14 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             TokenService tokenService,
             GoogleIdTokenVerifier googleVerifier,
-            Clock clock) {
+            Clock clock,
+            LoginAttemptLimiter attemptLimiter) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.googleVerifier = googleVerifier;
         this.clock = clock;
+        this.attemptLimiter = attemptLimiter;
     }
 
     @Transactional
@@ -76,6 +79,9 @@ public class AuthService {
     @Transactional
     public AuthResult login(String email, String password) {
         String normalizedEmail = AuthPolicy.normalizeEmail(email);
+        // 비밀번호를 확인하기 전에 이 시도를 실패로 먼저 센다. 잠겨 있으면 여기서 막혀 비밀번호를
+        // 확인하지 않는다. 확인한 뒤에 세면 동시에 보낸 요청이 모두 잠금 확인을 통과한다.
+        attemptLimiter.reserveAttempt(normalizedEmail);
         Optional<UserAccount> candidate = repository.findUserByEmail(normalizedEmail)
                 .filter(UserAccount::active)
                 .filter(account -> account.credentialHash() != null);
@@ -88,6 +94,7 @@ public class AuthService {
         if (candidate.isEmpty() || !matches) {
             throw invalidCredentials();
         }
+        attemptLimiter.recordSuccess(normalizedEmail);
         return createSession(candidate.get());
     }
 

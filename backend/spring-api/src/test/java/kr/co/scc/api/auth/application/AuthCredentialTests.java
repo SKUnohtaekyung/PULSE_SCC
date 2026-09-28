@@ -49,7 +49,8 @@ class AuthCredentialTests {
                 passwordEncoder,
                 tokenService,
                 mock(GoogleIdTokenVerifier.class),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new LoginAttemptLimiter(Clock.fixed(NOW, ZoneOffset.UTC)));
     }
 
     private static UserAccount account(String email, String credentialHash) {
@@ -122,6 +123,90 @@ class AuthCredentialTests {
         catchAuth(() -> service.login("missing@example.com", "any-password"));
 
         verify(tokenService, never()).issue(any(), any());
+    }
+
+    // ---------- 시도 제한 (#32) ----------
+
+    @Test
+    void tenFailuresLockTheEmailWithoutCheckingThePasswordAgain() {
+        UserAccount user = account("owner@example.com", "stored-hash");
+        when(repository.findUserByEmail("owner@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong-password", "stored-hash")).thenReturn(false);
+        for (int i = 0; i < 10; i++) {
+            assertThat(catchAuth(() -> service.login("owner@example.com", "wrong-password")).code())
+                    .isEqualTo("INVALID_CREDENTIALS");
+        }
+        when(passwordEncoder.matches("correct-password", "stored-hash")).thenReturn(true);
+
+        AuthException locked = catchAuth(() -> service.login("Owner@Example.com", "correct-password"));
+
+        assertThat(locked.code()).isEqualTo("TOO_MANY_ATTEMPTS");
+        verify(passwordEncoder, never()).matches("correct-password", "stored-hash");
+        verify(tokenService, never()).issue(any(), any());
+    }
+
+    @Test
+    void anUnknownEmailLocksTheSameWaySoTheLockRevealsNothing() {
+        when(repository.findUserByEmail("missing@example.com")).thenReturn(Optional.empty());
+        for (int i = 0; i < 10; i++) {
+            catchAuth(() -> service.login("missing@example.com", "any-password"));
+        }
+
+        assertThat(catchAuth(() -> service.login("missing@example.com", "any-password")).code())
+                .isEqualTo("TOO_MANY_ATTEMPTS");
+    }
+
+    @Test
+    void aSuccessfulSignInResetsTheFailureCount() {
+        UserAccount user = account("owner@example.com", "stored-hash");
+        when(repository.findUserByEmail("owner@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong-password", "stored-hash")).thenReturn(false);
+        when(passwordEncoder.matches("correct-password", "stored-hash")).thenReturn(true);
+        for (int i = 0; i < 9; i++) {
+            catchAuth(() -> service.login("owner@example.com", "wrong-password"));
+        }
+        service.login("owner@example.com", "correct-password");
+        for (int i = 0; i < 9; i++) {
+            catchAuth(() -> service.login("owner@example.com", "wrong-password"));
+        }
+
+        assertThat(service.login("owner@example.com", "correct-password").user().email())
+                .isEqualTo("owner@example.com");
+    }
+
+    @Test
+    void simultaneousAttemptsCheckThePasswordAtMostTenTimes() throws Exception {
+        UserAccount user = account("owner@example.com", "stored-hash");
+        when(repository.findUserByEmail("owner@example.com")).thenReturn(Optional.of(user));
+        java.util.concurrent.atomic.AtomicInteger checks = new java.util.concurrent.atomic.AtomicInteger();
+        // BCrypt 처럼 느린 비교를 흉내 내 요청들이 확인 구간에서 겹치게 한다.
+        when(passwordEncoder.matches(anyString(), eq("stored-hash"))).thenAnswer(invocation -> {
+            checks.incrementAndGet();
+            Thread.sleep(50);
+            return false;
+        });
+        int requests = 30;
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(requests);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.List<java.util.concurrent.Future<String>> results = new java.util.ArrayList<>();
+        try {
+            for (int i = 0; i < requests; i++) {
+                results.add(pool.submit(() -> {
+                    start.await();
+                    return catchAuth(() -> service.login("owner@example.com", "wrong-password")).code();
+                }));
+            }
+            start.countDown();
+            java.util.Map<String, Integer> codes = new java.util.HashMap<>();
+            for (java.util.concurrent.Future<String> result : results) {
+                codes.merge(result.get(10, java.util.concurrent.TimeUnit.SECONDS), 1, Integer::sum);
+            }
+
+            assertThat(checks.get()).isEqualTo(10);
+            assertThat(codes).containsEntry("INVALID_CREDENTIALS", 10).containsEntry("TOO_MANY_ATTEMPTS", 20);
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     // ---------- register ----------
