@@ -92,10 +92,40 @@ feat/TASK-011-authentication
 - Google 로그인은 동일 이메일 자체 계정에 자동 연결되지 않는다.
 - PostgreSQL migration은 컴파일됐지만 Docker 부재로 실제 DB에 적용 검증되지 않았다.
 
+## 2026-09-28 `main` 연결과 Testcontainers 첫 실행
+
+TASK-012 세션이 사용자 요청으로 처리했다. PR #35(`frontend/mobile`)가 `main` 에 병합되면서 PR #27 이 충돌 상태가 됐다.
+
+| 작업 | 내용 |
+|---|---|
+| `main` 연결 (`3c339d2`) | merge commit. force push 없음. 충돌은 `AGENTS.md`(로컬 도구 목록), `README.md`(현재 상태·구현 표), `docs/architecture/ARCHITECTURE.md`(상태·ADR 문단) 세 파일이었다. 모두 양쪽 사실을 남겼다(이 브랜치의 인증 API·Flyway V2, `main` 의 Expo 프론트엔드 골격·ADR-011). `PRD.md`·기능명세는 자동 병합됐다 |
+| 테스트 버그 수정 (`6b1b71f`) | `InitialSchemaMigrationTests.flywayCreatesTheExpectedInitialTables` 가 `version = '1'` 인 행만 세서 항상 1인데 기대값은 2였다. Docker 가 없어 이 테스트가 줄곧 skip 돼 드러나지 않았다. 성공한 migration 전체(V1·V2)를 세도록 고쳤다. TASK-012 브랜치도 같은 방식으로 고쳐 두었다 |
+
+| 검증 | 명령 | 결과 |
+|---|---|---|
+| Spring build·test | `.\\backend\\spring-api\\gradlew.bat -p backend\\spring-api build --rerun-tasks` (Docker 29.8.0) | 병합 직후: 58개 중 1개 FAIL(위 테스트). 수정 후 `6b1b71f`: **PASS — 58개, skip 0**. Testcontainers 테스트가 이 브랜치에서 처음으로 실제 실행됐다 |
+| 프론트엔드 | `git diff origin/main --stat -- frontend` | 차이 없음 — 이 브랜치는 프론트 코드를 바꾸지 않는다. 프론트 lint·typecheck 는 미실행 |
+
+- 로컬 Docker 는 2026-09-24 부터 동작한다(TASK-012 Handoff). 아래 "Docker 는 안 된다" 서술은 2026-09-22 기록이다.
+- 재사용 감지 폐기가 실제로 커밋되는지 확인하는 통합 테스트(검토 6번)는 아직 추가하지 않았다.
+- `AGENTS.md` 로컬 도구 목록의 Docker 줄은 2026-09-28 실행 결과로 고쳤다(데몬 동작, Testcontainers 실행 확인).
+
+### 병합 뒤 남은 문서 불일치 (소유 영역 밖이라 고치지 않음)
+
+`main` 에만 있던 문서가 이 브랜치의 API.md 와 어긋나게 됐다. 충돌도 자동 병합도 아니라 git 이 알려 주지 않는다. PR #27 병합 뒤 해당 역할에 정리를 요청한다.
+
+| 파일 | 소유 | 불일치 |
+|---|---|---|
+| `docs/architecture/FRONTEND_STRUCTURE.md` 82행 | role:platform | "`GET /api/v1/auth/session`(API.md 표에 없음)" — 병합된 API.md 에는 이 행이 있다 |
+| `docs/product/requirements/SCREEN_STATES.md` 381행 | role:product | API.md §4.2 세션 응답 필드가 `accessToken`·`expiresAt`·`hasSavedAnalysis` 라고 적었다 — 병합된 API.md 는 `accessTokenExpiresAt`·`refreshToken`·`refreshTokenExpiresAt` 다. `hasSavedAnalysis` 위치는 API.md(최상위)와 코드(`AuthController` 의 `user` 안)가 여전히 다르다 |
+| `docs/product/requirements/SCREEN_STATES.md` 10행 | role:product | ADR-008·API.md 를 원격 브랜치 커밋(`74d6df8`) 링크로 가리키며 "병합 후 상대 링크로 바꾼다"고 적었다 — PR #27 병합 뒤 할 일 |
+
+병합 전부터 있던 불일치(Reviewer 발견, 이번 병합과 무관): PRD FR-008 "전화번호 인증·복구 정책은 §13에서 확정" 인데 §13 에 해당 항목이 없음, API.md §10 1번이 ADR-008 로 이미 확정된 토큰 정책을 미확정으로 남김, `main` API.md 의 "탈퇴 API 는 계약에 추가하지 않는다" 와 기능명세·PRD FR-012 의 탈퇴 서술 충돌(FRONTEND_STRUCTURE 82행이 "결정 필요"로 추적 중).
+
 ## Next Action
 
-1. **사람**: 관리자 PowerShell `wsl --install --no-distribution` → 재부팅 → `docker info`
-2. Docker 되면 `.\backend\spring-api\gradlew.bat -p backend\spring-api test --rerun-tasks` 에서 skip 0 확인. 재사용 감지 폐기가 실제 커밋되는지(검토 6번) 통합 테스트 추가
+1. ~~Docker 설치~~ — 2026-09-24 부터 동작
+2. ~~skip 0 확인~~ — 2026-09-28 `6b1b71f` 에서 58개 skip 0. 남은 것: 재사용 감지 폐기가 실제 커밋되는지(검토 6번) 통합 테스트 추가
 3. **사람**: PR #27 에 `role:product`·`role:platform` 리뷰어 지정
 4. **제품 결정**: `/register` 409 유지 여부, 로그인 시도 제한 → ADR-008 또는 이슈
 5. PR #27 병합 기준(실DB 검증으로 충분 / Testcontainers 대기)은 사용자 결정. 방식은 squash
@@ -138,4 +168,6 @@ Testcontainers 대신 **로컬 PostgreSQL 18 에 실제로 앱을 기동**해 �
 
 ## Last Verified Commit
 
-`74d6df8` — 계정 열거·회전 경합 수정까지. 이 코드로 2026-09-19 실제 DB 검증 수행
+`6b1b71f` — `main`(PR #35) 연결과 migration 개수 테스트 수정까지. 이 커밋에서 Spring build·test 58개 PASS, skip 0(Testcontainers 포함).
+
+이전 기준 `74d6df8` — 계정 열거·회전 경합 수정까지. 이 코드로 2026-09-19 실제 DB 검증 수행
