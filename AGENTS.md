@@ -52,7 +52,8 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 ```
 java 21.0.8   python 3.13.2 (2026-09-16)
 Gradle 9.7.1 → backend/spring-api/gradlew.bat으로 실행 확인
-Docker → 미설치, Testcontainers PostgreSQL 테스트는 컴파일 확인·실행 건너뜀
+Docker 29.8.0 → 데몬 동작, Testcontainers 실제 실행 확인 (2026-09-28, Spring 58 tests skip 0)
+PostgreSQL 18 → 로컬 Windows 서비스로 실행 확인 (2026-09-19). Docker 없이 bootRun 가능
 node 24.19.0   npm 11.17.0 → frontend/mobile install·lint·typecheck·Android export 확인 (2026-09-18)
 Android SDK·adb·emulator → `%LOCALAPPDATA%\Android\Sdk`, `Medium_Phone` AVD(Android 17/API 37)에서 Expo Go 실행 확인 (2026-09-21). 네이티브 development build·실기기 검증 미실행
 ```
@@ -103,7 +104,7 @@ Android SDK·adb·emulator → `%LOCALAPPDATA%\Android\Sdk`, `Medium_Phone` AVD(
 | 실제 디자인 토큰 값 | `frontend/mobile/src/design/tokens/foundation.ts` |
 | 재사용 UI 컴포넌트 | `frontend/mobile/src/components/ui/**` (현재 미구현) |
 | 시스템 구조 | `docs/architecture/ARCHITECTURE.md` |
-| API 계약 | `docs/architecture/API.md` 설계 계약 + 실제 OpenAPI/schema/types (현재 실제 schema/types 없음) |
+| API 계약 | `docs/architecture/API.md` 설계 계약 + 실제 controller/DTO 코드 (인증 구현됨, OpenAPI 파일은 아직 없음) |
 | DB 구조 | 실제 Flyway migration `backend/spring-api/src/main/resources/db/migration/**` + `docs/architecture/DATA_MODEL.md` |
 | 현재 구현 상태 | Git + 실제 코드 |
 | 테스트 통과 여부 | 실제 테스트 실행 결과 |
@@ -153,7 +154,7 @@ Android SDK·adb·emulator → `%LOCALAPPDATA%\Android\Sdk`, `Medium_Phone` AVD(
 
 ### 6.1 브랜치와 커밋
 
-- 기본 브랜치는 `main`. **`main` 직접 push 금지.** GitHub 브랜치 보호로 강제된다.
+- 기본 브랜치는 `main`. **`main` 직접 push 금지.** GitHub 브랜치 보호로 강제할 예정이다 — **2026-09-22 기준 보호 규칙이 설정되어 있지 않다**(API 조회 404). 설정 전까지는 각자 지킨다.
 - 브랜치명: `<type>/TASK-<번호>-<짧은설명>` (예: `feat/TASK-003-login-form`)
 - 커밋 메시지: Conventional Commits. 본문 한국어 허용. (예: `feat(auth): 로그인 폼 추가`)
 - merge 전략(squash / merge commit)은 **확정 필요**.

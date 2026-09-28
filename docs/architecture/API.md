@@ -2,7 +2,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **설계 계약 v0.2 — 실행 골격 구현, 비즈니스 OpenAPI 전** |
+| 상태 | **설계 계약 v0.3 — 인증 API 구현, 분석 API 구현 전** |
 | 기준일 | 2026-09-16 |
 | 소유 역할 | `role:platform` |
 | 제품 요구사항 | [PRD.md](../product/PRD.md) |
@@ -59,7 +59,7 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | 멱등성 | 분석 생성은 `Idempotency-Key` 헤더를 받으며 같은 사용자·키의 재시도는 같은 작업을 반환 |
 | 민감정보 | 비밀번호·토큰·API 키·리뷰 작성자 식별정보를 응답과 로그에 포함하지 않음 |
 
-액세스·갱신 토큰의 형식, 수명, 회전과 폐기 정책은 아직 미정이다. 확정 전에는 토큰 문자열을 URL, 로그, 오류 상세에 넣지 않는다.
+액세스·갱신 토큰 정책은 [ADR-008](../decisions/ADR-008-authentication-policy.md)을 따른다. Access Token은 15분 HS256 JWT, Refresh Token은 30일 불투명 난수이며 매 사용 시 회전한다. 토큰 문자열을 URL, 로그, 오류 상세에 넣지 않는다.
 
 ### 2.1 공통 오류
 
@@ -117,6 +117,7 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | POST | `/api/v1/auth/google` | 없음 | Google 인증 결과를 서버가 검증하고 서비스 세션 생성 |
 | POST | `/api/v1/auth/refresh` | 갱신 토큰 | 서비스 세션 갱신 |
 | POST | `/api/v1/auth/logout` | 필요 | 현재 세션 폐기 |
+| GET | `/api/v1/auth/session` | 필요 | Access Token과 DB 세션 상태를 확인해 로그인 상태 복원 |
 
 전화번호 인증·계정 복구·탈퇴 API는 정책이 확정되지 않아 이 계약에 추가하지 않는다.
 
@@ -158,14 +159,16 @@ Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Sp
 }
 ```
 
-성공 응답의 구체적인 토큰 전달 방식은 인증 정책 확정 후 OpenAPI에서 결정한다. 비밀번호 규칙과 전화번호 중복 가입 정책도 아직 미정이다.
+이메일은 trim 후 소문자로 정규화한다. 비밀번호는 8자 이상, UTF-8 기준 72바이트 이하이며 BCrypt 해시만 저장한다. 전화번호는 필수지만 MVP에서 인증·복구에 사용하지 않고 중복을 허용한다.
 
 ### 4.2 세션 응답 최소 필드
 
 ```json
 {
-  "accessToken": "<opaque-or-jwt-token>",
-  "expiresAt": "2026-09-15T13:00:00Z",
+  "accessToken": "<jwt>",
+  "accessTokenExpiresAt": "2026-09-15T13:00:00Z",
+  "refreshToken": "<opaque-token>",
+  "refreshTokenExpiresAt": "2026-10-15T12:45:00Z",
   "user": {
     "id": "8bf5c78a-...",
     "email": "owner@example.com"
@@ -175,6 +178,10 @@ Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Sp
 ```
 
 `hasSavedAnalysis=false`이면 앱은 홈이 아니라 가게 정보 입력으로 이동한다.
+
+Refresh Token은 `/api/v1/auth/refresh` 요청 본문에서만 받고 매 성공 시 새 값으로 교체한다. 로그아웃은 JWT의 `sid`가 가리키는 현재 세션을 폐기한다. 이미 폐기된 Refresh Token 재사용이 감지되면 해당 사용자의 활성 세션을 모두 폐기한다.
+
+Google 로그인 요청은 Android가 받은 `idToken`을 본문으로 전달한다. 서버는 Google 공개키로 서명과 만료를 검증하고 `issuer`, `audience=GOOGLE_CLIENT_ID`, `email_verified=true`를 확인한다. 같은 이메일의 기존 자체 계정에는 자동 연결하지 않고 `409 ACCOUNT_LINK_REQUIRED`를 반환한다.
 
 ---
 

@@ -65,12 +65,12 @@ erDiagram
 | `id` | uuid | PK |
 | `login_email` | varchar | 정규화된 이메일, unique |
 | `credential_hash` | varchar nullable | 자체 계정만 사용. 비밀번호 원문 저장 금지 |
-| `phone_number` | varchar nullable | 자체 계정 필수. Google 계정 연결 정책은 미정 |
-| `status` | varchar | `ACTIVE`, `LOCKED`, `WITHDRAWN` 후보. 탈퇴 정책 확정 전 enum 고정 금지 |
+| `phone_number` | varchar nullable | 자체 계정 필수. MVP에서는 미인증·중복 허용, Google 계정은 nullable |
+| `status` | varchar | 현재 구현은 `ACTIVE`. 잠금·탈퇴 전이는 후속 정책에서 추가 |
 | `created_at` | timestamptz | 생성 시각 |
 | `updated_at` | timestamptz | 변경 시각 |
 
-Google과 자체 로그인을 같은 사용자로 연결하는 규칙이 미정이므로 provider 식별자는 별도 테이블로 분리한다.
+Google과 자체 로그인은 provider 식별자를 별도 테이블로 분리한다. 동일 이메일 계정은 자동 연결하지 않으며 기존 계정 인증을 거친 명시적 연결 기능 전에는 충돌로 처리한다.
 
 ### 3.2 `user_identities`
 
@@ -93,9 +93,10 @@ Google과 자체 로그인을 같은 사용자로 연결하는 규칙이 미정�
 | `refresh_token_hash` | varchar | 원문 토큰 저장 금지 |
 | `expires_at` | timestamptz | 만료 시각 |
 | `revoked_at` | timestamptz nullable | 폐기 시각 |
+| `replaced_by_session_id` | uuid nullable | 회전 후 새 세션 FK. 값이 있으면 현재 세션은 폐기 상태 |
 | `created_at` | timestamptz | 생성 시각 |
 
-토큰 형식과 회전 정책이 확정되기 전에는 실제 컬럼을 migration으로 고정하지 않는다.
+Flyway V2에서 실제 테이블을 생성한다. Refresh Token은 30일 수명의 256-bit 난수이고 SHA-256 해시만 저장한다. 갱신 성공 시 기존 row를 폐기하고 대체 세션을 연결한다. 폐기된 토큰 재사용 시 사용자의 활성 세션을 모두 폐기한다.
 
 ---
 
@@ -342,7 +343,8 @@ OS push token과 홍보 수신 동의 컬럼은 MVP 범위가 아니므로 만�
 
 | 테이블 | 인덱스 | 목적 |
 |---|---|---|
-| `auth_sessions` | `(user_id, revoked_at, expires_at)` | 유효 세션 조회 |
+| `auth_sessions` | `(user_id, expires_at) WHERE revoked_at IS NULL` | 유효 세션 조회 |
+| `auth_sessions` | `refresh_token_hash` unique | 갱신 토큰 해시 조회·중복 방지 |
 | `analysis_jobs` | `(user_id, created_at DESC)` | 사용자 작업 이력·최신 상태 |
 | `analysis_jobs` | `(status, updated_at)` | 복구·운영 작업 탐색 |
 | `reviews` | `(job_id, content_hash)` unique | 작업 내 중복 방지 |
@@ -397,12 +399,11 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 ## 11. 후속 migration 전 미확정 항목
 
 1. 운영 환경의 Spring·Python 런타임 DB role과 Flyway migration role 분리
-2. auth token 저장 모델
-3. 전화번호 정규화·암호화·중복 정책
-4. 네이버 place ID와 URL unique 규칙
-5. 동시 분석 작업 수와 활성 작업 unique 제약
-6. 리뷰·결과·이미지·알림 보관 기간
-7. 이미지 바이너리 저장소
-8. 알림 읽음 처리 여부
+2. 전화번호 암호화와 보관·삭제 정책
+3. 네이버 place ID와 URL unique 규칙
+4. 동시 분석 작업 수와 활성 작업 unique 제약
+5. 리뷰·결과·이미지·알림 보관 기간
+6. 이미지 바이너리 저장소
+7. 알림 읽음 처리 여부
 
-V1은 위 미확정 정책을 고정하지 않는다. 특히 `auth_sessions`는 토큰 저장·회전 정책이 확정된 뒤 만들며, 전화번호와 네이버 URL에는 아직 unique 제약을 두지 않고, 자동 삭제 정책도 추가하지 않는다.
+V2는 `auth_sessions`와 토큰 회전 제약을 추가했다. 전화번호에는 정책에 따라 unique 제약을 두지 않았고, 전화번호 암호화·자동 삭제·네이버 URL unique 정책은 아직 추가하지 않는다.

@@ -12,12 +12,12 @@ backend/
 └─ .env.example       커밋 가능한 환경변수 예시
 ```
 
-현재는 프로젝트 골격, 헬스 체크, Flyway V1 초기 스키마를 구현했다. 비즈니스 API, 리뷰 수집, 분석 모델 호출은 다음 TASK 범위다.
+현재는 프로젝트 골격, 헬스 체크, Flyway V1 초기 스키마, V2 인증 세션과 인증 API를 구현했다. 리뷰 수집과 분석 모델 호출은 다음 TASK 범위다.
 
 ## 1. 환경 파일
 
 PowerShell에서 `backend/.env.example`을 `backend/.env`로 복사하고 로컬 전용 비밀번호와 공유 서비스 토큰을 변경한다. `.env`는 Git에 커밋하지 않는다.
-Spring과 Python을 각각 문서에 적힌 디렉터리에서 실행하면 두 서비스 모두 `backend/.env`를 읽는다. `ANALYSIS_SERVICE_TOKEN`과 `SCC_SERVICE_TOKEN`에는 같은 값을 넣는다.
+Spring과 Python을 각각 문서에 적힌 디렉터리에서 실행하면 두 서비스 모두 `backend/.env`를 읽는다. `ANALYSIS_SERVICE_TOKEN`과 `SCC_SERVICE_TOKEN`에는 같은 값을 넣는다. `AUTH_ACCESS_TOKEN_SECRET`에는 32바이트 이상의 예측 불가능한 값을, `GOOGLE_CLIENT_ID`에는 Android용 Google OAuth client ID를 넣는다.
 
 ## 2. PostgreSQL
 
@@ -39,9 +39,9 @@ Set-Location backend/spring-api
 .\gradlew.bat bootRun
 ```
 
-애플리케이션 실행에는 PostgreSQL과 `POSTGRES_PASSWORD` 환경변수가 필요하다. 공개 헬스 체크는 `GET http://localhost:8080/actuator/health`다. 그 외 요청은 인증 구현 전까지 기본 거부한다.
+애플리케이션 실행에는 PostgreSQL, `POSTGRES_PASSWORD`, `AUTH_ACCESS_TOKEN_SECRET` 환경변수가 필요하다. Google 로그인에는 `GOOGLE_CLIENT_ID`도 필요하다. 공개 헬스 체크와 가입·로그인·갱신 endpoint 외 요청은 기본 거부하거나 Bearer Access Token을 요구한다.
 
-`src/main/resources/db/migration/V1__create_initial_schema.sql`이 초기 테이블·관계·인덱스를 생성한다. `gradlew test`는 Docker가 있으면 PostgreSQL 18.6 컨테이너에서 migration과 핵심 소유권 제약을 검증하고, Docker가 없으면 통합 테스트 4개만 명시적으로 건너뛴다.
+`V1__create_initial_schema.sql`은 초기 업무 테이블을, `V2__create_auth_sessions.sql`은 회전 가능한 Refresh Token 세션을 생성한다. `gradlew test`는 Docker가 있으면 PostgreSQL 18.6 컨테이너에서 migration과 핵심 제약을 검증하고, Docker가 없으면 통합 테스트 4개만 명시적으로 건너뛴다.
 
 ## 4. Python 분석 서비스
 
