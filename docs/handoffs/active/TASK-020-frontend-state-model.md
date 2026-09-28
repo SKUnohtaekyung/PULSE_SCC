@@ -48,6 +48,8 @@
 
 ## Changed
 
+- (Step 12 Spec Update, 2026-09-28) 홈 결과 순서(TOP3 먼저·분석 정보와 한계는 맨 아래, 2026-09-27 디자인 리뷰 #3)가 `RESULT_IA` §3.1 구조도 아래 본문과 `DESIGN_SYSTEM` §6 SC-006 행에만 들어가 있었다. 옛 순서가 남은 곳을 grep으로 찾아 고쳤다: `RESULT_IA.md` §3.1 구조도·§3.2 계층 트리·D7·홈 행, `USER_FLOW.md` 9번·흐름도·기본 흐름 행, `GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` RESULT-001. `SCREEN_STATES.md` §6.1에 빈 슬롯 사유 위치와 한계·2년 경고 위치를 적었다. `AGENTS.md` 2장 테스트 러너 행에 E2E·visual regression 미도입과 재검토 시점을 더했다. 남색·주황 사용처는 `DESIGN_SYSTEM` §2.2·§3.3·§5.4에 이미 있어 바꾸지 않았다
+
 - (가입 비밀번호 확인 칸, 2026-09-28) `features/auth/SignupScreen.tsx` 확인 칸·검증 / `SCREEN_STATES.md` §3.2 세 행·§13 9차 / `DESIGN_SYSTEM.md` §5.3 CredentialForm 행 / 보드 `generate.mjs`·`svg/09-final-auth.svg` / evidence `signup-confirm-*` 5장과 README. `PRD.md`·기능명세는 "필수로 받는 정보"(서버에 보내는 값)를 말하므로 바꾸지 않았다
 
 - (Step 10) `frontend/mobile/src/components/ui/BottomNavigation.tsx`(활성 탭 가드)·`ConfirmDialog.tsx`(배경 초점 제외, 본문은 터치 삼킴)·`Screen.tsx`(footer 좌우 SafeArea — 배경색은 주지 않는다. 주면 세로 모드에서 둥근 모서리를 가진 footer의 radius 뒤를 채운다) / `features/analysis/AnalyzeScreen.tsx`(멱등 키 입력 비교, polling `inFlight`, 탭 `navigate`) / `features/auth/SignupScreen.tsx`(약관 변경 안내 유지, 비밀번호 삭제 고지) / `features/result/HomeScreen.tsx`·`features/mypage/MyPageScreen.tsx`(탭 `navigate`) / `features/result/ResultView.tsx`(rank 정렬, `ADVICE-EMPTY`) / `session/SessionProvider.tsx`(`useCallback`)·`session/storage.ts`(주석·미사용 export 제거) / `api/fixtures/server.ts`(미사용 export 제거)
