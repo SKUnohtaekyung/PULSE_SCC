@@ -2,7 +2,7 @@
 
 ## Status
 
-핵심 결과 IA와 PostgreSQL 기반 API·데이터 모델 초안 반영·검증 완료 — 역할별 리뷰·PR 전
+완료 — PR #21이 `main`에 squash 병합됨 (`d9616cc`)
 
 ## Owner
 
@@ -162,4 +162,4 @@
 
 ## Last Verified Commit
 
-`5749b4b` — PostgreSQL 단일 데이터베이스 기반 API·논리 모델과 관련 기능명세 정합화를 검증한 커밋.
+`d9616cc` — PR #21의 `main` 병합 커밋. 제품·설계·아키텍처 문서 반영 완료.

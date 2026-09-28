@@ -1,7 +1,8 @@
 # TASK-006 — Git·GitHub 사용법 HTML 문서와 문서 동기화 훅
 
 ## Status
-리뷰 대기
+완료 — PR #18이 `main`에 squash 병합됨 (`284de80`). 이후 PR #20(`ef32b22`)이 브랜치 자동 삭제 설정 변경을 이 문서와 HTML에 반영했다.
+이 문서는 인수인계 기록이며 정본이 아니다.
 
 ## Owner
 role:platform
@@ -76,9 +77,11 @@ Git·GitHub 개념과 이 저장소의 실제 설정을 한 화면에서 대조�
 - **저장소 설정 변경은 훅이 절대 못 잡는다.** 훅은 파일 편집에만 반응한다. 실제로 `deleteBranchOnMerge` 를 켰을 때 훅은 발화하지 않았고 문서를 직접 고쳐야 했다 (TASK-007).
 
 ## Next Action
-`Unresolved` 2번을 판단한다 — 이 문서를 루트에 둘 것인지 `docs/` 하위로 옮길 것인지, 그리고 `README.md` 문서 지도와 `AGENTS.md` 4장 SoT 표에 등재할 것인지. `role:platform` 결정 사항이다.
+**병합 후에도 `Unresolved` 2번은 결정되지 않았다.** archive 이동 시점(2026-09-18)에 다시 확인했더니 `git-관련-사용법.html` 은 여전히 루트에 있고, `README.md` 문서 지도와 `AGENTS.md` 4장 SoT 표 어디에도 등재돼 있지 않다.
+이 TASK는 종료하고, 배치 위치·SoT 등재 결정은 **별도 이슈로 세워 `role:platform`이 판단한다.** `Unresolved` 3~5번(규칙 복제, 팔레트 이중 정의, 표 접근성 미실측)도 같이 넘긴다. 6번은 넘길 항목이 아니라 이 문서를 고칠 때 지켜야 할 주의사항이다.
 
 ## Last Verified Commit
-`282b9c7` — 이 브랜치의 구현 커밋. 위 Verification은 이 시점까지 유효하다.
+`284de80` — PR #18의 `main` 병합 커밋. HTML 문서와 훅 반영 완료.
 
-기준 main은 `6a990ba` (PR #16 머지 직후)다.
+위 Verification은 병합 전 브랜치 커밋 `282b9c7` 시점에 실행한 것이다. 그 커밋은 squash 병합으로 사라져 지금은 조회되지 않는다.
+이후 `ef32b22`(PR #20)가 브랜치 자동 삭제 설정을 HTML과 이 문서에 반영했고, 그 변경분은 위 Verification 대상이 아니다.

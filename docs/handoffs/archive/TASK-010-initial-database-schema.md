@@ -2,7 +2,7 @@
 
 ## Status
 
-구현·검증·독립 리뷰 완료 — PR #23 OPEN, 순차 병합 대기
+완료 — PR #23이 `main`에 squash 병합됨 (`b30bada`)
 
 ## Owner
 
@@ -16,11 +16,11 @@
 
 | 순서 | PR | 현재 base ← head | 상태 |
 |---|---|---|---|
-| 1 | [#21 — 손님분석 기능명세와 구조 확정](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/21) | `main` ← `docs/TASK-008-functional-spec` | OPEN, MERGEABLE |
-| 2 | [#22 — 백엔드 프로젝트 골격](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/22) | `docs/TASK-008-functional-spec` ← `chore/TASK-009-backend-bootstrap` | OPEN, MERGEABLE |
-| 3 | [#23 — PostgreSQL 초기 스키마](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/23) | `chore/TASK-009-backend-bootstrap` ← `feat/TASK-010-initial-database-schema` | OPEN, MERGEABLE |
+| 1 | [#21 — 손님분석 기능명세와 구조 확정](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/21) | `main` ← `docs/TASK-008-functional-spec` | MERGED (`d9616cc`) |
+| 2 | [#22 — 백엔드 프로젝트 골격](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/22) | `main` ← `chore/TASK-009-backend-bootstrap` | MERGED (`b4e9a79`) |
+| 3 | [#23 — PostgreSQL 초기 스키마](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/23) | `main` ← `feat/TASK-010-initial-database-schema` | MERGED (`b30bada`) |
 
-세 PR은 stacked 상태다. #21을 `main`에 병합한 뒤 #22의 base를 `main`으로 변경하고 diff를 다시 확인한 후 병합한다. 이어서 #23의 base를 `main`으로 변경하고 diff를 다시 확인한 후 병합한다. 현재 base 그대로 #22·#23을 각각 병합하면 변경이 `main`이 아니라 중간 브랜치에만 들어가므로 주의한다.
+세 PR은 순서대로 병합했다. 각 squash 병합 후 후속 브랜치에 `main` ancestry를 merge commit으로 연결해 중복 diff와 충돌을 해소했고, force push는 사용하지 않았다.
 
 ## Goal
 
@@ -73,12 +73,9 @@
 
 ## Next Action
 
-1. PR #21을 리뷰·병합한다.
-2. PR #22의 base를 `main`으로 변경하고 diff 확인 후 리뷰·병합한다.
-3. PR #23의 base를 `main`으로 변경하고 diff 확인 후 리뷰·병합한다.
-4. Docker가 있는 환경에서 Testcontainers 4개를 실제 실행한다.
-5. 인증 정책을 확정하고 `TASK-011` 인증 DB migration·API 구현을 시작한다.
+1. Docker가 있는 환경에서 Testcontainers 4개를 실제 실행한다.
+2. 인증 정책을 확정하고 `TASK-011` 인증 DB migration·API 구현을 시작한다.
 
 ## Last Verified Commit
 
-`a000d2d` — Flyway V1과 PostgreSQL 제약 검증을 완료한 구현 커밋.
+`b30bada` — PR #23의 `main` 병합 커밋. Flyway V1과 PostgreSQL 초기 스키마 반영 완료.
