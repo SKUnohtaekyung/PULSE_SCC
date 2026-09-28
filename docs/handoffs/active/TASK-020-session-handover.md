@@ -16,7 +16,7 @@
 | Figma 파일 갱신 | 끝남(2026-09-28). MCP가 막혀 **사용자가 직접** 새 페이지에 보드 10장을 넣었다. Pretendard 표시는 사용자 보고 |
 | 12단계 Spec Update | 끝남(2026-09-28). 독립 Reviewer PASS(차단 0·P2 1·P3 6). P2는 role:platform으로 넘김 |
 | 통합 테스트 인계 문서 | 끝남. [frontend/mobile/INTEGRATION_GUIDE.md](../../../frontend/mobile/INTEGRATION_GUIDE.md) |
-| GitHub 업로드·PR | 이전 세션에서 끝남. **2026-09-28 세션 커밋 7개는 로컬에만 있다**(아래 Git 상태) |
+| GitHub 업로드·PR | 원격 `feat/TASK-020-frontend-mobile`은 `10161ab`까지다. **그 뒤 커밋은 전부 로컬에만 있다**(아래 Git 상태) |
 
 ## 2026-09-28 세션에서 한 것
 
@@ -28,7 +28,7 @@
 
 - **`docs/architecture/API.md` 272줄 옛 결과 순서** — `role:platform` 소유. 상태 정본 Unresolved 15. PR 본문에 적고 넘긴다.
 - **Figma 미확인** — 잘림·굵기 4단계·팀원 PC 글꼴. MCP가 Starter 한도라 에이전트는 파일을 볼 수 없다.
-- **로컬 커밋 7개 push·PR** — 사용자가 말하기 전에는 하지 않는다. PR을 올릴 때 `docs/product/**`(role:product)·`docs/design/**`(role:design-system) 수정을 본문에 밝힌다(AGENTS 5장).
+- **원격에 없는 로컬 커밋 push·PR** — 사용자가 말하기 전에는 하지 않는다. 범위는 `git log --oneline @{u}..HEAD`로 뽑는다(아래 Git 상태). PR을 올릴 때 `docs/product/**`(role:product)·`docs/design/**`(role:design-system) 수정을 본문에 밝힌다(AGENTS 5장).
 - 상태 정본 Unresolved 1~12·14(오프라인·polling·TalkBack·브랜치와 TASK 불일치 등), 실제 백엔드 연결.
 - 요구사항 문서 머리의 "기준일"이 2026-09-21~22 그대로다(12단계 리뷰 P3, 보류).
 
@@ -69,4 +69,9 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 ## Git 상태
 
 - 로컬 브랜치 `docs/TASK-019-step0-rebaseline`은 원격 `feat/TASK-020-frontend-mobile`을 추적한다.
-- 2026-09-28 세션 커밋(`749aa71` 이후 `6d9ac20`~`08b13d3` 7개와 이 인계 정리 커밋)은 **로컬에만 있다. push하지 않았다.**
+- 원격 추적 브랜치는 `10161ab`다. 그 뒤 로컬 커밋은 **push하지 않았다.** 이 문서를 고친 시점에 `git rev-list --count @{u}..HEAD`는 10이었다(이 정정 커밋 포함 전). 개수는 커밋마다 바뀌므로 명령으로 다시 확인한다.
+  - `0a110b1`·`749aa71` — 2026-09-27 밤 인계 문서 커밋. 원격에 올라가지 않았다.
+  - `6d9ac20`~`08b13d3` 7개 — 이 세션 작업(비밀번호 확인 칸·Figma 기록·12단계).
+  - `e173468`과 그 뒤 — 인계 정리.
+- 앱 실행에 `npm run start`(AGENTS 3장 dev server 명령)는 쓰지 않는다. `expo start --dev-client`라 development build용이고, 지금은 Expo Go로 연다.
+- Figma 파일: https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — 페이지 `TASK-020 Vertical Slice (2026-09-28)`가 지금 보드, `… (2026-09-22)`는 옛 보드.

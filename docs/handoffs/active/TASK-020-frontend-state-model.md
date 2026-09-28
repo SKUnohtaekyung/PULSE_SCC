@@ -2,7 +2,7 @@
 
 ## Status
 
-워크플로 0~12단계 완료 (2026-09-28). 마지막 세션에서 가입 비밀번호 확인 칸, Figma 보드 10장 import(사용자 직접), Step 12 Spec Update를 마쳤다 — 각각 독립 Reviewer PASS. 그 앞 발표 시안·디자인 리뷰 반영 완료 (2026-09-27, 8차 PASS). 그 앞 Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
+워크플로 0~12단계 완료 (2026-09-28). 마지막 세션에서 가입 비밀번호 확인 칸과 Step 12 Spec Update를 마쳤다 — 둘 다 독립 Reviewer PASS. Figma 보드 10장은 사용자가 직접 넣었다(결과는 사용자 보고, 리뷰 대상 아님). 그 앞 발표 시안·디자인 리뷰 반영 완료 (2026-09-27, 8차 PASS). 그 앞 Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -180,7 +180,7 @@
 10. 확인 대화상자가 열렸다는 사실을 TalkBack에 알리는 수단이 없다(`accessibilityLiveRegion`·`announceForAccessibility` 모두 없음). Android 네이티브 `Modal`의 윈도 전환 안내에 기대고 있다. DESIGN_SYSTEM §8이 지원 기기·TalkBack 조합 미확정을 이유로 네이티브 접근성 완료 판정을 보류했으므로 그 결정과 함께 정한다.
 11. `HomeScreen`의 `첫 분석 시작하기`는 `router.replace('/analyze')`다. 저장본이 없는 홈은 돌아갈 화면이 없어 의도한 단방향 전환이지만, 스택 깊이 가정이 걸린 지점이라 기록해 둔다(Step 10 5차 리뷰).
 12. `StepIndicator`의 끝난 단계에 붙인 `✓`가 라벨 본문에 섞여 있다. TalkBack이 기호를 그대로 읽을 수 있는데 실행하지 못해 미확인이다. 보조기술 검증을 할 때 함께 본다.
-13. ~~Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)이 2026-09-22 보드 8장 그대로다~~ — 2026-09-28 해소. 사용자가 새 페이지 `TASK-020 Vertical Slice (2026-09-28)`에 보드 10장을 직접 넣었고 Pretendard로 표시됨을 확인했다(보드 README "Import 결과 (2026-09-28)"). 남은 것: Figma MCP는 여전히 Starter 한도라 에이전트가 파일을 검사하지 못한다 — 잘림·굵기·팀원 PC 글꼴은 미확인. 디자인 정본은 여전히 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
+13. ~~Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)이 2026-09-22 보드 8장 그대로다~~ — 2026-09-28 해소. 사용자가 새 페이지 `TASK-020 Vertical Slice (2026-09-28)`에 보드 10장을 직접 넣었고, 사용자 보고로 Pretendard로 표시된다(에이전트 미확인, 보드 README "Import 결과 (2026-09-28)"). 남은 것: Figma MCP는 여전히 Starter 한도라 에이전트가 파일을 검사하지 못한다 — 잘림·굵기·팀원 PC 글꼴은 미확인. 디자인 정본은 여전히 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
 14. **브랜치와 TASK가 어긋나 있다.** 이 문서의 `Branch`는 `docs/TASK-020-frontend-state-model`이지만 Step 3~10 작업은 전부 `docs/TASK-019-step0-rebaseline` 브랜치에서 했다. PR을 TASK-019와 TASK-020으로 나눌지, 한 PR로 낼지 사용자가 정한다(AGENTS 6.2 — PR은 TASK 1개에 대응).
 
 15. **`docs/architecture/API.md` 272줄이 옛 결과 순서다**(`분석 메타정보 → 3칸 포디움 → …`). Step 12 독립 리뷰(2026-09-28)가 찾았다. `role:platform` 소유라 이 TASK에서 고치지 않았다. 화살표를 빼고 데이터 구성으로 적거나 RESULT_IA D7로 링크하도록 `role:platform`에 넘긴다(PR 본문에도 적는다).
