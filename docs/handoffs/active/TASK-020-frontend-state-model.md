@@ -48,7 +48,7 @@
 
 ## Changed
 
-- (마이페이지 저장 이미지, 2026-09-28) `features/mypage/MyPageScreen.tsx`(`StoredPersonaRow` — 동그란 그림 + 순위·유형 이름, 순위 순 정렬), `components/ui/PersonaAvatar.tsx`(`usePersonaImageRetry`·`PersonaImageError` — 홈 카드와 공유), `features/result/ResultView.tsx`(공유 도구로 교체), `components/ui/PersonaImageBlock.tsx` 삭제, 보드 `generate.mjs`·`svg/10`(MyPage-Images 화면 추가), `SCREEN_STATES` §8 `STORED-IMAGES-NORMAL`, `DESIGN_SYSTEM` §3.6, evidence `mypage-images-*` 2장
+- (마이페이지 저장 이미지, 2026-09-28) `features/mypage/MyPageScreen.tsx`(`StoredPersonaRow` — 동그란 그림 + 순위·유형 이름, 순위 순 정렬), `components/ui/PersonaAvatar.tsx`(`usePersonaImageRetry`·`PersonaImageError` — 홈 카드와 공유), `features/result/ResultView.tsx`(공유 도구로 교체), `components/ui/PersonaImageBlock.tsx` 삭제, 보드 `generate.mjs`·`svg/10`(MyPage-Images 화면 추가), `SCREEN_STATES` §8 `STORED-IMAGES-NORMAL`, `DESIGN_SYSTEM` §3.6, evidence `mypage-images-*` 2장. 독립 Reviewer PASS(차단 0·P3 3 — 주석, Unresolved 16 서술, 생성기의 안 쓰는 줄 → 반영)
 
 - (선택 유형 요약 카드, 2026-09-28) 결과 화면의 큰 이미지 칸을 사용자가 고른 F안 카드로 바꿨다 — 손님 그림·순위·리뷰 수·분석 리뷰 대비 비율 막대·관점별 근거 수 칩. `features/result/ResultView.tsx`(`PersonaStatsCard`, 이미지 실패 시 다시 불러오기), `components/ui/PersonaAvatar.tsx`(`compact` 크기, `onLoadError`), 보드 `generate.mjs`·`svg/08`(Image-States 화면), `SCREEN_STATES` §6.1·§6.4·§11, `DESIGN_SYSTEM` §3.6·§6 SC-007, `RESULT_IA` 구조도·트리, evidence `stats-card-*` 3장. 독립 Reviewer 1차 FAIL(P1 — 카드 묶음 라벨이 서버 대체 텍스트를 가림, P2 1·P3 5) → 반영 후 2차 PASS(P3 3 — 주석 위치 반영, altText 형식·가상 서버 대체 텍스트가 음식을 설명하는 차이는 실제 서버 연결 때 확인)
 
@@ -191,7 +191,7 @@
 
 15. **`docs/architecture/API.md` 272줄이 옛 결과 순서다**(`분석 메타정보 → 3칸 포디움 → …`). Step 12 독립 리뷰(2026-09-28)가 찾았다. `role:platform` 소유라 이 TASK에서 고치지 않았다. 화살표를 빼고 데이터 구성으로 적거나 RESULT_IA D7로 링크하도록 `role:platform`에 넘긴다(PR 본문에도 적는다).
 
-16. **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄의 공용 컴포넌트 목록(18종)과 "페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다"가 2026-09-28부터 사실과 다르다.** `PersonaImageBlock`은 지웠고(17종), 두 화면은 `PersonaAvatar`와 그 옆의 `usePersonaImageRetry`·`PersonaImageError`를 함께 쓴다. `role:platform` 소유라 이 TASK에서 고치지 않았다 — Unresolved 15와 함께 넘긴다(PR 본문에도 적는다).
+16. **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄의 공용 컴포넌트 목록(18종, `PersonaImageBlock` 포함)과 "9단계에서 PersonaImageBlock을 더했다"는 설명이 2026-09-28부터 사실과 다르다.** `PersonaImageBlock`은 지웠다(17종). 같은 줄의 "페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다"는 여전히 맞다 — 두 화면은 이제 `PersonaAvatar`와 그 옆의 `usePersonaImageRetry`·`PersonaImageError`를 함께 쓴다. `role:platform` 소유라 이 TASK에서 고치지 않았다 — Unresolved 15와 함께 넘긴다(PR 본문에도 적는다).
 
 ## Do Not Assume
 

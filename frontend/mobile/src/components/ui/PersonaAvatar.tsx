@@ -14,7 +14,7 @@ export type PersonaAvatarSize = 'first' | 'runner' | 'compact';
 const diameters: Record<PersonaAvatarSize, number> = {
   first: spacing[24],
   runner: spacing[20],
-  // 선택한 유형 요약 카드의 왼쪽 그림(ResultView)
+  // 선택한 유형 요약 카드(ResultView)와 마이페이지 저장 이미지 줄(MyPageScreen)
   compact: spacing[16],
 };
 

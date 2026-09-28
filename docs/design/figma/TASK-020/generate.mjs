@@ -882,7 +882,6 @@ const screenMyPage = () => {
       rect(PAD + W - 76, y + 56, 52, 30, { fill: colors.brand.primary, r: radii.pill }) +
       circle(PAD + W - 38, y + 71, 12, { fill: colors.background.surface }),
   );
-  y += 124;
   // 저장 이미지 카드와 로그아웃은 스크롤 아래에 있다. 앱 캡처처럼 따로 그린다(screenMyPageImages).
   body += bottomNav('mypage');
   return body;
