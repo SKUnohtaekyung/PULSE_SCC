@@ -11,7 +11,7 @@
 `feat/TASK-012-analysis-pipeline`
 
 ## Work Note
-- 원격 작업 브랜치에 push 완료. PR 은 아직 만들지 않았다.
+- 원격 작업 브랜치에 push 완료. 2026-09-28 사용자 요청으로 **draft PR #36** 을 만들었다(`type:feature`·`role:feature`, 리뷰어 지정 전). Ready for review 조건은 PR 본문 상단에 적었다.
 - 분석 파이프라인 기능 구현 커밋은 `36561f6`이다. 이후 변경은 아래 날짜별 절을 본다.
 - **Docker 정상 동작.** WSL2 백엔드로 붙어 Testcontainers 가 실제로 돈다.
 - **OpenAI 키 설정 완료.** 실제 분석·이미지 생성까지 확인했다. 디버깅 중 `SCC_SERVICE_TOKEN` 이 로그에 노출됐으므로 교체를 권한다(localhost 전용 로컬 토큰).
@@ -648,7 +648,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
 - 약관과 개인정보 처리방침은 법률 검토 전 초안이다.
 - 프론트는 2026-09-28 부터 `frontend/mobile`(`feat/TASK-020-frontend-mobile`, PR #35)이다. 그 이전 절에 적힌 앱 변경은 사용자가 임시로 만든 `C:\PULSE_SCC_FE`(Git 저장소 아님)에만 있고 새 앱에는 없다.
-- 이 브랜치는 원격에 push 했지만 PR 은 아직 없다. PR 전에 PR #27 병합과 인증 충돌 수동 병합이 필요하다.
+- PR #36 은 draft 다. Ready 전에 PR #27 병합과 인증 충돌 수동 병합, 브랜치 전체 독립 Reviewer, TASK-012 `[FEATURE]` 이슈 생성·연결, `role:platform` 의 문서 불일치 정리(PR #36 본문 "알려진 문서 불일치")가 필요하다.
 - E2E 가 성공했다고 네이버 selector 안정성이 증명된 것은 아니다. 전체 E2E 는 음식점 1개 매장에서 COMPLETED 3회 이상(230초·268초·196초, 재시작 복구 1회 포함)이 전부고, 카페 1개 매장은 수집 단계만 확인했다.
 - 선택형 키워드 제외 목록(50개)은 사용자 제공 통계와 카페 1곳 실측으로 모은 것이다. 네이버 전체 선택지 목록이 아니다.
 - 큐의 재시작 복구는 실제로 검증했지만 다중 인스턴스 동시 운영은 검증하지 않았다.
@@ -665,7 +665,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 > 세션 종료 시 확인한 외부 상태: PR #27·#35 OPEN, 리뷰어 지정 0명·리뷰 결정 없음. PR #25(`docs/TASK-010-archive-handoffs`, 병합된 인수인계 archive)도 OPEN·리뷰어 0명. #31·#32 댓글 0, #33 은 2026-09-25 진행 댓글 뒤로 결정 없음, #34 는 이 세션 갱신 댓글 1개 뒤로 응답 없음.
 > 이어서 할 것(우선순위 순) — 비용 없는 선택적 수집 실측(주점 등 다른 매장 수집, DOM 본문 앞 별점 접두어로 날짜가 비는 발생률 — "지금 바로 할 수 있는 것" 절, 방법은 Claude Continuation 8번) 외에는, **에이전트가 결정·비용·외부 조건 없이 할 수 있는 과제는 남아 있지 않다**
 > 1. **사람**: PR #27 에 리뷰어 지정·병합. 이것이 풀려야 2·3번이 움직인다
-> 2. PR #27 병합 뒤 `main` 연결·인증 충돌 수동 병합·TASK-012 PR 생성("막혀 있는 순서"). **PR 을 만들 때 `git diff --name-only main...HEAD` 로 소유 영역 밖 파일을 전수 확인하고** PR 본문에 적은 뒤 해당 역할 리뷰어를 지정한다(AGENTS.md 5장 4번). 2026-09-28 Reviewer 가 PR #27 커밋을 빼고 대조한 알려진 목록(전수 확인을 대신하지 않는다):
+> 2. PR #27 병합 뒤 `main` 연결·인증 충돌 수동 병합 → draft PR #36 을 Ready 로("막혀 있는 순서", PR #36 본문 상단). **PR 을 만들 때 `git diff --name-only main...HEAD` 로 소유 영역 밖 파일을 전수 확인하고** PR 본문에 적은 뒤 해당 역할 리뷰어를 지정한다(AGENTS.md 5장 4번). 2026-09-28 Reviewer 가 PR #27 커밋을 빼고 대조한 알려진 목록(전수 확인을 대신하지 않는다):
 >    - role:platform 명시 경로: `backend/spring-api/src/main/java/kr/co/scc/api/common/config/SecurityConfig.java`, `docs/architecture/API.md`("2026-09-27 임대 만료 실패 알림, 토픽 수 규칙, 빈 슬롯 문구" 절의 남은 것)·`DATA_MODEL.md`·`ARCHITECTURE.md`, `docs/decisions/ADR-009-*`·`ADR-011-*`
 >    - backend 빌드·환경 설정(role:platform): `backend/spring-api/src/main/resources/application.yml`, `backend/python-analysis/pyproject.toml`, `backend/.env.example`, `.gitignore`
 >    - 판단이 필요한 것(서비스 전역 런타임 설정이라 role:platform 으로 볼 수 있음): Python `core/logs.py`·`core/config.py`·`main.py`·`__main__.py`
