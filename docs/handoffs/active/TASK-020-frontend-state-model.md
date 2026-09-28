@@ -2,7 +2,7 @@
 
 ## Status
 
-발표 시안·디자인 리뷰 반영 진행 중 (2026-09-27). 그 앞 Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
+워크플로 0~12단계 완료 (2026-09-28). 마지막 세션에서 가입 비밀번호 확인 칸, Figma 보드 10장 import(사용자 직접), Step 12 Spec Update를 마쳤다 — 각각 독립 Reviewer PASS. 그 앞 발표 시안·디자인 리뷰 반영 완료 (2026-09-27, 8차 PASS). 그 앞 Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -195,10 +195,14 @@
 
 ## Next Action
 
-발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다(위 검증 기록). 다음은 Step 12(Spec Update) — 이번에 새로 정한 것을 정본에 다시 반영한다. 단위 테스트·E2E·visual regression 도입 시점은 실제 백엔드 연결 뒤 다시 정한다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
+워크플로 0~12단계가 끝났다(2026-09-28). 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15(API.md 옛 순서, role:platform), 로컬 커밋 push·PR(사용자 지시 전 금지), 실제 백엔드 연결, Unresolved 1~12·14. 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
+
+(이전 기록) 발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
 
 2026-09-27에 한 것: 2026-09-26 최종 발표 시안과 Figma 디자인 리뷰 댓글 9건을 반영해 화면을 다시 만들었고(주요 버튼 남색, 흰 헤더, TOP3 시상대, 홈 순서 변경, 입력 3단계 표시), PULSE 로고·SVG 아이콘·손님 캐릭터를 넣었으며, Figma 보드를 새 디자인으로 다시 뽑고 인증·로딩 보드 2장을 더했다. Figma MCP는 Starter 플랜 호출 한도에 걸려 파일을 직접 고치지 못했고, 기존과 같은 SVG import 방식으로 만들었다. Step 9~10에서 남은 것: 실제 백엔드 연결(§11 공백 해소 후), Google 로그인과 계정 탈퇴(결정 대기), 실패 상태 재현, 오프라인·키보드·TalkBack·실기기 확인. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 
-`ea6ea03` — 7차 리뷰 반영 커밋(check.mjs 테두리 두께 정규식 `[\d.]`, 캐릭터 입 `fill="none"`). 그 앞 `88fdfda`는 R2·R4를 반영했지만 R1 정규식이 `[d.]` 오타라 R1은 실제로 동작하지 않았다. 8차 독립 Reviewer PASS(권고 3 — 문서 정합성, 이 절과 evidence README로 반영). 이 뒤 커밋은 문서만 바꾼다.
+`974e0a3` (2026-09-28) — 마지막으로 코드·보드를 검증한 커밋. 앱 코드는 `6d9ac20`의 `SignupScreen.tsx`가 마지막 변경이고 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 5장, 독립 Reviewer PASS. `974e0a3`은 보드 `generate.mjs`를 고치고 `check.mjs` 0건을 다시 확인했다. 그 뒤 커밋(`51bd83c`·`923734f`·`7fb0e30`·`08b13d3`·인계 정리)은 문서만 바꾼다.
+
+이전 값: `ea6ea03` — 7차 리뷰 반영 커밋(check.mjs 테두리 두께 정규식 `[\d.]`, 캐릭터 입 `fill="none"`). 그 앞 `88fdfda`는 R2·R4를 반영했지만 R1 정규식이 `[d.]` 오타라 R1은 실제로 동작하지 않았다. 8차 독립 Reviewer PASS(권고 3 — 문서 정합성, 이 절과 evidence README로 반영). 이 뒤 커밋은 문서만 바꾼다.
