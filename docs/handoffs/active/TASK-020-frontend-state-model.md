@@ -2,7 +2,7 @@
 
 ## Status
 
-워크플로 0~12단계 완료 (2026-09-28). 마지막 세션에서 가입 비밀번호 확인 칸과 Step 12 Spec Update를 마쳤다 — 둘 다 독립 Reviewer PASS. Figma 보드 10장은 사용자가 직접 넣었다(결과는 사용자 보고, 리뷰 대상 아님). 그 앞 발표 시안·디자인 리뷰 반영 완료 (2026-09-27, 8차 PASS). 그 앞 Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
+워크플로 0~12단계 완료 (2026-09-28). 마지막 세션에서 가입 비밀번호 확인 칸과 Step 12 Spec Update를 마쳤고, 이어서 사용자 요청 디자인 수정 3건(손님 캐릭터 교체, 결과 화면 선택 유형 요약 카드, 마이페이지 저장 이미지)을 마쳤다 — 모두 독립 Reviewer PASS. Figma 보드 10장은 사용자가 직접 넣었다(결과는 사용자 보고, 리뷰 대상 아님). 그 앞 발표 시안·디자인 리뷰 반영 완료 (2026-09-27, 8차 PASS). 그 앞 Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -203,7 +203,7 @@
 
 ## Next Action
 
-워크플로 0~12단계가 끝났다(2026-09-28). 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15(API.md 옛 순서, role:platform), 로컬 커밋 push·PR(사용자 지시 전 금지), 실제 백엔드 연결, Unresolved 1~12·14. 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
+워크플로 0~12단계와 그 뒤 디자인 수정 3건이 끝났다(2026-09-28). 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15·16(platform 문서 2건), SCREEN_STATES §11의 리뷰 중복 계산 확인(role:feature), 로컬 커밋 push·PR(사용자 지시 전 금지), 실제 백엔드 연결, Unresolved 1~12·14. 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
 
 (이전 기록) 발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
 
@@ -211,6 +211,8 @@
 
 ## Last Verified Commit
 
-`974e0a3` (2026-09-28) — 마지막으로 코드·보드를 검증한 커밋. 앱 코드는 `6d9ac20`의 `SignupScreen.tsx`가 마지막 변경이고 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 5장, 독립 Reviewer PASS. `974e0a3`은 보드 `generate.mjs`를 고치고 `check.mjs` 0건을 다시 확인했다. 그 뒤 커밋(`51bd83c`·`923734f`·`7fb0e30`·`08b13d3`·인계 정리)은 문서만 바꾼다.
+`3891823` (2026-09-28) — 마지막으로 코드·보드를 바꾸고 검증한 커밋. 이 커밋은 `PersonaAvatar.tsx` 주석과 `generate.mjs`의 안 쓰는 줄만 바꿨고 `lint`·`typecheck` 종료 0, 보드를 다시 뽑아 `check.mjs` 0건. 바로 앞 `a21c323`(마이페이지 저장 이미지)에서 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 2장, 독립 Reviewer PASS. 그 뒤 `6c63086`과 인계 정리는 문서만 바꾼다. 이 세션의 코드 변경은 손님 캐릭터(`b580bf8`·`51f152c`), 요약 카드(`098a22b`·`36599af`·`a3eb399`), 마이페이지(`a21c323`·`3891823`)이고 각각 독립 Reviewer PASS다.
+
+이전 값: `974e0a3` (2026-09-28) — 마지막으로 코드·보드를 검증한 커밋. 앱 코드는 `6d9ac20`의 `SignupScreen.tsx`가 마지막 변경이고 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 5장, 독립 Reviewer PASS. `974e0a3`은 보드 `generate.mjs`를 고치고 `check.mjs` 0건을 다시 확인했다. 그 뒤 커밋(`51bd83c`·`923734f`·`7fb0e30`·`08b13d3`·인계 정리)은 문서만 바꾼다.
 
 이전 값: `ea6ea03` — 7차 리뷰 반영 커밋(check.mjs 테두리 두께 정규식 `[\d.]`, 캐릭터 입 `fill="none"`). 그 앞 `88fdfda`는 R2·R4를 반영했지만 R1 정규식이 `[d.]` 오타라 R1은 실제로 동작하지 않았다. 8차 독립 Reviewer PASS(권고 3 — 문서 정합성, 이 절과 evidence README로 반영). 이 뒤 커밋은 문서만 바꾼다.
