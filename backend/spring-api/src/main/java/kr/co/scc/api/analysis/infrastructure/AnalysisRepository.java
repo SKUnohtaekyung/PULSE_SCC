@@ -23,6 +23,7 @@ import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerInsight;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerPersona;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerReview;
+import kr.co.scc.api.analysis.domain.JobOwnershipLostException;
 import kr.co.scc.api.analysis.application.EvidenceCursorCodec.Cursor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -337,7 +338,27 @@ public class AnalysisRepository {
         return true;
     }
 
+    /**
+     * 완료된 분석 결과를 저장한다. 호출자가 연 트랜잭션 안에서 실행해야 한다.
+     *
+     * <p>가장 먼저 작업을 RUNNING 에서 COMPLETED 로 바꾼다. 바뀐 행이 없으면 임대가 끝나 작업이
+     * 이미 실패로 마감됐거나 다시 큐에 들어간 것이므로 아무것도 저장하지 않고 예외를 던진다.
+     * 이 UPDATE 가 행을 잠그므로 저장이 끝날 때까지 다른 경로가 이 작업을 실패로 바꾸지 못한다.
+     */
     public UUID saveCompleted(JobContext context, WorkerResponse response) {
+        int claimed = jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'COMPLETED', progress_step = 'COMPLETED',
+                            message_code = 'ANALYSIS_COMPLETED', retryable = false,
+                            lease_expires_at = NULL,
+                            completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :jobId AND status = 'RUNNING'
+                        """)
+                .param("jobId", context.jobId())
+                .update();
+        if (claimed != 1) {
+            throw new JobOwnershipLostException(context.jobId());
+        }
         UUID analysisId = UUID.randomUUID();
         jdbc.sql("""
                         INSERT INTO analyses (
@@ -400,15 +421,6 @@ public class AnalysisRepository {
                         """)
                 .param("id", UUID.randomUUID())
                 .param("userId", context.userId())
-                .param("jobId", context.jobId())
-                .update();
-        jdbc.sql("""
-                        UPDATE analysis_jobs
-                        SET status = 'COMPLETED', progress_step = 'COMPLETED',
-                            message_code = 'ANALYSIS_COMPLETED', retryable = false,
-                            completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-                        WHERE id = :jobId AND status = 'RUNNING'
-                        """)
                 .param("jobId", context.jobId())
                 .update();
         return analysisId;

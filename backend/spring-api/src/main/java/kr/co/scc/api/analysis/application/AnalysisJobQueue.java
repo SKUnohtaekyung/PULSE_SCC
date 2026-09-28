@@ -2,9 +2,9 @@ package kr.co.scc.api.analysis.application;
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
 import org.slf4j.Logger;
@@ -49,8 +49,15 @@ public class AnalysisJobQueue {
     private final TaskExecutor executor;
     private final int capacity;
 
-    /** 이 인스턴스가 지금 처리 중인 작업. 하트비트 대상이자 동시 실행 상한의 기준이다. */
-    private final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
+    /**
+     * 이 인스턴스가 지금 처리 중인 작업과 그 실행 수. 하트비트 대상이다.
+     *
+     * <p>임대가 끝난 작업을 같은 인스턴스가 다시 집으면 한 작업이 두 번 실행될 수 있다. 집합으로
+     * 두면 먼저 끝난 실행이 ID 를 지워 남은 실행의 하트비트와 정원 계산이 빠지므로 실행 수를 센다.
+     */
+    private final ConcurrentHashMap<UUID, Integer> inFlight = new ConcurrentHashMap<>();
+    /** 동시 실행 상한의 기준. */
+    private final AtomicInteger running = new AtomicInteger();
 
     @Autowired
     public AnalysisJobQueue(
@@ -91,7 +98,7 @@ public class AnalysisJobQueue {
     /** 처리 중인 작업의 임대를 연장해 다른 워커가 가져가지 않게 한다. */
     @Scheduled(fixedDelayString = "${scc.analysis-service.heartbeat-interval-ms:30000}")
     public void heartbeat() {
-        for (UUID jobId : inFlight) {
+        for (UUID jobId : inFlight.keySet()) {
             try {
                 if (!repository.extendLease(jobId, LEASE)) {
                     // 이미 완료됐거나 다른 워커가 회수해 간 경우다.
@@ -115,18 +122,18 @@ public class AnalysisJobQueue {
     }
 
     private void claimAndRun() {
-        while (inFlight.size() < capacity) {
+        while (running.get() < capacity) {
             Optional<UUID> claimed = repository.claimNextQueuedJob(LEASE);
             if (claimed.isEmpty()) {
                 return;
             }
             UUID jobId = claimed.get();
-            inFlight.add(jobId);
+            track(jobId);
             try {
                 executor.execute(() -> runClaimed(jobId));
             } catch (RuntimeException exception) {
                 // 실행 큐에 넣지 못했으면 임대를 붙든 채 두지 않는다. 다음 주기가 회수한다.
-                inFlight.remove(jobId);
+                untrack(jobId);
                 log.error("집어온 작업을 실행하지 못했습니다. jobId={}", jobId, exception);
                 repository.requeueForRetry(jobId, MAX_ATTEMPTS);
                 return;
@@ -138,12 +145,22 @@ public class AnalysisJobQueue {
         try {
             runner.runClaimed(jobId);
         } finally {
-            inFlight.remove(jobId);
+            untrack(jobId);
         }
+    }
+
+    private void track(UUID jobId) {
+        inFlight.merge(jobId, 1, Integer::sum);
+        running.incrementAndGet();
+    }
+
+    private void untrack(UUID jobId) {
+        inFlight.computeIfPresent(jobId, (key, count) -> count > 1 ? count - 1 : null);
+        running.decrementAndGet();
     }
 
     /** 테스트와 운영 점검용. 이 인스턴스가 처리 중인 작업 수. */
     public int inFlightCount() {
-        return inFlight.size();
+        return running.get();
     }
 }

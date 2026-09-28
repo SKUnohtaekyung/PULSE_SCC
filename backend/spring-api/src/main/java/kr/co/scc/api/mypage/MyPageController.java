@@ -42,7 +42,8 @@ public class MyPageController {
     @DeleteMapping("/account")
     public ResponseEntity<Void> deleteAccount(
             @AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) DeleteAccountRequest request) {
-        service.deleteAccount(userId(jwt), request == null ? null : request.password());
+        service.deleteAccount(
+                userId(jwt), UUID.fromString(jwt.getClaimAsString("sid")), request == null ? null : request.password());
         return ResponseEntity.noContent().build();
     }
 

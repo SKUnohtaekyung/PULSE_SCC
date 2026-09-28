@@ -5,6 +5,7 @@ import java.util.UUID;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.JobContext;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerRequest;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
+import kr.co.scc.api.analysis.domain.JobOwnershipLostException;
 import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
 import org.slf4j.Logger;
@@ -56,6 +57,10 @@ public class AnalysisJobRunner {
                     context.category(),
                     context.naverPlaceUrl()));
             transactions.executeWithoutResult(status -> repository.saveCompleted(context, response));
+        } catch (JobOwnershipLostException exception) {
+            // 임대가 끝나 이 작업은 이미 실패로 마감됐거나 다른 시도로 넘어갔다. 결과는 버리고
+            // 상태도 건드리지 않는다. 다시 넣거나 실패로 바꾸면 다른 경로의 결정을 덮어쓴다.
+            log.warn("작업 소유권을 잃어 분석 결과를 저장하지 않았습니다. jobId={}", jobId);
         } catch (AnalysisException exception) {
             finishFailure(jobId, exception.code(), exception.retryable());
         } catch (RuntimeException exception) {

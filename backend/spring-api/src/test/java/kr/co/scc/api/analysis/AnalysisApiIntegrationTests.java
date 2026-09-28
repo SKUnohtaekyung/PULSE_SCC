@@ -1,6 +1,7 @@
 package kr.co.scc.api.analysis;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -11,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -26,7 +29,9 @@ import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerPersona;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerReview;
 import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
+import kr.co.scc.api.analysis.domain.JobOwnershipLostException;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
+import kr.co.scc.api.analysis.infrastructure.AnalysisServiceProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +42,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -66,6 +72,8 @@ class AnalysisApiIntegrationTests {
     @Autowired ObjectMapper objectMapper;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired AnalysisRepository repository;
+    @Autowired AnalysisServiceProperties properties;
+    @Autowired TransactionTemplate transactions;
     @MockitoBean AnalysisGateway gateway;
 
     private UUID userId;
@@ -81,6 +89,13 @@ class AnalysisApiIntegrationTests {
         jdbc.sql("INSERT INTO user_identities (id, user_id, provider, provider_subject) VALUES (:id, :userId, 'LOCAL', :subject)")
                 .param("id", UUID.randomUUID()).param("userId", userId).param("subject", userId.toString()).update();
         jdbc.sql("INSERT INTO notification_settings (user_id) VALUES (:userId)").param("userId", userId).update();
+        // 탈퇴는 DB 세션이 살아 있어야 한다(ADR-010). JWT 의 sid 와 같은 세션을 만들어 둔다.
+        jdbc.sql("""
+                        INSERT INTO auth_sessions (id, user_id, refresh_token_hash, expires_at)
+                        VALUES (:id, :userId, :hash, CURRENT_TIMESTAMP + INTERVAL '1 day')
+                        """)
+                .param("id", sessionId).param("userId", userId)
+                .param("hash", sessionId.toString().replace("-", "")).update();
         when(gateway.analyze(any())).thenReturn(workerResponse());
     }
 
@@ -310,15 +325,127 @@ class AnalysisApiIntegrationTests {
     }
 
     @Test
+    void aFailedJobDoesNotGetAResultSavedAfterItsLeaseIsLost() {
+        // 임대가 끝나 실패로 마감된 작업. 원래 워커가 뒤늦게 결과를 저장하려는 상황이다.
+        UUID jobId = insertJob("FAILED", 3);
+        var context = repository.findContext(jobId).orElseThrow();
+
+        assertThatThrownBy(() -> transactions.executeWithoutResult(
+                status -> repository.saveCompleted(context, workerResponse())))
+                .isInstanceOf(JobOwnershipLostException.class);
+
+        assertNothingSavedFor(jobId, "FAILED");
+    }
+
+    @Test
+    void aSaveThatRollsBackRemovesTheImageFilesItWrote() throws Exception {
+        UUID jobId = insertJob("RUNNING", 1);
+        var context = repository.findContext(jobId).orElseThrow();
+        WorkerResponse valid = workerResponse();
+        WorkerPersona first = valid.analysis().personas().getFirst();
+        WorkerPersona second = new WorkerPersona(2, 40, "둘째 손님", "요약", "실제 개인이 아닙니다", "prompt",
+                "AI 생성 이미지", first.insights(), first.advice());
+        // 2위 페르소나 이미지가 없어 1위 이미지를 파일로 쓴 뒤 저장이 실패한다.
+        WorkerResponse missingImage = new WorkerResponse(valid.jobId(), 50, 50, false, valid.collectedAt(),
+                valid.analyzedAt(), valid.reviews(), new WorkerAnalysis(List.of(first, second), List.of()),
+                valid.images(), valid.modelVersions(), valid.schemaVersion());
+        long filesBefore = imageFileCount();
+
+        assertThatThrownBy(() -> transactions.executeWithoutResult(
+                status -> repository.saveCompleted(context, missingImage)))
+                .hasMessageContaining("Missing persona image");
+
+        assertNothingSavedFor(jobId, "RUNNING");
+        assertThat(imageFileCount()).isEqualTo(filesBefore);
+    }
+
+    @Test
     void accountDeletionRemovesUserOwnedData() throws Exception {
+        // 완료된 분석(리뷰·페르소나·근거·이미지·저장본·알림)이 있는 사용자로 삭제 순서를 확인한다.
+        UUID jobId = createJob("탈퇴 테스트 식당");
+        awaitCompleted(jobId);
+        long imagesBefore = imageFileCount();
+        assertThat(imagesBefore).isPositive();
+
         mockMvc.perform(delete("/api/v1/me/account")
                         .with(userJwt()).contentType("application/json")
                         .content("{\"password\":\"password1234\"}"))
                 .andExpect(status().isNoContent());
         assertThat(jdbc.sql("SELECT count(*) FROM users WHERE id = :userId")
                 .param("userId", userId).query(Long.class).single()).isZero();
-        assertThat(jdbc.sql("SELECT count(*) FROM notification_settings WHERE user_id = :userId")
+        for (String table : List.of("notification_settings", "analyses", "analysis_jobs", "saved_analyses",
+                "notifications", "auth_sessions")) {
+            assertThat(jdbc.sql("SELECT count(*) FROM " + table + " WHERE user_id = :userId")
+                    .param("userId", userId).query(Long.class).single()).as(table).isZero();
+        }
+        assertThat(imageFileCount()).isLessThan(imagesBefore);
+    }
+
+    @Test
+    void aRevokedSessionCannotDeleteTheAccount() throws Exception {
+        jdbc.sql("UPDATE auth_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE id = :id")
+                .param("id", sessionId).update();
+
+        mockMvc.perform(delete("/api/v1/me/account")
+                        .with(userJwt()).contentType("application/json")
+                        .content("{\"password\":\"password1234\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("SESSION_REVOKED"));
+        assertThat(jdbc.sql("SELECT count(*) FROM users WHERE id = :userId")
+                .param("userId", userId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    private UUID createJob(String storeName) throws Exception {
+        String body = mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType("application/json")
+                        .content("{\"storeName\":\"" + storeName + "\",\"category\":\"한식\","
+                                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}"))
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        return UUID.fromString(objectMapper.readTree(body).get("jobId").stringValue());
+    }
+
+    private UUID insertJob(String status, int attempts) {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '소유권 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        // 임대 기한을 넉넉히 줘 테스트 중 폴러가 회수하지 않게 한다. QUEUED 는 폴러가 집어 가므로 쓰지 않는다.
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at, completed_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', :status,
+                            CASE WHEN :status = 'FAILED' THEN 'FAILED' ELSE 'ANALYZING' END, :attempts,
+                            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '10 minutes',
+                            CASE WHEN :status = 'FAILED' THEN CURRENT_TIMESTAMP END)
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString())
+                .param("status", status).param("attempts", attempts).update();
+        return jobId;
+    }
+
+    private void assertNothingSavedFor(UUID jobId, String expectedStatus) {
+        assertThat(jdbc.sql("SELECT status FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo(expectedStatus);
+        assertThat(jdbc.sql("SELECT count(*) FROM analyses WHERE job_id = :id")
+                .param("id", jobId).query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id AND type = 'ANALYSIS_COMPLETED'")
+                .param("id", jobId).query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT count(*) FROM saved_analyses WHERE user_id = :userId")
                 .param("userId", userId).query(Long.class).single()).isZero();
+    }
+
+    private long imageFileCount() throws java.io.IOException {
+        Path root = properties.imageStorageDirectory();
+        if (!Files.exists(root)) {
+            return 0;
+        }
+        try (var files = Files.walk(root)) {
+            return files.filter(Files::isRegularFile).count();
+        }
     }
 
     private org.springframework.test.web.servlet.request.RequestPostProcessor userJwt() {
