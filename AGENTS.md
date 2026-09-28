@@ -52,7 +52,7 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 ```
 java 21.0.8   python 3.13.2 (2026-09-16)
 Gradle 9.7.1 → backend/spring-api/gradlew.bat으로 실행 확인
-Docker → CLI 29.8.0 설치됨. Virtual Machine Platform 기능이 꺼져 데몬 미기동 → Testcontainers skip
+Docker 29.8.0 → 데몬 동작, Testcontainers 실제 실행 확인 (2026-09-28, Spring 58 tests skip 0)
 PostgreSQL 18 → 로컬 Windows 서비스로 실행 확인 (2026-09-19). Docker 없이 bootRun 가능
 node 24.19.0   npm 11.17.0 → frontend/mobile install·lint·typecheck·Android export 확인 (2026-09-18)
 Android SDK·adb·emulator → `%LOCALAPPDATA%\Android\Sdk`, `Medium_Phone` AVD(Android 17/API 37)에서 Expo Go 실행 확인 (2026-09-21). 네이티브 development build·실기기 검증 미실행
