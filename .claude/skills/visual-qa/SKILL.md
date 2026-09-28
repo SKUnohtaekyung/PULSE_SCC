@@ -10,11 +10,25 @@ user-invocable: true
 
 ## 0. 전제
 
-현재 스택이 미확정이라 dev 서버 실행 명령이 없다. 렌더링 환경이 준비되지 않았으면 **PASS를 만들어내지 말고** "렌더링 환경 없음 — 시각 검증 미실행"이라고 보고한다.
+앱은 Expo Android 클라이언트(`frontend/mobile`)이며 판정 기준은 **Android 실제 렌더링**이다. web 미리보기는 보조 확인일 뿐 Android 완료 근거가 아니다.
 
-스택 확정 후:
-- Claude Code: `.claude/launch.json` 에 dev 서버를 등록하고 Browser 미리보기로 확인한다
-- Codex: 사용 가능한 브라우저 도구로 동일한 화면을 확인한다
+- 현재 실행 절차와 에뮬레이터 조건은 [frontend/mobile/README.md](../../../frontend/mobile/README.md)와 가장 최근 `docs/design/evidence/TASK-*/README.md`의 `Direct run`을 따른다. `android.package`·scheme이 정해지기 전에는 Expo Go로 실행한다
+- `adb`는 PATH에 없을 수 있다. `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`를 직접 쓰거나 `Direct run`의 PATH 설정을 먼저 적용한다
+- 캡처는 `adb exec-out screencap -p > <evidence>/<name>.png`로 남긴다
+- 접근성 트리는 `adb shell uiautomator dump /sdcard/u.xml` 뒤 `adb exec-out cat /sdcard/u.xml > <evidence>/<name>.xml`로 가져온다. dump만 하면 파일이 기기 안에만 남는다
+- 글자 크기 확대는 `adb shell settings put system font_scale 2.0`으로 확인하고 끝나면 원래 값(`settings get`으로 먼저 기록)으로 되돌린다
+- prop을 **삭제한** 변경은 Fast Refresh만으로 네이티브 뷰에 반영되지 않을 수 있다. 접근성 속성을 판정할 때는 앱을 완전히 다시 실행한 뒤 확인한다
+
+에뮬레이터나 기기를 쓸 수 없으면 **PASS를 만들어내지 말고** "렌더링 환경 없음 — 시각 검증 미실행"이라고 보고한다.
+
+아래 표의 웹 기준 항목은 Android에서 다음처럼 읽는다.
+
+| 표의 항목 | Android에서 확인할 것 |
+|---|---|
+| Desktop / Breakpoint (#2·#4) | 토큰 breakpoint(600·1024) 이상 너비의 태블릿·가로 화면. 대상 기기 범위가 정해지기 전에는 compact 폰 기준으로 판정하고 넓은 화면은 `미확인`으로 적는다 |
+| Hover (#12) | 해당 없음. 대신 눌림(pressed) 상태를 확인한다 |
+| Focus / 키보드 (#12·#13·#14) | TalkBack 초점 순서와 UIAutomator의 `focusable`·`content-desc`. 사람이 들은 발화는 별도로 `미확인` 처리한다 |
+| 확인 방법의 URL/뷰포트 (§6) | 기기·AVD 이름, Android 버전, 해상도·dpi, 글자 배율 |
 
 ## 1. 기준 확인 (렌더링 전)
 

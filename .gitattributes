@@ -1,3 +1,7 @@
 # 4명이 서로 다른 OS(Windows / macOS / Linux)에서 작업할 때
 # 줄바꿈 차이만으로 전체 파일 diff가 발생하는 것을 막는다.
 * text=auto eol=lf
+
+# 공식 글꼴 배포물을 원본 바이트 그대로 보존한다.
+*.otf binary
+frontend/mobile/assets/fonts/OFL.txt -whitespace
