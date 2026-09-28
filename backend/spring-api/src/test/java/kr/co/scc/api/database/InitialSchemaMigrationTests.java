@@ -72,7 +72,7 @@ class InitialSchemaMigrationTests {
         Long migrations = jdbc.sql("""
                         SELECT count(*)
                         FROM flyway_schema_history
-                        WHERE success = true AND version = '1'
+                        WHERE success = true
                         """)
                 .query(Long.class)
                 .single();
