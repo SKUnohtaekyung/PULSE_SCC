@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import time
 from datetime import UTC, datetime
 
@@ -197,6 +198,25 @@ def test_limitations_keep_only_reader_facing_sentences() -> None:
         "동일하게 적용된다고 볼 수 없습니다.",
         "제안의 효과나 매출 상승은 보장하지 않습니다.",
     ]
+
+
+def test_dropped_sentences_are_counted_in_the_log_without_their_text(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING, logger="scc_analysis.analysis.models"):
+        StructuredAnalysis(personas=[_persona()], limitations=_LEAKED_LIMITATIONS)
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert "결과 문구 필터: limitations 에서 문장 1개 중 1개를 뺐습니다." in messages
+    assert "결과 문구 필터: limitations 에서 문장 3개 중 2개를 뺐습니다." in messages
+    assert not any("68번" in message or "접기" in message for message in messages)
+
+
+def test_clean_text_leaves_no_filter_log(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING, logger="scc_analysis.analysis.models"):
+        StructuredAnalysis(personas=[_persona()], limitations=["긍정적인 후기가 대부분입니다."])
+
+    assert caplog.records == []
 
 
 @pytest.mark.parametrize(

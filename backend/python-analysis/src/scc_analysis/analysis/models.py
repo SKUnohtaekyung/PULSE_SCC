@@ -1,8 +1,11 @@
+import logging
 import re
 from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+logger = logging.getLogger(__name__)
 
 Industry = Literal["한식", "중식", "일식", "양식", "카페/디저트", "주점", "기타"]
 InsightKind = Literal["POSITIVE", "NEGATIVE", "PERCEPTION", "PRIORITY"]
@@ -47,13 +50,19 @@ _INTERNAL_MARKERS = re.compile("|".join(_INTERNAL_PATTERNS))
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 
-def reader_facing(text: str) -> str:
+def reader_facing(text: str, *, field: str = "text") -> str:
     """Drop sentences that expose review indexes or internal field names."""
-    kept = [
-        sentence
-        for sentence in _SENTENCE_END.split(text.strip())
-        if sentence and not _INTERNAL_MARKERS.search(sentence)
-    ]
+    sentences = [sentence for sentence in _SENTENCE_END.split(text.strip()) if sentence]
+    kept = [sentence for sentence in sentences if not _INTERNAL_MARKERS.search(sentence)]
+    if len(kept) < len(sentences):
+        # 프롬프트가 1차 방어선이라 필터가 실제로 일하는지 알아야 한다. 빠진 문장에는 리뷰
+        # 내용이 인용될 수 있어 본문은 남기지 않고 건수만 남긴다.
+        logger.warning(
+            "결과 문구 필터: %s 에서 문장 %d개 중 %d개를 뺐습니다.",
+            field,
+            len(sentences),
+            len(sentences) - len(kept),
+        )
     return " ".join(kept)
 
 
@@ -110,7 +119,7 @@ class PersonaOutput(BaseModel):
     @field_validator("caveat")
     @classmethod
     def keep_caveat_reader_facing(cls, value: str) -> str:
-        return reader_facing(value) or _DEFAULT_CAVEAT
+        return reader_facing(value, field="caveat") or _DEFAULT_CAVEAT
 
     @field_validator("insights")
     @classmethod
@@ -130,7 +139,11 @@ class StructuredAnalysis(BaseModel):
     def keep_limitations_reader_facing(cls, value: list[str]) -> list[str]:
         # 항목 길이에는 스키마 상한이 없다. 비정상적으로 긴 출력에서 필터가 느려지지 않도록
         # caveat 상한과 같은 1,000자까지만 본다.
-        return [cleaned for item in value if (cleaned := reader_facing(item[:1000]))]
+        return [
+            cleaned
+            for item in value
+            if (cleaned := reader_facing(item[:1000], field="limitations"))
+        ]
 
     @field_validator("personas", mode="before")
     @classmethod
