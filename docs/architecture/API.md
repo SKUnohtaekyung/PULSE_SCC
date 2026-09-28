@@ -279,7 +279,7 @@ FAILED
 | `IMAGE_GENERATION_FAILED` | true | 도출된 페르소나 이미지 생성 실패 |
 | `ANALYSIS_TIMEOUT` | true | 목표 시간 초과 |
 | `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE` | true | 내부 분석 서비스 연결 실패 |
-| `ANALYSIS_RETRY_EXHAUSTED` | false | 서버가 자동 재시도(최대 3회)를 모두 썼다. 원인 코드는 서버에만 남는다. 앱은 즉시 재시도 버튼 없이 가게 정보로 돌아가 나중에 다시 요청하도록 안내한다 |
+| `ANALYSIS_RETRY_EXHAUSTED` | false | 서버가 자동 재시도(최대 3회 시도, 재시도 2회)를 모두 썼다. 원인 코드는 서버에만 남는다. 앱은 즉시 재시도 버튼 없이 가게 정보로 돌아가 나중에 다시 요청하도록 안내한다 |
 
 위 표의 `retryable` 열은 서버가 그 원인을 자동으로 다시 시도하는지를 뜻한다. `true` 인 원인은 서버가 최대 3회까지 다시 시도하고, 다 쓰면 원인과 관계없이 `ANALYSIS_RETRY_EXHAUSTED` 로 끝난다. 예외로, 작업 정보 자체를 찾지 못한 경우는 재시도 없이 `ANALYSIS_OUTPUT_INVALID` 로 끝난다.
 
@@ -502,18 +502,19 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 - Python은 허용 호스트와 DNS 결과를 다시 검증하지만 사용자·작업 소유권은 Spring이 소유한다.
 - Spring Boot는 Python 내부 상태와 오류를 공개 enum·오류 구조로 정규화한다.
 - 연결·응답 timeout은 환경변수로 설정하고 공개 생성 API는 사용자별 `Idempotency-Key`와 요청 해시로 중복 생성을 방지한다.
-- 현재 Spring 인프로세스 executor는 재시작 복구를 지원하지 않는다. 운영 전 작업 큐·lease·재조정 정책을 확정한다.
+- 작업은 PostgreSQL 임대 방식 큐로 실행한다([ADR-012](../decisions/ADR-012-durable-analysis-job-queue.md)). 재시작하면 임대가 만료된 작업을 다시 큐에 넣어 복구하고, 한 작업은 최대 3회 시도한다.
 
 ---
 
 ## 10. 미확정 항목
 
-1. 액세스·갱신 토큰 형식과 수명·회전·폐기
-2. 전화번호 인증·복구·탈퇴 API
-3. 동시 분석 작업 수와 재분석 cooldown
-4. 기존 결과 유지 시 미저장 결과의 접근 범위·최대 보관 시간
-5. 분석 목표 처리 시간과 timeout
-6. 내부 서비스 자격 증명의 저장·회전 방식
-7. 객체 저장소 선택과 이미지 private cache·서명 URL 수명
+1. 전화번호 인증·계정 복구 API
+2. 동시 분석 작업 수와 재분석 cooldown
+3. 기존 결과 유지 시 미저장 결과의 접근 범위·최대 보관 시간
+4. 분석 목표 처리 시간과 timeout
+5. 내부 서비스 자격 증명의 저장·회전 방식
+6. 객체 저장소 선택과 이미지 private cache·서명 URL 수명
+
+토큰 형식·수명·회전·폐기는 [ADR-008](../decisions/ADR-008-authentication-policy.md)로, 계정 탈퇴는 [ADR-010](../decisions/ADR-010-account-deletion.md)과 §3.1 `DELETE /api/v1/me/account` 로 확정해 이 목록에서 뺐다(2026-09-28).
 
 미확정 값을 구현자가 임의로 채우지 않는다. 결정 후 ADR과 OpenAPI/schema/types에 반영한다.

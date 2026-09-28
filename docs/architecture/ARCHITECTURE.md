@@ -47,7 +47,7 @@ Expo + React Native + TypeScript Android 앱
               └─ 완성된 결과를 내부 HTTP 응답으로 반환
 ```
 
-Spring Boot와 Python은 서비스 토큰이 포함된 내부 HTTP로 통신한다. Python은 한 요청 안에서 공개 네이버 리뷰 수집, 정제, OpenAI 구조화 분석과 이미지 생성을 수행하고 완성된 결과를 반환한다. Spring Boot는 사용자 소유권, 공개 작업 상태, PostgreSQL 결과 저장, 이미지 파일 저장과 완료 트랜잭션을 소유한다. 현재 작업 실행기는 Spring 프로세스 내부 비동기 executor이므로 프로세스 재시작 후 자동 복구와 다중 인스턴스 분산 실행은 지원하지 않는다. 운영 전 내구성 있는 작업 큐와 재조정 정책이 필요하다.
+Spring Boot와 Python은 서비스 토큰이 포함된 내부 HTTP로 통신한다. Python은 한 요청 안에서 공개 네이버 리뷰 수집, 정제, OpenAI 구조화 분석과 이미지 생성을 수행하고 완성된 결과를 반환한다. Spring Boot는 사용자 소유권, 공개 작업 상태, PostgreSQL 결과 저장, 이미지 파일 저장과 완료 트랜잭션을 소유한다. 작업은 PostgreSQL 임대 방식 큐로 실행한다([ADR-012](../decisions/ADR-012-durable-analysis-job-queue.md)). 한 작업은 한 워커만 가져가고, 하트비트가 끊겨 임대가 만료되면 다시 큐에 넣으므로 프로세스를 재시작해도 복구된다. 전달은 at-least-once 라 드물게 같은 작업이 두 번 실행될 수 있고, 다중 인스턴스 동시 운영은 아직 검증하지 않았다.
 
 분석 결과 저장은 [ADR-005](../decisions/ADR-005-analysis-storage-policy.md)를 따른다. PostgreSQL에서 계정당 저장 분석 1개를 고유 제약으로 보장한다. 저장본이 없으면 첫 결과를 자동 저장하고, 이후 새 분석에서는 사용자가 새 결과로 교체하거나 기존 결과를 유지한다. 기존 결과 유지 시 미저장 새 결과의 접근·삭제 정책은 아직 미정이다. MySQL·MongoDB를 별도로 도입하지 않으며 작업·리뷰·분석 결과도 PostgreSQL 논리 모델로 통합한다.
 
