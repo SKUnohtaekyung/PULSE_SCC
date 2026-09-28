@@ -96,9 +96,9 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 - 옛 로컬 커밋 번호는 원격에 없다. 인계 문서 두 개의 번호는 새 번호로 바꿨고, 대응은 상태 정본 "Last Verified Commit" 머리 주석에 있다. `docs/design/figma/TASK-020/README.md` 118줄의 `923734f`(= 새 `8df630e`)는 그때의 기록이라 고치지 않았다.
 - 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`은 지우지 않고 남겨 두었다(추적하던 원격 `feat/TASK-020-frontend-mobile`은 병합 뒤 지워졌다. 그 커밋은 GitHub에서 `refs/pull/35/head`로 닿는다). 새 작업은 `feat/TASK-020-design-followup`에서 한다.
 
-## GitHub 반영 — 끝남 (2026-09-28)
+## GitHub 반영 — PR #38 생성 끝남 (2026-09-28)
 
-아래 1~4를 2026-09-28에 했다. main은 바뀌지 않아(`HEAD..origin/main` 0개) rebase하지 않았다. 검증 5개는 모두 종료 0이었고 실제 출력은 PR #38 검증 표에 있다. PR 전 독립 리뷰는 새 커밋이 없어 다시 돌리지 않았다. 남은 것은 5번이다. 기록으로 남기는 원래 순서:
+아래 1~4를 2026-09-28에 했다. 그 뒤 커밋은 같은 브랜치에 push해 PR #38에 더한다(위 Git 상태). main은 바뀌지 않아(`HEAD..origin/main` 0개) rebase하지 않았다. 검증 5개는 모두 종료 0이었고 실제 출력은 PR #38 검증 표에 있다. PR 전 독립 리뷰는 새 커밋이 없어 다시 돌리지 않았다. 남은 것은 5번이다. 기록으로 남기는 원래 순서:
 
 1. `git status`·`git branch --show-current`(= `feat/TASK-020-design-followup`)·`git log --oneline origin/main..HEAD` 확인. `git fetch origin`으로 main이 그 뒤 바뀌었는지 보고, 바뀌었으면 rebase가 필요한지 사용자에게 먼저 알린다.
 2. 자동 검증을 한 번 더 돌린다: `verify:tokens`·`lint`·`typecheck`·`export:android`, 보드 `check.mjs`. 결과를 PR 검증 표에 실제 출력대로 적는다.
