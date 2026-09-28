@@ -500,8 +500,11 @@ const styles = StyleSheet.create({
   },
   sectionHead: {
     flexDirection: 'row',
+    // 글자를 키우면 옆 설명이 화면 밖으로 밀려난다. 자리가 모자라면 다음 줄로 내린다.
+    flexWrap: 'wrap',
     alignItems: 'flex-end',
-    gap: spacing[3],
+    columnGap: spacing[3],
+    rowGap: spacing[1],
     justifyContent: 'space-between',
   },
   sectionAside: {

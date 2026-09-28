@@ -51,6 +51,7 @@
 
 ## Changed
 
+- (글자 크기 200% 확인, 2026-09-28) `features/result/ResultView.tsx`(`sectionHead` — 자리가 모자라면 `리뷰 수 순서`를 다음 줄로), `components/ui/PodiumTop3.tsx`(`podiumBlockHeight` — 세 단상에 `spacing[10] × (fontScale − 1)`을 똑같이 더해 3위 단상의 `보는 중` 잘림을 막음, 100%에서는 그대로). 둘 다 PR #35부터 있던 결함. evidence `font200-*` 11장
 - (마이페이지 저장 이미지, 2026-09-28) `features/mypage/MyPageScreen.tsx`(`StoredPersonaRow` — 동그란 그림 + 순위·유형 이름, 순위 순 정렬), `components/ui/PersonaAvatar.tsx`(`usePersonaImageRetry`·`PersonaImageError` — 홈 카드와 공유), `features/result/ResultView.tsx`(공유 도구로 교체), `components/ui/PersonaImageBlock.tsx` 삭제, 보드 `generate.mjs`·`svg/10`(MyPage-Images 화면 추가), `SCREEN_STATES` §8 `STORED-IMAGES-NORMAL`, `DESIGN_SYSTEM` §3.6, evidence `mypage-images-*` 2장. 독립 Reviewer PASS(차단 0·P3 3 — 주석, Unresolved 16 서술, 생성기의 안 쓰는 줄 → 반영)
 
 - (선택 유형 요약 카드, 2026-09-28) 결과 화면의 큰 이미지 칸을 사용자가 고른 F안 카드로 바꿨다 — 손님 그림·순위·리뷰 수·분석 리뷰 대비 비율 막대·관점별 근거 수 칩. `features/result/ResultView.tsx`(`PersonaStatsCard`, 이미지 실패 시 다시 불러오기), `components/ui/PersonaAvatar.tsx`(`compact` 크기, `onLoadError`), 보드 `generate.mjs`·`svg/08`(Image-States 화면), `SCREEN_STATES` §6.1·§6.4·§11, `DESIGN_SYSTEM` §3.6·§6 SC-007, `RESULT_IA` 구조도·트리, evidence `stats-card-*` 3장. 독립 Reviewer 1차 FAIL(P1 — 카드 묶음 라벨이 서버 대체 텍스트를 가림, P2 1·P3 5) → 반영 후 2차 PASS(P3 3 — 주석 위치 반영, altText 형식·가상 서버 대체 텍스트가 음식을 설명하는 차이는 실제 서버 연결 때 확인)
@@ -176,6 +177,7 @@
 - (손님 캐릭터 교체, 2026-09-28) `verify:tokens`(그림 옷/배경·눈썹/얼굴 대비 포함)·`lint`·`typecheck`·`export:android` 종료 0, 보드 `check.mjs` 0건, Android 캡처 `guest-v2-*` 2장, 독립 Reviewer PASS. 200%·TalkBack·실기기 미실행
 - (선택 유형 요약 카드, 2026-09-28) 같은 4종 종료 0, `check.mjs` 0건, Android 캡처 `stats-card-*` 3장(1위·2위·이미지 조회 실패), 독립 Reviewer 1차 FAIL → 2차 PASS. 원격 이미지 로딩·다시 불러오기·TalkBack 실제 낭독 미확인
 - (마이페이지 저장 이미지, 2026-09-28) 같은 4종 종료 0, `check.mjs` 0건, Android 캡처 `mypage-images-*` 2장(정상·실패), 독립 Reviewer PASS. 원격 이미지·200%·TalkBack 미확인
+- (글자 크기 200% 확인, 2026-09-28) `font_scale 2.0`에서 가입(빈 칸·불일치 오류)·홈 TOP3·1위/3위 요약 카드·이미지 조회 실패·마이페이지 저장 이미지를 Android로 확인. 결함 2건(제목 줄 밀림, 3위 단상 글자 잘림)을 고쳐 다시 확인했고, `1.0`으로 되돌려 회귀 없음 확인. 요약 카드 3위 선택도 이때 확인(24%). `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, `check.mjs` 0건. 근거는 [evidence README](../../design/evidence/TASK-020/README.md) "글자 크기 200%·요약 카드 3위 선택"
 - (Figma, 2026-09-28) 보드 반영은 사용자 보고만 있다 — 에이전트는 MCP 한도로 파일을 보지 못했다(보드 README "Import 결과 (2026-09-28)")
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
