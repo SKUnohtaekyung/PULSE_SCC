@@ -48,7 +48,7 @@
 
 ## Changed
 
-- (Step 12 Spec Update, 2026-09-28) 홈 결과 순서(TOP3 먼저·분석 정보와 한계는 맨 아래, 2026-09-27 디자인 리뷰 #3)가 `RESULT_IA` §3.1 구조도 아래 본문과 `DESIGN_SYSTEM` §6 SC-006 행에만 들어가 있었다. 옛 순서가 남은 곳을 grep으로 찾아 고쳤다: `RESULT_IA.md` §3.1 구조도·§3.2 계층 트리·D7·홈 행, `USER_FLOW.md` 9번·흐름도·기본 흐름 행, `GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` RESULT-001. `SCREEN_STATES.md` §6.1에 빈 슬롯 사유 위치와 한계·2년 경고 위치를 적었다. `AGENTS.md` 2장 테스트 러너 행에 E2E·visual regression 미도입과 재검토 시점을 더했다. 남색·주황 사용처는 `DESIGN_SYSTEM` §2.2·§3.3·§5.4에 이미 있어 바꾸지 않았다
+- (Step 12 Spec Update, 2026-09-28) 홈 결과 순서(TOP3 먼저·분석 정보와 한계는 맨 아래, 2026-09-27 디자인 리뷰 #3)가 `RESULT_IA` §3.1 구조도 아래 본문과 `DESIGN_SYSTEM` §4.1·§6 SC-006 행에는 들어가 있었다. 옛 순서가 남은 곳을 grep으로 찾아 고쳤다: `RESULT_IA.md` §3.1 구조도·§3.2 계층 트리·D7·홈 행, `USER_FLOW.md` 9번·흐름도·기본 흐름 행, `GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` RESULT-001. `SCREEN_STATES.md` §6.1에 빈 슬롯 사유 위치와 한계·2년 경고 위치를 적었다. `AGENTS.md` 2장 테스트 러너 행에 E2E·visual regression 미도입과 재검토 시점을 더했다. 남색·주황 사용처는 `DESIGN_SYSTEM` §2.2·§3.3·§5.4에 이미 있어 바꾸지 않았다
 
 - (가입 비밀번호 확인 칸, 2026-09-28) `features/auth/SignupScreen.tsx` 확인 칸·검증 / `SCREEN_STATES.md` §3.2 세 행·§13 9차 / `DESIGN_SYSTEM.md` §5.3 CredentialForm 행 / 보드 `generate.mjs`·`svg/09-final-auth.svg` / evidence `signup-confirm-*` 5장과 README. `PRD.md`·기능명세는 "필수로 받는 정보"(서버에 보내는 값)를 말하므로 바꾸지 않았다
 
@@ -182,6 +182,8 @@
 12. `StepIndicator`의 끝난 단계에 붙인 `✓`가 라벨 본문에 섞여 있다. TalkBack이 기호를 그대로 읽을 수 있는데 실행하지 못해 미확인이다. 보조기술 검증을 할 때 함께 본다.
 13. ~~Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)이 2026-09-22 보드 8장 그대로다~~ — 2026-09-28 해소. 사용자가 새 페이지 `TASK-020 Vertical Slice (2026-09-28)`에 보드 10장을 직접 넣었고 Pretendard로 표시됨을 확인했다(보드 README "Import 결과 (2026-09-28)"). 남은 것: Figma MCP는 여전히 Starter 한도라 에이전트가 파일을 검사하지 못한다 — 잘림·굵기·팀원 PC 글꼴은 미확인. 디자인 정본은 여전히 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
 14. **브랜치와 TASK가 어긋나 있다.** 이 문서의 `Branch`는 `docs/TASK-020-frontend-state-model`이지만 Step 3~10 작업은 전부 `docs/TASK-019-step0-rebaseline` 브랜치에서 했다. PR을 TASK-019와 TASK-020으로 나눌지, 한 PR로 낼지 사용자가 정한다(AGENTS 6.2 — PR은 TASK 1개에 대응).
+
+15. **`docs/architecture/API.md` 272줄이 옛 결과 순서다**(`분석 메타정보 → 3칸 포디움 → …`). Step 12 독립 리뷰(2026-09-28)가 찾았다. `role:platform` 소유라 이 TASK에서 고치지 않았다. 화살표를 빼고 데이터 구성으로 적거나 RESULT_IA D7로 링크하도록 `role:platform`에 넘긴다(PR 본문에도 적는다).
 
 ## Do Not Assume
 

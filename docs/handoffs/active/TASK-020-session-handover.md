@@ -13,7 +13,7 @@
 | 발표 시안·디자인 리뷰 반영 | 끝남. 반영분 독립 리뷰 8차 PASS |
 | 시상대 그림 버그 | 고침. 선택되지 않은 순위의 캐릭터가 사라지던 것(Android 둥근 클리핑). 캐릭터는 SVG 안에서 원으로 자른다 |
 | **11단계 자동 검증** | **끝남.** lint·typecheck·`export:android`·`verify:tokens`·보드 `check.mjs` 모두 통과. 테스트·E2E·visual regression은 도구가 없고 **지금은 도입하지 않기로 사용자가 정했다** |
-| **12단계 Spec Update** | **진행 중 (2026-09-28).** 정본 반영 끝, 독립 리뷰 대기 — 상태 정본 Changed 첫 줄 참고 |
+| **12단계 Spec Update** | **끝남 (2026-09-28).** 독립 Reviewer PASS(차단 0·P2 1·P3 6). P2(API.md 옛 순서)는 role:platform 소유라 상태 정본 Unresolved 15로 넘김. P3 5건 반영, 문서 기준일 갱신은 보류 |
 | **Figma 파일 갱신** | **끝남 (2026-09-28).** 사용자가 새 페이지에 보드 10장을 직접 넣음, Pretendard 표시 확인(사용자 보고) |
 | 통합 테스트 인계 문서 | 끝남. [frontend/mobile/INTEGRATION_GUIDE.md](../../../frontend/mobile/INTEGRATION_GUIDE.md) |
 | GitHub 업로드·PR | 끝남. 이 인계의 범위 밖이다. 사용자가 다시 말하기 전에는 push·PR·병합을 하지 않는다 |
