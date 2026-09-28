@@ -14,14 +14,19 @@ import {
 } from '@/api/endpoints';
 import { resolveErrorMessage } from '@/api/errorMessage';
 import { ApiError, SessionExpiredError } from '@/api/errors';
-import { personaImageSource } from '@/api/personaImages';
+import { personaImageSource, type PersonaImageSource } from '@/api/personaImages';
 import type { AnalysisResult, NotificationItem } from '@/api/types';
 import { BottomNavigation } from '@/components/ui/BottomNavigation';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingBlock } from '@/components/ui/LoadingBlock';
 import { Notice } from '@/components/ui/Notice';
-import { PersonaImageBlock } from '@/components/ui/PersonaImageBlock';
+import {
+  PersonaAvatar,
+  PersonaAvatarNotice,
+  PersonaImageError,
+  usePersonaImageRetry,
+} from '@/components/ui/PersonaAvatar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ToggleRow } from '@/components/ui/ToggleRow';
@@ -170,10 +175,13 @@ export function MyPageScreen() {
     await signOut();
   };
 
+  // 순위를 함께 들고 간다. 자리표시 그림은 시상대와 같은 순위 자리의 손님이어야 한다.
   const personaImages =
     savedResult.data?.podium
       .filter((slot) => slot.status === 'FILLED' && slot.persona)
-      .map((slot) => slot.persona!) ?? [];
+      .sort((a, b) => a.rank - b.rank)
+      .map((slot) => ({ rank: slot.rank, persona: slot.persona! })) ?? [];
+  const personaSources = personaImages.map(({ persona }) => personaImageSource(client, persona.image));
 
   return (
     <Screen
@@ -258,19 +266,16 @@ export function MyPageScreen() {
           <Notice alert title="저장된 결과를 불러오지 못했어요" message={savedResult.message} tone="error" />
         ) : personaImages.length > 0 ? (
           <View style={styles.images}>
-            <Text style={styles.empty}>
-              손님 유형 이미지는 리뷰 패턴을 설명하려고 AI가 만드는 그림이에요. 실제 손님 사진이 아니에요.
-            </Text>
-            {personaImages.map((persona) => (
-              <View key={persona.id} style={styles.imageItem}>
-                <PersonaImageBlock
-                  altText={persona.image.altText}
-                  showNotice={false}
-                  size="small"
-                  source={personaImageSource(client, persona.image)}
-                />
-                <Text style={styles.imageLabel}>{persona.label}</Text>
-              </View>
+            {/* 홈 시상대와 같은 고지 — 실제 이미지가 한 장이라도 있으면 AI 이미지라고, 없으면 자리표시라고 알린다. */}
+            <PersonaAvatarNotice anyRemote={personaSources.some((source) => source.kind === 'remote')} />
+            {personaImages.map(({ rank, persona }, index) => (
+              <StoredPersonaRow
+                altText={persona.image.altText}
+                key={persona.id}
+                label={persona.label}
+                rank={rank}
+                source={personaSources[index]}
+              />
             ))}
             <Text style={styles.empty}>
               읽기 전용이에요. 새 결과로 바꾸면 이미지도 함께 바뀌어요.
@@ -337,6 +342,45 @@ export function MyPageScreen() {
   );
 }
 
+// 저장된 결과의 손님 유형 한 줄(STORED-IMAGES-NORMAL). 홈과 같은 그림·같은 실패 규칙을 쓴다(SCREEN_STATES §6.4).
+function StoredPersonaRow({
+  rank,
+  label,
+  altText,
+  source,
+}: {
+  rank: number;
+  label: string;
+  altText: string;
+  source: PersonaImageSource;
+}) {
+  const image = usePersonaImageRetry(source);
+  return (
+    <View style={styles.imageItem}>
+      <View
+        accessible
+        // 그림과 이름을 한 번에 읽는다. 묶으면 그림 라벨이 가려지므로 서버 대체 텍스트를 함께 붙인다.
+        accessibilityLabel={`${altText}. ${rank}위 ${label}`}
+        style={styles.imageRow}
+      >
+        <PersonaAvatar
+          altText={altText}
+          key={image.attempt}
+          onLoadError={image.onLoadError}
+          size="compact"
+          source={source}
+          variant={rank - 1}
+        />
+        <View style={styles.imageText}>
+          <Text style={styles.imageRank}>{rank}위 손님</Text>
+          <Text style={styles.imageLabel}>{label}</Text>
+        </View>
+      </View>
+      {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.background.surface,
@@ -373,6 +417,19 @@ const styles = StyleSheet.create({
   },
   imageItem: {
     gap: spacing[2],
+  },
+  imageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[4],
+  },
+  imageText: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  imageRank: {
+    ...typography.caption,
+    color: colors.text.secondary,
   },
   logoutActions: {
     gap: spacing[2],

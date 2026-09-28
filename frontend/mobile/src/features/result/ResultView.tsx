@@ -2,13 +2,17 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import type { ApiClient } from '@/api/client';
-import { personaImageSource } from '@/api/personaImages';
-import type { AnalysisResult, PerspectiveKey, PodiumSlot } from '@/api/types';
+import { personaImageSource, type PersonaImageSource } from '@/api/personaImages';
+import type { AnalysisResult, Persona, PerspectiveKey, PodiumSlot } from '@/api/types';
 import { Notice } from '@/components/ui/Notice';
-import { PersonaAvatarNotice } from '@/components/ui/PersonaAvatar';
-import { PersonaImageBlock } from '@/components/ui/PersonaImageBlock';
+import {
+  PersonaAvatar,
+  PersonaAvatarNotice,
+  PersonaImageError,
+  usePersonaImageRetry,
+} from '@/components/ui/PersonaAvatar';
 import { PodiumTop3 } from '@/components/ui/PodiumTop3';
-import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
+import { colors, fontFamilies, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
 // 결과 표시. 읽는 순서는 DESIGN_SYSTEM §4.1을 따른다.
 // 1) 손님 TOP3 → 2) 선택한 유형의 4관점 → 3) 대표 근거 → 4) AI 해석 → 5) 검토할 행동 → 6) 무엇을 얼마나 분석했는가
@@ -108,6 +112,7 @@ export function ResultView({
           key={selected.rank}
           onOpenEvidence={onOpenEvidence}
           slot={selected}
+          validReviewCount={result.metadata.validReviewCount}
         />
       ) : null}
 
@@ -155,16 +160,102 @@ function AnalysisInfoBlock({ result }: { result: AnalysisResult }) {
   );
 }
 
+// 선택한 유형의 요약 카드(2026-09-28 사용자 선택 F안). 큰 이미지 칸을 대신한다.
+// 왼쪽 그림은 시상대와 같은 PersonaAvatar — 실제 서버에서는 AI 이미지, 가상 서버에서는 손님 캐릭터다.
+// 생성 사실 고지는 시상대 아래 PersonaAvatarNotice가 한 화면에 한 번 한다.
+// 비율은 앱이 계산한 값이다(topicReviewCount ÷ validReviewCount). 한 리뷰가 여러 유형에 함께 세어지는지는
+// 계약에 없어 미확인이다 — SCREEN_STATES §11에 백엔드 확인 항목으로 올렸다.
+function PersonaStatsCard({
+  source,
+  altText,
+  rank,
+  topicReviewCount,
+  validReviewCount,
+  perspectives,
+}: {
+  source: PersonaImageSource;
+  altText: string;
+  rank: number;
+  topicReviewCount?: number;
+  validReviewCount: number;
+  perspectives: Persona['perspectives'];
+}) {
+  const share =
+    topicReviewCount !== undefined && validReviewCount > 0
+      ? Math.round((topicReviewCount / validReviewCount) * 100)
+      : null;
+  const chips = perspectiveOrder.filter((item) => perspectives[item.key]);
+  // IMAGE-LOAD-ERROR(SCREEN_STATES §6.4) — 그림은 자리표시로 바꾸고 유형 정보는 그대로 둔 채 다시 불러오기를 준다.
+  const image = usePersonaImageRetry(source);
+
+  return (
+    <View style={styles.statsCard}>
+      <View
+        accessible
+        // 그림과 숫자를 한 번에 읽게 묶는다. 묶으면 PersonaAvatar의 라벨이 가려지므로 서버 대체 텍스트를 여기서 함께 읽힌다.
+        accessibilityLabel={
+          `${altText}. ${rank}위 손님` +
+          (topicReviewCount !== undefined ? `, 리뷰 ${topicReviewCount}건` : '') +
+          (share !== null ? `, 분석한 리뷰 ${validReviewCount}건 중 ${share}%` : '')
+        }
+        style={styles.statsHead}
+      >
+        <PersonaAvatar
+          altText={altText}
+          key={image.attempt}
+          onLoadError={image.onLoadError}
+          size="compact"
+          source={source}
+          variant={rank - 1}
+        />
+        <View style={styles.statsText}>
+          <Text style={styles.statsRank}>{rank}위 손님</Text>
+          {topicReviewCount !== undefined ? (
+            <Text style={styles.statsCount}>리뷰 {topicReviewCount}건</Text>
+          ) : null}
+          {share !== null ? (
+            <>
+              <View style={styles.statsTrack}>
+                {/* 100%를 넘는 값은 데이터가 이상하다는 뜻이다. 문장에는 그대로 보여 드러나게 하고, 막대만 카드 밖으로 나가지 않게 자른다. */}
+                <View style={[styles.statsBar, { width: `${Math.min(100, share)}%` }]} />
+              </View>
+              <Text style={styles.statsShare}>
+                분석한 리뷰 {validReviewCount}건 중 {share}%
+              </Text>
+            </>
+          ) : null}
+        </View>
+      </View>
+
+      {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
+
+      {chips.length > 0 ? (
+        <View style={styles.chipRow}>
+          {chips.map((item) => (
+            <View key={item.key} style={styles.statChip}>
+              <Text style={styles.statChipLabel}>
+                {item.label} <Text style={styles.statChipValue}>{perspectives[item.key]?.evidenceCount}건</Text>
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function PersonaDetail({
   slot,
   client,
   analysisId,
   onOpenEvidence,
+  validReviewCount,
 }: {
   slot: PodiumSlot;
   client: ApiClient;
   analysisId: string;
   onOpenEvidence?: OpenEvidence;
+  validReviewCount: number;
 }) {
   const persona = slot.persona;
   const source = persona ? personaImageSource(client, persona.image) : null;
@@ -179,7 +270,16 @@ function PersonaDetail({
       <Text style={styles.personaSummary}>{persona.summary}</Text>
       {persona.caveat ? <Text style={styles.personaCaveat}>{persona.caveat}</Text> : null}
 
-      {source ? <PersonaImageBlock altText={persona.image.altText} source={source} /> : null}
+      {source ? (
+        <PersonaStatsCard
+          altText={persona.image.altText}
+          perspectives={persona.perspectives}
+          rank={slot.rank}
+          source={source}
+          topicReviewCount={slot.topicReviewCount}
+          validReviewCount={validReviewCount}
+        />
+      ) : null}
 
       {perspectiveOrder.map((item) => {
         const block = persona.perspectives[item.key];
@@ -400,8 +500,11 @@ const styles = StyleSheet.create({
   },
   sectionHead: {
     flexDirection: 'row',
+    // 글자를 키우면 옆 설명이 화면 밖으로 밀려난다. 자리가 모자라면 다음 줄로 내린다.
+    flexWrap: 'wrap',
     alignItems: 'flex-end',
-    gap: spacing[3],
+    columnGap: spacing[3],
+    rowGap: spacing[1],
     justifyContent: 'space-between',
   },
   sectionAside: {
@@ -442,6 +545,68 @@ const styles = StyleSheet.create({
   },
   limitations: {
     gap: spacing[3],
+  },
+  statsCard: {
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.default,
+    borderRadius: radii.panel,
+    borderWidth: strokes.hairline,
+    gap: spacing[4],
+    padding: spacing[4],
+  },
+  statsHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[4],
+  },
+  statsText: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  statsRank: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  statsCount: {
+    ...typography.body1,
+    color: colors.text.strong,
+  },
+  statsTrack: {
+    height: spacing[2],
+    borderRadius: radii.pill,
+    backgroundColor: colors.background.emphasized,
+    overflow: 'hidden',
+  },
+  statsBar: {
+    height: '100%',
+    borderRadius: radii.pill,
+    backgroundColor: colors.brand.primary,
+  },
+  statsShare: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  statChip: {
+    backgroundColor: colors.background.subtle,
+    borderColor: colors.border.default,
+    borderRadius: radii.pill,
+    borderWidth: strokes.hairline,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+  },
+  statChipLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  statChipValue: {
+    ...typography.caption,
+    fontFamily: fontFamilies.semibold,
+    color: colors.text.brand,
   },
   personaSummary: {
     ...typography.body4,

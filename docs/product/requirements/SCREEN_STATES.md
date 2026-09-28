@@ -107,10 +107,10 @@
 | `AUTH-EDITING` | 서비스 자체 로그인 정보 입력 | 이메일·비밀번호 입력값, 필수 여부, 제출 가능 상태 | 클라이언트 형식 검증 | 계속 입력 또는 로그인 제출 |
 | `AUTH-LEGAL-LOADING` | 가입 화면 진입 | 약관·개인정보 처리방침을 불러오는 중 | `GET /api/v1/legal-documents`로 현재 `termsVersion`·`privacyVersion` 조회 | `AUTH-SIGNUP-EDITING` 또는 `AUTH-LEGAL-ERROR` |
 | `AUTH-LEGAL-ERROR` | 법률 문서 조회 실패 | 약관을 불러오지 못해 가입을 진행할 수 없다는 안내와 재시도 | 가입 요청을 보내지 않음 | 재조회 또는 로그인 방식 선택 |
-| `AUTH-SIGNUP-EDITING` | 자체 계정 가입 정보 입력 | 이메일·비밀번호·전화번호, 전화번호는 인증·복구에 쓰지 않는다는 목적 고지, 조회한 버전의 이용약관·개인정보 처리방침 동의 | 클라이언트 형식 검증. 동의한 `termsVersion`·`privacyVersion`을 가입 요청에 포함 | 계속 입력 또는 가입 제출 |
-| `AUTH-CONSENT-OUTDATED` | 가입 요청이 `400 CURRENT_LEGAL_CONSENT_REQUIRED`로 거부됨 | 약관이 바뀌어 다시 동의해야 한다는 안내. 입력한 이메일·전화번호는 보존 | 법률 문서를 다시 조회 | `AUTH-LEGAL-LOADING` |
+| `AUTH-SIGNUP-EDITING` | 자체 계정 가입 정보 입력 | 이메일·비밀번호·비밀번호 확인·전화번호, 전화번호는 인증·복구에 쓰지 않는다는 목적 고지, 조회한 버전의 이용약관·개인정보 처리방침 동의 | 클라이언트 형식 검증과 비밀번호 확인 일치 검사. 동의한 `termsVersion`·`privacyVersion`을 가입 요청에 포함. 비밀번호 확인 값은 요청에 넣지 않음 | 계속 입력 또는 가입 제출 |
+| `AUTH-CONSENT-OUTDATED` | 가입 요청이 `400 CURRENT_LEGAL_CONSENT_REQUIRED`로 거부됨 | 약관이 바뀌어 다시 동의해야 한다는 안내. 입력한 이메일·전화번호는 보존하고 비밀번호·비밀번호 확인은 지운 사실을 알림 | 법률 문서를 다시 조회 | `AUTH-LEGAL-LOADING` |
 | `AUTH-SIGNUP-UNAVAILABLE` | 운영 가입이 닫혀 있음 | 지금은 가입할 수 없다는 안내와 기존 계정 로그인 진입점 | 가입 요청을 보내지 않음. 판별 방법은 §11 미정 — 현재 백엔드는 `legallyReviewed`를 항상 `false`로 반환하고 가입을 막지 않으므로 이 값만으로 판별하지 않는다 | 로그인 방식 선택 |
-| `AUTH-FIELD-ERROR` | 이메일 형식·필수값·비밀번호 정책(8자 이상, UTF-8 72바이트 이하)·전화번호 형식·약관 미동의, 또는 서버 `fieldErrors` | 해당 필드 가까이 원인과 수정 방법 | 서버 요청 전 차단 가능한 오류는 요청하지 않음 | 입력 수정 |
+| `AUTH-FIELD-ERROR` | 이메일 형식·필수값·비밀번호 정책(8자 이상, UTF-8 72바이트 이하)·가입 비밀번호 확인 누락·불일치·전화번호 형식·약관 미동의, 또는 서버 `fieldErrors` | 해당 필드 가까이 원인과 수정 방법 | 서버 요청 전 차단 가능한 오류는 요청하지 않음 | 입력 수정 |
 | `AUTH-SUBMITTING` | 서비스 자체 로그인 요청 | 로그인 처리 중 안내 | 중복 제출 차단 | 성공 또는 오류 |
 | `AUTH-SIGNUP-SUBMITTING` | 자체 계정 가입 요청 | 가입 처리 중 안내 | 중복 제출 차단 | 생성 또는 오류 |
 | `AUTH-SIGNUP-CREATED` | 자체 계정 생성 성공 | 계정이 만들어졌다는 안내 | 백엔드가 가입 응답(`201`)으로 세션을 발급하므로 토큰을 안전 저장소에 저장 | `AUTH-SUCCESS` |
@@ -222,10 +222,10 @@
 | `HOME-LOADING` | 저장 분석 조회 중 | 저장 결과를 불러오는 중이라는 안내 | 정상·없음·오류 |
 | `HOME-NO-SAVED-RESULT` | 인증됐지만 저장 결과 없음 | 홈 대신 가게 입력 흐름 | 첫 분석 시작 |
 | `RESULT-NORMAL` | 페르소나 3개 | TOP3 시상대 → 최초 1위 콘텐츠 → 분석 정보 | 유형 선택·근거·제안 탐색 |
-| `RESULT-PARTIAL` | 페르소나 1~2개 | 3칸 유지, 실제 유형만 채우고 빈 슬롯에 근거 부족 이유 | 존재하는 유형 선택 |
+| `RESULT-PARTIAL` | 페르소나 1~2개 | 3칸 유지, 실제 유형만 채우고 빈 슬롯에 근거 부족 이유(빈 자리의 원과 단상 사이) | 존재하는 유형 선택 |
 | `RESULT-NO-PERSONA` | 유효 리뷰 50건 이상이나 근거를 충족한 토픽 0개 | 세 빈 슬롯과 근거 부족 안내, 선택 콘텐츠 없음 | 새 분석 또는 한계 확인 |
-| `RESULT-LIMITS` | 모든 정상·유형 부족 결과 | 리뷰 작성자가 전체 고객을 대표하지 않을 수 있다는 자기선택·대표성 한계 | 한계를 확인한 상태로 결과 탐색 |
-| `RESULT-OLD-REVIEWS` | 2년 초과 리뷰 포함 | 현재 매장과 다를 수 있다는 우려 메시지 | 결과를 한계와 함께 탐색 |
+| `RESULT-LIMITS` | 모든 정상·유형 부족 결과 | 리뷰 작성자가 전체 고객을 대표하지 않을 수 있다는 자기선택·대표성 한계. 맨 아래 분석 정보 카드 밑에 둔다 | 한계를 확인한 상태로 결과 탐색 |
+| `RESULT-OLD-REVIEWS` | 2년 초과 리뷰 포함 | 현재 매장과 다를 수 있다는 우려 메시지. 결과 한계 고지 바로 아래 | 결과를 한계와 함께 탐색 |
 | `RESULT-ERROR` | 저장 결과 조회 실패·결과 불완전 | 원인·현재 저장본 상태·재시도 | 재조회 |
 | `RESULT-UNAUTHORIZED` | 다른 사용자 결과·세션 만료 | 접근 불가 또는 로그인 만료 안내 | 로그인 |
 
@@ -239,6 +239,7 @@
 | `RESULT-OLD-REVIEWS` | `metadata.containsReviewsOlderThanTwoYears=true`. 원격 백엔드의 `limitations[].code`는 항상 `ANALYSIS_LIMITATION`이라 코드로 판정하지 않는다 |
 | `RESULT-LIMITS` | 항상 표시. 서버 `limitations[].message`가 있으면 함께 표시 |
 | 분석 기준 정보 | `store.name`, `metadata`의 `platform`, `collectedReviewCount`(수집 건수), `validReviewCount`(분석 사용 건수), `collectedAt`, `analyzedAt` |
+| 선택 유형 요약 카드(2026-09-28) | 유형 이름·요약 아래, 4관점 위. 손님 그림(`persona.image`), `rank`, `topicReviewCount`, 분석 사용 리뷰 대비 비율(앱 계산값 `round(topicReviewCount ÷ validReviewCount × 100)`), 관점별 `evidenceCount` 칩. 비율의 뜻은 §11 미정 항목을 따른다 |
 
 `RESULT-NO-PERSONA`는 계약상 상태지만 원격 백엔드에서는 현재 나올 수 없다. Python 분석 결과가 페르소나를 최소 1개 요구해, 근거를 충족한 토픽이 0개면 결과 대신 재시도 가능한 작업 실패(`ANALYSIS_SERVICE_REJECTED`)가 된다(§11). 앱은 이 상태를 구현하되 검증은 fixture로 한다.
 
@@ -269,6 +270,8 @@
 ### 6.4 `SC-007` 페르소나 이미지
 
 결과의 `image.url`은 `/api/v1/persona-images/{imageId}` 형태의 상대 경로이며, 요청 사용자의 소유권을 확인하므로 `Authorization` 헤더가 필요하다. 앱은 API 기본 주소와 결합하고 인증 헤더를 붙여 요청한다. 401이면 불변식 12에 따라 토큰을 갱신한 뒤 한 번 다시 요청하고, 그래도 실패할 때만 `IMAGE-LOAD-ERROR`로 간다. 이미지 컴포넌트의 오류 콜백으로는 HTTP 상태를 알기 어려우므로, 세션 응답의 `accessTokenExpiresAt`을 보고 만료 전에 미리 갱신하거나 이미지를 앱의 요청 계층으로 받아 표시한다. 마이페이지의 `STORED-IMAGES-*`도 같은 규칙을 따른다.
+
+결과 화면은 2026-09-28부터 이미지를 큰 칸 대신 **TOP3 시상대와 선택 유형 요약 카드의 동그란 그림**으로 보여 준다(§6.1). 카드에서 `IMAGE-LOADING`은 같은 크기의 회색 원으로 자리를 지키고, `IMAGE-LOAD-ERROR`는 그림을 자리표시 캐릭터로 바꾼 뒤 카드 안에 원인 문장과 `이미지 다시 불러오기`를 둔다(원격 이미지일 때만. 가상 서버에는 다시 받을 이미지가 없어 버튼을 두지 않는다). 시상대 그림은 실패하면 자리표시로만 바뀐다. 카드의 다시 불러오기는 **카드 그림만** 다시 받으므로, 성공해도 시상대 그림은 화면을 다시 열 때까지 자리표시로 남을 수 있다. 카드의 묶음 라벨은 서버 대체 텍스트(`image.altText`)를 앞에 붙여 읽힌다. AI 생성 고지는 시상대 아래 문장이 한 화면에 한 번 한다.
 
 | 상태 ID | 조건 | 사용자에게 보이는 것 | 시스템 규칙 |
 |---|---|---|---|
@@ -331,7 +334,7 @@
 | 설정 | `SETTING-UPDATING` | 분석 알림 설정 변경 중 | 중복 토글 방지 |
 | 설정 | `SETTING-ERROR` | 기존 설정값과 저장 실패 안내 | 서버 값 재조회·재시도 |
 | 서비스 | `SERVICE-INFO-NORMAL` | 확정된 서비스 정보 | MVP 밖 설정·프로필 기능으로 확장하지 않음 |
-| 이미지 | `STORED-IMAGES-NORMAL` | 현재 저장 결과 이미지 최대 3개 | 읽기 전용 |
+| 이미지 | `STORED-IMAGES-NORMAL` | 현재 저장 결과 이미지 최대 3개. 순위 순으로 한 줄씩 동그란 그림 + `N위 손님`·유형 이름(2026-09-28, 홈과 같은 그림). 로딩·실패는 §6.4 요약 카드와 같은 규칙 | 읽기 전용 |
 | 이미지 | `STORED-IMAGES-EMPTY` | 현재 결과에 표시할 이미지가 없다는 안내 | 별도 업로드·삭제 기능 없음 |
 | 로그아웃 | `LOGOUT-CONFIRM` | 로그아웃 확인 | 취소 또는 로그아웃 |
 | 로그아웃 | `LOGOUT-SUBMITTING` | 로그아웃 처리 중 | 중복 실행 방지 |
@@ -393,6 +396,7 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 실패한 분석 단계를 서버가 알려줄지(현재 `progressStep`이 `FAILED`로 덮여 알 수 없음, `role:feature`) | `SC-003` 실패 결과 행 | 분석 API 연동 전 |
 | 미저장 새 결과의 접근·보관 시간 | `SAVE-KEEPING` 이후 | 작업 큐·삭제 배치 구현 전 |
 | 알림 읽음 처리 | `SC-012` | 마이페이지 API 구현 전 |
+| 한 리뷰가 여러 손님 유형의 `topicReviewCount`에 함께 세어지는지 (`role:feature`). 겹칠 수 있으면 요약 카드의 "분석한 리뷰 N건 중 M%"를 다른 표현으로 바꾼다. 2026-09-28 사용자 결정: 확인 전까지 비율을 표시한다 | §6.1 선택 유형 요약 카드 | 실제 백엔드 연결 전 |
 | 최소 Android OS·지원 기기·접근성 목표 | 전체 Visual QA | 첫 UI 구현 전 |
 | 오류 화면에 `traceId`를 문의용 코드로 보여줄지 | 모든 `*-ERROR` | 오류 화면 구현 전 |
 | 웹 계정 삭제 요청 링크 제공 방식 (PRD §13-24) | `ACCOUNT-DELETE-*` 밖의 스토어 요구 | Play Console 데이터 보안 양식 작성 전 |
@@ -437,6 +441,19 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 공백·충돌 표식 | PASS | `git diff --check` 이상 없음 |
 | 앱 렌더링·Visual QA | 미실행 | 프론트엔드 코드가 아직 없으므로 Design Foundation과 Vertical Slice 이후 수행 |
 | 독립 Reviewer | 미실행 | 제품·디자인 담당자 배정과 검토 필요 |
+
+### 9차 가입 비밀번호 확인 칸
+
+확인일: 2026-09-28. `AUTH-SIGNUP-EDITING`에 비밀번호 확인 칸을 더하고 Android 에뮬레이터(`Medium_Phone`, Expo Go, 가상 서버)에서 실행했다. 캡처는 `docs/design/evidence/TASK-020/signup-confirm-*.png` 5장이다.
+
+| 상태 | 결과 | 근거 캡처 |
+|---|---|---|
+| `AUTH-FIELD-ERROR` — 확인 불일치 | 확인 | `signup-confirm-01-mismatch.png` — 확인 칸에 오류, 화면 유지. 요청을 보내지 않는 것은 코드 기준 |
+| `AUTH-FIELD-ERROR` — 확인 누락 | 확인 | `signup-confirm-02-empty.png` |
+| `AUTH-CONSENT-OUTDATED` | 확인 (임시 코드로 재현) | `signup-confirm-03-consent-outdated.png` — 이메일·전화번호 보존, 비밀번호·확인 모두 지움. 가상 서버에 임시 분기를 넣어 재현하고 되돌렸다 |
+| `AUTH-SIGNUP-EDITING` → `AUTH-SIGNUP-CREATED` → `APP-FIRST-ANALYSIS-REQUIRED` | 확인 | `signup-confirm-04-match.png`, `signup-confirm-05-created.png` |
+
+확인하지 못한 것: 확인 값이 요청 본문에 없다는 것은 코드로만 확인했다. 글자 크기 200%·TalkBack·실기기·실제 백엔드는 미실행.
 
 ### 8차 Step 9 전체 구현 확인
 

@@ -22,7 +22,7 @@ import { useSession } from '@/session/SessionProvider';
 // AUTH-LEGAL-LOADING → AUTH-SIGNUP-EDITING → AUTH-SIGNUP-SUBMITTING → AUTH-SIGNUP-CREATED(=AUTH-SUCCESS),
 // 그리고 AUTH-LEGAL-ERROR · AUTH-FIELD-ERROR · AUTH-SIGNUP-ERROR · AUTH-CONSENT-OUTDATED.
 
-type FieldKey = 'email' | 'password' | 'phoneNumber' | 'consent';
+type FieldKey = 'email' | 'password' | 'passwordConfirm' | 'phoneNumber' | 'consent';
 type Phase = 'legalLoading' | 'legalError' | 'editing' | 'submitting';
 
 // 비밀번호는 UTF-8 72바이트 이하다(기능명세 §10.1, ADR-008).
@@ -48,6 +48,8 @@ export function SignupScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // 확인 값은 화면에서만 비교하고 서버에 보내지 않는다(가입 API 계약 그대로).
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
@@ -97,6 +99,10 @@ export function SignupScreen() {
     else if (password.length < 8) next.password = '비밀번호는 8자 이상이에요.';
     else if (passwordByteLength(password) > 72) next.password = '비밀번호가 너무 길어요. 조금 줄여 주세요.';
 
+    // 비밀번호를 비워 둔 경우에는 비밀번호 칸의 오류만 보여 준다.
+    if (password && !passwordConfirm) next.passwordConfirm = '비밀번호를 한 번 더 입력해 주세요.';
+    else if (password && passwordConfirm !== password) next.passwordConfirm = '비밀번호가 서로 달라요.';
+
     // 서버(AuthPolicy)는 숫자만 추려 8~15자리를 받고 국가번호(+)도 허용한다. 앱이 더 좁히지 않는다.
     const digits = phoneNumber.replace(/[^\d+]/g, '');
     if (!phoneNumber.trim()) next.phoneNumber = '전화번호를 입력해 주세요.';
@@ -131,6 +137,7 @@ export function SignupScreen() {
           // 약관이 바뀌었다. 이메일·전화번호는 남기고 동의만 다시 받는다(AUTH-CONSENT-OUTDATED).
           setConsentOutdated(true);
           setPassword('');
+          setPasswordConfirm('');
           reloadLegal({ keepOutdatedNotice: true });
           return;
         }
@@ -164,7 +171,7 @@ export function SignupScreen() {
         <Notice
           alert
           title="약관이 바뀌었어요"
-          message="새 약관을 다시 받아왔어요. 내용을 확인하고 다시 동의해 주세요. 비밀번호는 안전을 위해 지웠으니 다시 입력해 주세요."
+          message="새 약관을 다시 받아왔어요. 내용을 확인하고 다시 동의해 주세요. 비밀번호는 안전을 위해 지웠으니 확인 칸까지 다시 입력해 주세요."
           tone="warning"
         />
       ) : null}
@@ -211,10 +218,22 @@ export function SignupScreen() {
               label="비밀번호"
               onChangeText={(value) => {
                 setPassword(value);
-                setErrors((current) => ({ ...current, password: undefined }));
+                // 비밀번호가 바뀌면 확인 칸의 불일치 판정도 낡는다.
+                setErrors((current) => ({ ...current, password: undefined, passwordConfirm: undefined }));
               }}
               secureTextEntry
               value={password}
+            />
+            <TextField
+              autoCapitalize="none"
+              error={errors.passwordConfirm}
+              label="비밀번호 확인"
+              onChangeText={(value) => {
+                setPasswordConfirm(value);
+                setErrors((current) => ({ ...current, passwordConfirm: undefined }));
+              }}
+              secureTextEntry
+              value={passwordConfirm}
             />
             <TextField
               error={errors.phoneNumber}
@@ -235,6 +254,7 @@ export function SignupScreen() {
             <CheckRow
               checked={agreedTerms}
               description={legal ? `이용약관 ${legal.termsVersion}` : undefined}
+              invalid={Boolean(errors.consent) && !agreedTerms}
               label="이용약관에 동의해요"
               onToggle={() => {
                 setAgreedTerms((value) => !value);
@@ -245,6 +265,7 @@ export function SignupScreen() {
               checked={agreedPrivacy}
               description={legal ? `개인정보 처리방침 ${legal.privacyVersion}` : undefined}
               error={errors.consent}
+              invalid={Boolean(errors.consent) && !agreedPrivacy}
               label="개인정보 처리방침에 동의해요"
               onToggle={() => {
                 setAgreedPrivacy((value) => !value);

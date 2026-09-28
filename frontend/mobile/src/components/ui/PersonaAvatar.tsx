@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { PersonaImageSource } from '@/api/personaImages';
 import { GuestCharacter } from '@/components/icons/GuestCharacter';
-import { colors, spacing, strokes, typography } from '@/design/tokens';
+import { colors, layout, spacing, strokes, typography } from '@/design/tokens';
 
-// 순위 목록(TOP3)에 쓰는 동그란 손님 유형 그림.
+// 순위 목록(TOP3)·선택한 유형 요약 카드·마이페이지 저장 이미지에 쓰는 동그란 손님 유형 그림.
 // 실제 서버에 연결되면 AI가 만든 이미지를 원형으로 보여 주고, 그 전에는 코드로 그린 자리표시를 쓴다.
 // 프로토타입 에셋을 제품 화면에 쓰지 않는다(DESIGN_SYSTEM §3.6). 생성 사실 고지는 목록이 한 번만 한다.
 
-export type PersonaAvatarSize = 'first' | 'runner';
+export type PersonaAvatarSize = 'first' | 'runner' | 'compact';
 
 const diameters: Record<PersonaAvatarSize, number> = {
   first: spacing[24],
   runner: spacing[20],
+  // 선택한 유형 요약 카드(ResultView)와 마이페이지 저장 이미지 줄(MyPageScreen)
+  compact: spacing[16],
 };
 
 export function PersonaAvatar({
@@ -22,14 +24,17 @@ export function PersonaAvatar({
   size = 'runner',
   selected = false,
   variant = 0,
+  onLoadError,
 }: {
   source: PersonaImageSource;
   /** 기능 중심 대체 텍스트. 이미지가 없을 때도 같은 뜻이 전달돼야 한다. */
   altText: string;
   size?: PersonaAvatarSize;
   selected?: boolean;
-  /** 자리표시 그림의 배경색을 고르는 값. 순위를 넣는다. */
+  /** 자리표시 그림의 사람(모습·배경색)을 고르는 값. 순위를 넣는다 — 유형과 짝짓지 않는다(DESIGN_SYSTEM §3.6). */
   variant?: number;
+  /** 원격 이미지를 받지 못했을 때 알린다. 다시 불러오기를 둘 화면만 쓴다 — 다시 받으려면 부모가 key를 바꿔 새로 그린다. */
+  onLoadError?: () => void;
 }) {
   const [failed, setFailed] = useState(false);
   const diameter = diameters[size];
@@ -48,7 +53,10 @@ export function PersonaAvatar({
     >
       {showImage ? (
         <Image
-          onError={() => setFailed(true)}
+          onError={() => {
+            setFailed(true);
+            onLoadError?.();
+          }}
           source={source.source}
           style={{ width: diameter, height: diameter, borderRadius: diameter / 2 }}
         />
@@ -65,6 +73,44 @@ export function PersonaAvatar({
             { width: diameter, height: diameter, borderRadius: diameter / 2 },
           ]}
         />
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * IMAGE-LOAD-ERROR(SCREEN_STATES §6.4)를 다시 불러오기로 되돌리는 상태.
+ * `attempt`를 PersonaAvatar의 key로 주면, 다시 불러오기 때 새로 그려져 이미지를 다시 요청한다.
+ */
+export function usePersonaImageRetry(source: PersonaImageSource) {
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  return {
+    attempt,
+    onLoadError: () => setFailed(true),
+    showError: failed || source.kind === 'unavailable',
+    // 가상 서버에는 다시 받을 이미지가 없다. 눌러도 아무 일이 없는 버튼을 두지 않는다.
+    canRetry: source.kind === 'remote',
+    retry: () => {
+      setFailed(false);
+      setAttempt((count) => count + 1);
+    },
+  };
+}
+
+/** 그림을 받지 못했을 때 그림 가까이 두는 원인 문장과 다시 불러오기. 유형 정보는 그대로 둔다. */
+export function PersonaImageError({ canRetry, onRetry }: { canRetry: boolean; onRetry: () => void }) {
+  return (
+    <View accessibilityLiveRegion="polite" style={styles.error}>
+      <Text style={styles.notice}>이미지를 불러오지 못했어요. 손님 유형 내용은 그대로 볼 수 있어요.</Text>
+      {canRetry ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onRetry}
+          style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+        >
+          <Text style={styles.retryText}>이미지 다시 불러오기</Text>
+        </Pressable>
       ) : null}
     </View>
   );
@@ -102,5 +148,20 @@ const styles = StyleSheet.create({
   notice: {
     ...typography.caption,
     color: colors.text.secondary,
+  },
+  error: {
+    gap: spacing[1],
+  },
+  retry: {
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    minHeight: layout.touchTargetMin,
+  },
+  retryText: {
+    ...typography.body6,
+    color: colors.text.brand,
+  },
+  pressed: {
+    opacity: 0.9,
   },
 });
