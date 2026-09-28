@@ -178,7 +178,7 @@
 10. 확인 대화상자가 열렸다는 사실을 TalkBack에 알리는 수단이 없다(`accessibilityLiveRegion`·`announceForAccessibility` 모두 없음). Android 네이티브 `Modal`의 윈도 전환 안내에 기대고 있다. DESIGN_SYSTEM §8이 지원 기기·TalkBack 조합 미확정을 이유로 네이티브 접근성 완료 판정을 보류했으므로 그 결정과 함께 정한다.
 11. `HomeScreen`의 `첫 분석 시작하기`는 `router.replace('/analyze')`다. 저장본이 없는 홈은 돌아갈 화면이 없어 의도한 단방향 전환이지만, 스택 깊이 가정이 걸린 지점이라 기록해 둔다(Step 10 5차 리뷰).
 12. `StepIndicator`의 끝난 단계에 붙인 `✓`가 라벨 본문에 섞여 있다. TalkBack이 기호를 그대로 읽을 수 있는데 실행하지 못해 미확인이다. 보조기술 검증을 할 때 함께 본다.
-13. **Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)이 2026-09-22 보드 8장 그대로다.** 2026-09-27 갱신분과 새 보드 2장을 넣지 못했다. Figma MCP가 Starter 플랜 호출 한도에 걸린다. 한도가 풀리거나 플랜을 올리면 import한다. 그때까지 디자인 정본은 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
+13. ~~Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)이 2026-09-22 보드 8장 그대로다~~ — 2026-09-28 해소. 사용자가 새 페이지 `TASK-020 Vertical Slice (2026-09-28)`에 보드 10장을 직접 넣었고 Pretendard로 표시됨을 확인했다(보드 README "Import 결과 (2026-09-28)"). 남은 것: Figma MCP는 여전히 Starter 한도라 에이전트가 파일을 검사하지 못한다 — 잘림·굵기·팀원 PC 글꼴은 미확인. 디자인 정본은 여전히 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
 14. **브랜치와 TASK가 어긋나 있다.** 이 문서의 `Branch`는 `docs/TASK-020-frontend-state-model`이지만 Step 3~10 작업은 전부 `docs/TASK-019-step0-rebaseline` 브랜치에서 했다. PR을 TASK-019와 TASK-020으로 나눌지, 한 PR로 낼지 사용자가 정한다(AGENTS 6.2 — PR은 TASK 1개에 대응).
 
 ## Do Not Assume

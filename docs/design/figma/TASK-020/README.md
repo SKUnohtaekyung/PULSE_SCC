@@ -6,7 +6,7 @@ Step 5 합성안([synthesis/TASK-020](../../synthesis/TASK-020/README.md))을 �
 
 **2026-09-22 import:** https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — `lawyland` 팀의 내 드래프트, 파일 `PULSE TASK-020 Vertical Slice`, 페이지 `TASK-020 Vertical Slice`. 팀 공용 파일로 옮기는 것은 사용자가 정한다.
 
-> **Figma 파일은 2026-09-22 보드 8장 그대로다.** 2026-09-27 갱신분(새 디자인 + 09·10)은 아직 넣지 못했다. Figma MCP가 Starter 플랜 호출 한도에 걸려 파일을 직접 고칠 수 없었다. 지금 디자인 정본은 이 폴더의 SVG와 앱 코드이고, Figma 파일은 구버전이다.
+**2026-09-28 import:** 같은 파일에 새 페이지 `TASK-020 Vertical Slice (2026-09-28)`를 만들어 보드 10장을 넣었다. 옛 페이지는 지우지 않고 이름에 `(2026-09-22)`를 붙였다. Figma MCP가 Starter 플랜 호출 한도에 걸려 **사용자가 직접 드래그해 넣었다**(아래 "Import 결과 (2026-09-28)").
 
 정본 관계:
 
@@ -90,7 +90,7 @@ docs/design/figma/TASK-020/
 2. `svg/`의 파일을 캔버스로 드래그하거나 `File > Import`.
 3. 텍스트는 편집 가능한 텍스트 레이어로, 도형은 벡터로 들어간다. 레이어 이름은 `Button/Primary/분석하기`, `ProgressStep/paused`처럼 컴포넌트 이름을 따른다.
 4. 오토레이아웃·컴포넌트 변형(variant)은 붙지 않는다(SVG에 그런 개념이 없다). 03의 요소를 Figma 컴포넌트로 묶을 때 레이어 이름을 컴포넌트 이름으로 쓴다.
-5. 글꼴은 Pretendard다. Figma에 Pretendard가 없으면 대체 글꼴로 보인다.
+5. 글꼴은 Pretendard다. Figma에 Pretendard가 없으면 import하는 순간 대체 글꼴(Inter)로 바뀌어 저장된다. **넣기 전에** `frontend/mobile/assets/fonts/`의 OTF 4개를 PC에 설치하고 Figma를 완전히 종료했다가 다시 켠다. 이미 Inter로 들어간 보드는 글꼴만 바꿔도 굵기가 돌아오지 않으니 지우고 다시 넣는다.
 
 ## 다시 만들기
 
@@ -102,6 +102,16 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 생성 뒤에는 반드시 `check.mjs`를 돌린다. 문구를 한 글자만 늘려도 프레임을 넘길 수 있다.
 
 `frontend/mobile/node_modules`가 있어야 한다(이미지 축소에 `jimp-compact`를 쓴다). 설치는 `npm --prefix frontend/mobile install`.
+
+## Import 결과 (2026-09-28)
+
+사용자가 Figma 데스크톱 앱에서 직접 넣었다. 아래는 **사용자 보고**이고, Figma MCP가 막혀 에이전트가 파일을 열어 보거나 스크린샷을 찍지는 못했다.
+
+- 페이지: 옛 페이지 → `… (2026-09-22)`로 이름 변경, 새 페이지 `TASK-020 Vertical Slice (2026-09-28)`에 보드 10장.
+- 첫 import는 글꼴이 **Inter**로 바뀌었다. Figma 앱이 2026-09-22부터 켜져 있어 그 뒤 설치한 Pretendard를 몰랐다(에이전트가 `HKCU` 글꼴 레지스트리에서 Pretendard 4종 설치를 확인, Figma 프로세스 시작 시각 2026-09-22 확인).
+- Figma를 완전히 종료·재실행한 뒤 10장을 지우고 다시 넣자 **Pretendard로 나왔다**(사용자 확인). 2026-09-22의 Gothic A1 교정은 이번에는 하지 않았다.
+- 배치: X=0에 01→10 순서로 세로로 400 간격(Y = 0, 1480, 2960, 4760, 6240, 7760, 9280, 10800, 12320, 13840 — SVG `height`에서 계산한 값). 사용자가 정리를 끝냈다고 알렸다.
+- 미확인: 글자 잘림·겹침(Figma 화면 기준), 굵기 4단계가 모두 살아 있는지, 팀원 PC에서 열었을 때의 글꼴(Pretendard가 없는 PC에서는 대체 글꼴로 보일 수 있다).
 
 ## Import 결과 (2026-09-22)
 
