@@ -96,6 +96,8 @@ const contrastChecks = [
     accessibility.contrast.nonText,
   ]),
   ['그림 눈·눈썹 / 얼굴', colors.illustration.ink, colors.illustration.skin, accessibility.contrast.nonText],
+  ['그림 갈색 눈썹 / 얼굴', colors.illustration.hairBrown, colors.illustration.skin, accessibility.contrast.nonText],
+  ['그림 짙은 눈썹 / 얼굴', colors.illustration.hairDark, colors.illustration.skin, accessibility.contrast.nonText],
   ['삭제 텍스트 / 삭제 버튼', colors.destructive.onPrimary, colors.destructive.primary, accessibility.contrast.normalText],
   ['삭제 링크 / 카드', colors.destructive.text, colors.background.surface, accessibility.contrast.normalText],
   ['삭제 링크 / 화면 배경', colors.destructive.text, colors.background.canvas, accessibility.contrast.normalText],

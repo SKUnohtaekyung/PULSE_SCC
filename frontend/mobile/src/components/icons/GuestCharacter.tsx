@@ -8,7 +8,8 @@ import { colors } from '@/design/tokens';
 // 그 전까지 이 그림이 자리를 지킨다. 도형 정의는 `guestCharacterShapes.ts` 한 곳에 있고 Figma 보드도 같은 것을 쓴다.
 //
 // 2026-09-28: 같은 얼굴에 배경색만 다르던 그림을 서로 다른 세 사람으로 바꿨다(사용자 선택).
-// 누가 누구인지는 여전히 이름과 리뷰 수가 말한다 — 그림으로 유형을 구분하지 않는다(DESIGN_SYSTEM §8.1).
+// 누가 누구인지는 여전히 이름과 리뷰 수가 말한다 — 그림으로 유형을 구분하지 않는다(DESIGN_SYSTEM §3.6).
+// 색만으로 정보를 전하지 않는다는 원칙(§8.1)도 그대로다.
 
 export type GuestCharacterProps = {
   size: number;

@@ -28,7 +28,7 @@ export function PersonaAvatar({
   altText: string;
   size?: PersonaAvatarSize;
   selected?: boolean;
-  /** 자리표시 그림의 배경색을 고르는 값. 순위를 넣는다. */
+  /** 자리표시 그림의 사람(모습·배경색)을 고르는 값. 순위를 넣는다 — 유형과 짝짓지 않는다(DESIGN_SYSTEM §3.6). */
   variant?: number;
 }) {
   const [failed, setFailed] = useState(false);
