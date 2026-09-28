@@ -214,7 +214,7 @@
 
 ## Next Action
 
-워크플로 0~12단계와 그 뒤 디자인 수정 3건이 끝났다(2026-09-28). 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15·16(platform 문서 2건), SCREEN_STATES §11의 리뷰 중복 계산 확인(role:feature), PR #38 리뷰 대응(리뷰어는 사용자가 요청, 병합도 사용자가 한다), 실제 백엔드 연결, Unresolved 1~6·8~12·14. 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
+워크플로 0~12단계와 그 뒤 디자인 수정 3건이 끝났다(2026-09-28). 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15·16(platform 문서 2건), SCREEN_STATES §11의 리뷰 중복 계산 확인(role:feature), PR #38 리뷰 대응(리뷰어는 사용자가 요청, 병합도 사용자가 한다), 실제 백엔드 연결, Unresolved 1~6·8~12·14. TalkBack 실제 읽기(항목 이동 순서·소리) 확인은 사용자가 이번 작업에서 뺐다(2026-09-28, 다시 할 시점 미정). 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
 
 (이전 기록) 발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
 
