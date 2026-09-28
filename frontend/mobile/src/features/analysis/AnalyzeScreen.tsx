@@ -24,7 +24,12 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StepIndicator } from '@/components/ui/StepIndicator';
 import { TextField } from '@/components/ui/TextField';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
-import { progressLabel, readJobFailure, type JobFailure } from '@/features/analysis/jobOutcome';
+import {
+  progressLabel,
+  readJobFailure,
+  statusUnavailableFailure,
+  type JobFailure,
+} from '@/features/analysis/jobOutcome';
 import { ScenarioPanel } from '@/features/dev/ScenarioPanel';
 import { useSession } from '@/session/SessionProvider';
 
@@ -49,6 +54,7 @@ const inputTitles = [
 ];
 
 const failureActionLabel = (failure: JobFailure) => {
+  if (failure.kind === 'statusUnavailable') return '진행 상태 다시 확인';
   if (failure.kind === 'retryable' || failure.kind === 'imageGenerationFailed') return '다시 분석하기';
   if (failure.kind === 'insufficient') return '가게 정보 다시 입력';
   return '입력 화면으로';
@@ -323,10 +329,7 @@ export function AnalyzeScreen() {
           setOffline(true);
           return;
         }
-        setFailure({
-          kind: 'retryable',
-          message: '진행 상태를 확인하지 못했어요. 다시 시도할 수 있어요.',
-        });
+        setFailure(statusUnavailableFailure);
         setPhase('failed');
       } finally {
         inFlight = false;
@@ -342,6 +345,7 @@ export function AnalyzeScreen() {
   }, [client, jobId, phase, resolveCompletion]);
 
   const locked = phase !== 'input';
+  const statusUnknown = failure?.kind === 'statusUnavailable';
   const rows: ProgressRow[] = steps.map((step, index) => {
     const last = index === steps.length - 1;
     const running = last && (phase === 'progress' || phase === 'creating' || phase === 'completing');
@@ -350,14 +354,14 @@ export function AnalyzeScreen() {
       key: step + '-' + index,
       label: progressLabel(step),
       state: running ? 'running' : paused ? 'paused' : 'done',
-      note: paused ? '여기까지 진행했어요' : undefined,
+      note: paused ? (statusUnknown ? '여기까지 확인했어요' : '여기까지 진행했어요') : undefined,
     };
   });
 
   if (phase === 'failed' && failure) {
     rows.push({
       key: 'failure',
-      label: '분석을 마치지 못했어요',
+      label: statusUnknown ? '진행 상태를 확인하지 못했어요' : '분석을 마치지 못했어요',
       state: 'failed',
       note: failure.kind === 'insufficient'
         ? '분석에 필요한 리뷰가 50건보다 적어 결과를 만들지 못했어요.'
@@ -368,6 +372,12 @@ export function AnalyzeScreen() {
   }
 
   const runFailureAction = (current: JobFailure) => {
+    if (current.kind === 'statusUnavailable') {
+      // 같은 jobId로 상태 조회를 다시 시작한다. 새 작업을 만들면 수집·분석 비용이 두 번 든다(#34).
+      setFailure(null);
+      setPhase('progress');
+      return;
+    }
     if (current.kind === 'retryable' || current.kind === 'imageGenerationFailed') {
       void submit({ reuseKey: false });
       return;
@@ -413,7 +423,13 @@ export function AnalyzeScreen() {
       ) : (
         <PageTitle
           description={[name, category].filter(Boolean).join(' · ')}
-          title={phase === 'failed' ? '분석을 마치지 못했어요' : '리뷰를 읽고 있어요'}
+          title={
+            phase !== 'failed'
+              ? '리뷰를 읽고 있어요'
+              : statusUnknown
+                ? '진행 상태를 확인하지 못했어요'
+                : '분석을 마치지 못했어요'
+          }
         />
       )}
 

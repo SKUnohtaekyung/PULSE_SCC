@@ -17,7 +17,8 @@ export type FixtureScenario =
   | 'unsupportedUrl'
   | 'imageGenerationFailed'
   | 'expiredAccessToken'
-  | 'idempotencyReused';
+  | 'idempotencyReused'
+  | 'statusUnavailable';
 
 export const fixtureScenarios: { key: FixtureScenario; label: string; note: string }[] = [
   { key: 'first', label: '첫 분석 성공', note: '손님 유형 3개까지 채워진 결과' },
@@ -32,6 +33,11 @@ export const fixtureScenarios: { key: FixtureScenario; label: string; note: stri
   { key: 'imageGenerationFailed', label: '이미지 생성 실패', note: '이미지 생성 단계에서 실패' },
   { key: 'expiredAccessToken', label: '액세스 토큰 만료', note: '봉투 없는 401 → 토큰 갱신 후 재전송' },
   { key: 'idempotencyReused', label: '멱등 키 거부', note: '첫 요청이 409, 새 키로 다시 요청' },
+  {
+    key: 'statusUnavailable',
+    label: '상태 조회 실패',
+    note: '진행 중 상태 조회가 한 번 봉투 없는 500, 다시 확인하면 같은 작업으로 완료',
+  },
 ];
 
 export const fixtureAccount = {
@@ -82,6 +88,8 @@ let jobs = new Map<string, Job>();
 let results = new Map<string, AnalysisResult>();
 let idempotencyKeys = new Map<string, string>();
 let jobAttempts = 0;
+/** 'statusUnavailable' 상황에서 상태 조회 500 을 이미 한 번 돌려준 작업. */
+let statusFailedJobs = new Set<string>();
 let tokenSeq = 0;
 let notificationsEnabled = true;
 /** 가입으로 만든 계정. 가입 뒤에는 이 계정으로도 로그인할 수 있다. */
@@ -101,6 +109,7 @@ export function setFixtureScenario(next: FixtureScenario) {
   results = new Map();
   idempotencyKeys = new Map();
   jobAttempts = 0;
+  statusFailedJobs = new Set();
   savedAnalysis = null;
   // 이미 로그인한 상태에서 골라도 바로 확인할 수 있게, 지금 가진 액세스 토큰을 만료로 표시한다.
   // 다음 요청이 봉투 없는 401을 받고 앱이 토큰을 갱신한 뒤 다시 보낸다(공통 불변식 12).
@@ -451,6 +460,15 @@ function handleAnalysis(request: FixtureRequest): FixtureResponse | null {
     if (!isAuthorized(request)) return envelopeless401();
     const job = jobs.get(statusMatch[1]);
     if (!job) return envelope(404, 'ANALYSIS_NOT_FOUND', '분석 작업을 찾을 수 없습니다.');
+    // 수집 단계에 들어간 뒤 한 번만 서버 기본 500(봉투 없음)을 돌려준다. 작업은 계속 진행된다(#34).
+    if (
+      job.scenario === 'statusUnavailable' &&
+      !statusFailedJobs.has(job.id) &&
+      Date.now() - job.createdAt >= timing.queuedMs
+    ) {
+      statusFailedJobs.add(job.id);
+      return { status: 500, body: null };
+    }
     return { status: 200, body: jobStatus(job) };
   }
 
