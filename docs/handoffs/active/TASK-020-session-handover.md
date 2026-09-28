@@ -19,7 +19,7 @@
 | 마이페이지 저장 이미지 | 끝남(2026-09-28). 독립 Reviewer PASS |
 | Figma 파일 | 사용자 보고로 지금 보드와 같다(2026-09-28, 기준 커밋 `6c63086`의 `svg/`). MCP가 막혀 **사용자가 직접** 넣었다. 보드 10장 전체 → 5장 교체 → 보드 10 교체. 에이전트는 파일을 직접 보지 못했다 |
 | 통합 테스트 인계 문서 | 끝남. [frontend/mobile/INTEGRATION_GUIDE.md](../../../frontend/mobile/INTEGRATION_GUIDE.md) |
-| GitHub | 원격 `feat/TASK-020-frontend-mobile`은 `10161ab`까지다. **그 뒤 커밋은 전부 로컬에만 있다**(아래 Git 상태) |
+| GitHub | PR #35는 2026-09-28 squash 병합됐다. 그 뒤 작업은 새 로컬 브랜치 `feat/TASK-020-design-followup`에 있고 **아직 push 전**이다(아래 Git 상태, 다음 세션 첫 작업) |
 
 ## 2026-09-28 세션에서 한 것
 
@@ -85,12 +85,23 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 - Figma 파일: https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — 페이지 `TASK-020 Vertical Slice (2026-09-28)`가 지금 보드, `… (2026-09-22)`는 옛 보드. 보드는 X=0에 01→10 세로 배치(좌표는 보드 README).
 - 독립 리뷰는 `reviewer` 서브에이전트에게 맡긴다. 에뮬레이터·`npm install`·`generate.mjs`(svg/를 덮어씀)를 금지하고 판정과 근거만 받는다.
 
-## Git 상태
+## Git 상태 (2026-09-28 마감)
 
-- 로컬 브랜치 `docs/TASK-019-step0-rebaseline`은 원격 `feat/TASK-020-frontend-mobile`을 추적한다. 원격 추적 브랜치는 `10161ab`다.
-- 그 뒤 로컬 커밋은 **push하지 않았다.** 이 문서를 쓰기 직전 `git rev-list --count @{u}..HEAD`는 20이었다(이 정리 커밋 포함 전). 개수는 커밋마다 바뀌므로 `git log --oneline @{u}..HEAD`로 다시 뽑는다.
-  - `0a110b1`·`749aa71` — 2026-09-27 밤 인계 문서 커밋
-  - `6d9ac20`~`08b13d3` — 비밀번호 확인 칸·Figma 기록·12단계
-  - `e173468`·`47cdb05` — 첫 인계 정리
-  - `b580bf8`~`6c63086` — 손님 캐릭터·요약 카드·마이페이지 이미지·Figma 재교체 기록
-  - 그 뒤 — 이 인계 정리
+- **PR #35(`feat/TASK-020-frontend-mobile` → `main`)는 2026-09-28 05:08(UTC) squash 병합됐다.** main의 병합 커밋 `e07b6b1`은 옛 로컬 브랜치의 `10161ab`와 내용이 같다(`git diff 10161ab e07b6b1` 비어 있음).
+- 병합된 PR에는 커밋을 더할 수 없고, squash라 옛 브랜치를 그대로 올리면 이미 들어간 커밋이 다시 딸려 간다. 그래서 **새 로컬 브랜치 `feat/TASK-020-design-followup`을 `origin/main`에서 만들고, `10161ab` 뒤의 로컬 커밋 22개를 cherry-pick으로 옮겼다**(충돌 없음, 옛 브랜치와 내용 차이 없음을 `git diff`로 확인).
+- 이 브랜치는 **아직 push하지 않았다.** 범위는 `git log --oneline origin/main..HEAD`로 뽑는다(이 문서를 고친 커밋까지 포함).
+  - 비밀번호 확인 칸·Figma 기록·12단계, 첫 인계 정리, 손님 캐릭터·요약 카드·마이페이지 이미지·Figma 재교체 기록, 마감 인계 정리
+- 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`은 지우지 않고 남겨 두었다(원격 `feat/TASK-020-frontend-mobile` 추적). 새 작업은 `feat/TASK-020-design-followup`에서 한다.
+
+## 다음 세션 첫 작업 — GitHub 반영 (사용자가 요청함, 2026-09-28)
+
+사용자가 새 채팅에서 "지금까지 한 것을 GitHub에 올려 달라"고 요청하기로 했다. 순서:
+
+1. `git status`·`git branch --show-current`(= `feat/TASK-020-design-followup`)·`git log --oneline origin/main..HEAD` 확인. `git fetch origin`으로 main이 그 뒤 바뀌었는지 보고, 바뀌었으면 rebase가 필요한지 사용자에게 먼저 알린다.
+2. 자동 검증을 한 번 더 돌린다: `verify:tokens`·`lint`·`typecheck`·`export:android`, 보드 `check.mjs`. 결과를 PR 검증 표에 실제 출력대로 적는다.
+3. `git push -u origin feat/TASK-020-design-followup`. force push 금지.
+4. `.github/pull_request_template.md`를 **Read로 읽고** 그 구조대로 본문을 쓴다(CLAUDE.md "PR 생성", AGENTS 6.2). 제목 예: `feat(mobile): 손님 캐릭터·결과 요약 카드·가입 비밀번호 확인 반영`.
+   - 라벨: `type:feature` + `type:ui` + `role:feature`(PR #35와 같은 조합). 생성 후 `gh pr view <번호> --json labels`로 확인.
+   - 본문에 밝힐 것: 소유 영역 밖 수정(`docs/product/**` role:product, `docs/design/**`·`src/design/**` 토큰·`components/ui/**` role:design-system — 토큰 변경은 리뷰 필수, 공용 `AGENTS.md`), role:platform으로 넘길 2건(Unresolved 15·16), 백엔드 확인 1건(SCREEN_STATES §11 리뷰 중복 계산), 미확인 항목(200%·TalkBack·실기기·원격 이미지).
+   - 이 세션의 각 변경은 이미 독립 Reviewer PASS를 받았다(상태 정본 Changed·Verification). 새 커밋을 더하지 않았다면 PR 전 리뷰를 다시 돌릴 필요는 없지만, 브랜치 이동(cherry-pick)이 들어갔으니 `git diff origin/main..HEAD --stat` 요약을 PR 본문에 둔다.
+5. PR이 병합되면 AGENTS 10장대로 `docs/handoffs/active/TASK-020-*` → `docs/handoffs/archive/` 이동을 사용자에게 제안한다(자동으로 하지 않는다).
