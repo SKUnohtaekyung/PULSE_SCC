@@ -31,6 +31,8 @@
 ## 남은 것 (다음 작업 후보 — 사용자가 고른다)
 
 - **`docs/architecture/API.md` 272줄 옛 결과 순서** — `role:platform` 소유. 상태 정본 Unresolved 15. PR 본문에 적고 넘긴다.
+- **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄 이미지 컴포넌트 서술** — 결과 화면이 더 이상 `PersonaImageBlock`을 쓰지 않는다. `role:platform` 소유. 상태 정본 Unresolved 16.
+- **한 리뷰가 여러 유형에 세어지는지** — 요약 카드의 비율 뜻이 달라진다. 백엔드(`role:feature`) 확인. SCREEN_STATES §11.
 - **Figma 미확인** — 잘림·굵기 4단계·팀원 PC 글꼴. MCP가 Starter 한도라 에이전트는 파일을 볼 수 없다.
 - **원격에 없는 로컬 커밋 push·PR** — 사용자가 말하기 전에는 하지 않는다. 범위는 `git log --oneline @{u}..HEAD`로 뽑는다(아래 Git 상태). PR을 올릴 때 `docs/product/**`(role:product)·`docs/design/**`(role:design-system) 수정을 본문에 밝힌다(AGENTS 5장).
 - 상태 정본 Unresolved 1~12·14(오프라인·polling·TalkBack·브랜치와 TASK 불일치 등), 실제 백엔드 연결.

@@ -5,7 +5,8 @@ import { isFixtureMode } from '@/api/config';
 import type { PersonaImageSource } from '@/api/personaImages';
 import { colors, layout, radii, spacing, typography } from '@/design/tokens';
 
-// 페르소나 이미지 한 덩어리. 결과 화면과 마이페이지가 같은 규칙을 쓴다.
+// 페르소나 이미지 한 덩어리. 지금은 마이페이지만 쓴다 — 결과 화면은 2026-09-28부터 선택 유형 요약 카드
+// (ResultView의 PersonaStatsCard)가 같은 상태 규칙을 작은 그림으로 표현한다.
 // 정본: SCREEN_STATES §6.4(IMAGE-READY·IMAGE-LOADING·IMAGE-LOAD-ERROR, 마이페이지의 STORED-IMAGES-*도 같은 규칙),
 // DESIGN_SYSTEM §3.6(생성 사실 고지, 기능 중심 대체 텍스트, 같은 크기의 로딩·실패 대체 표현).
 

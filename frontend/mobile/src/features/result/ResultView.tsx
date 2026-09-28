@@ -177,8 +177,9 @@ function PersonaStatsCard({
 }) {
   const share =
     topicReviewCount !== undefined && validReviewCount > 0
-      ? Math.min(100, Math.round((topicReviewCount / validReviewCount) * 100))
+      ? Math.round((topicReviewCount / validReviewCount) * 100)
       : null;
+  // 100%를 넘는 값은 데이터가 이상하다는 뜻이다. 문장에는 그대로 보여 드러나게 하고, 막대만 카드 밖으로 나가지 않게 자른다.
   const chips = perspectiveOrder.filter((item) => perspectives[item.key]);
   // IMAGE-LOAD-ERROR(SCREEN_STATES §6.4) — 그림은 자리표시로 바꾸고 유형 정보는 그대로 둔 채 다시 불러오기를 준다.
   // key를 바꿔 PersonaAvatar를 새로 그리면 이미지를 다시 요청한다.
@@ -190,8 +191,9 @@ function PersonaStatsCard({
     <View style={styles.statsCard}>
       <View
         accessible
+        // 그림과 숫자를 한 번에 읽게 묶는다. 묶으면 PersonaAvatar의 라벨이 가려지므로 서버 대체 텍스트를 여기서 함께 읽힌다.
         accessibilityLabel={
-          `${rank}위 손님` +
+          `${altText}. ${rank}위 손님` +
           (topicReviewCount !== undefined ? `, 리뷰 ${topicReviewCount}건` : '') +
           (share !== null ? `, 분석한 리뷰 ${validReviewCount}건 중 ${share}%` : '')
         }
@@ -213,7 +215,7 @@ function PersonaStatsCard({
           {share !== null ? (
             <>
               <View style={styles.statsTrack}>
-                <View style={[styles.statsBar, { width: `${share}%` }]} />
+                <View style={[styles.statsBar, { width: `${Math.min(100, share)}%` }]} />
               </View>
               <Text style={styles.statsShare}>
                 분석한 리뷰 {validReviewCount}건 중 {share}%

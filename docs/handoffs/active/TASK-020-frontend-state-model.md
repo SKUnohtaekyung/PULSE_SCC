@@ -189,6 +189,8 @@
 
 15. **`docs/architecture/API.md` 272줄이 옛 결과 순서다**(`분석 메타정보 → 3칸 포디움 → …`). Step 12 독립 리뷰(2026-09-28)가 찾았다. `role:platform` 소유라 이 TASK에서 고치지 않았다. 화살표를 빼고 데이터 구성으로 적거나 RESULT_IA D7로 링크하도록 `role:platform`에 넘긴다(PR 본문에도 적는다).
 
+16. **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄 "페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다"가 2026-09-28부터 사실과 다르다.** 결과 화면은 `PersonaStatsCard`(작은 그림), 마이페이지만 `PersonaImageBlock`을 쓴다. `role:platform` 소유라 이 TASK에서 고치지 않았다 — Unresolved 15와 함께 넘긴다(PR 본문에도 적는다).
+
 ## Do Not Assume
 
 - State Model은 화면 디자인 시안이 아니다.
