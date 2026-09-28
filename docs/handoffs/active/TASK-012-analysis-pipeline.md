@@ -369,6 +369,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - (이전 기록) 이 작업 직후에는 `Docker Desktop.exe` 를 두 번 실행해도 프로세스가 곧바로 끝났고 `docker-desktop` WSL 배포판은 `Stopped` 여서 Testcontainers 테스트를 돌리지 못했다.
 - (해소) 같은 날 Docker 가 정상 기동해 Spring test skip 0 과 새 알림 테스트 2개 통과를 확인했다(아래 #29 절 검증 표).
 - 모델이 4개 이상 토픽을 반환하면 스키마(`max_length=3`, `rank le=3`) 검증에서 실패해 재시도된다. 프롬프트로 3개 이하를 요구하지만, 넘겼을 때 상위 3개로 자르는 처리는 없다.
+  > 정정(2026-09-28): 검증 전에 리뷰 수 상위 3개로 자르도록 수정했다(`47c1130`). 아래 "2026-09-28 결정 없이 처리한 기술 과제 2건" 절.
 - `docs/decisions/ADR-011` 31행의 "횟수를 다 쓰면 `ANALYSIS_TIMEOUT` 으로 마감"도 임대 만료 경로에만 맞는다. ADR 은 `role:platform` 소유라 고치지 않았다.
 - 실제 OpenAI 호출로 토픽 1~2개 결과가 나오는지는 확인하지 않았다(비용 발생).
 - **명세 문구 갱신 요청** — 기능명세 PERSONA-007·RESULT-013·인수조건(464행 부근), RESULT_IA, PRD FR-003 의 빈 슬롯 문구는 "리뷰 근거가 부족해 3개보다 적게 도출됐다" 이다. 사용자 결정(2026-09-27)으로 화면 문구를 "리뷰 수가 적어서 도출되지 않았다" 로 바꿨으니 `role:product` 에 명세 문구 갱신을 요청한다. 규칙 자체는 명세와 같다.
@@ -558,8 +559,38 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 **확인하지 못한 것**
 
 - 필터가 이번에 실제로 문장을 뺐는지는 모른다. 필터는 뺀 문장을 기록하지 않고, 모델 원출력도 저장하지 않는다. 결과가 깨끗한 것이 프롬프트 덕인지 필터 덕인지 구분되지 않는다.
+  > 이후 조치(2026-09-28): 필터가 문장을 빼면 건수를 로그로 남기게 했다(`c87b4a7`). 다음 분석부터 알 수 있다. 이번 분석에는 소급되지 않는다.
 - 이번 수집은 120건을 다 채웠다. 로딩이 적게 된 경우의 수집 수정 효과는 앞 절의 수집만 실측으로 확인했고, 전체 분석으로는 확인하지 않았다. 저장된 `reviews` 는 DB 로 조회하지 않았다.
 - 결과 JSON 은 스크래치에만 두었고(근거 리뷰 원문 포함) 저장소에 넣지 않았다.
+
+## 2026-09-28 결정 없이 처리한 기술 과제 2건
+
+사용자 요청("다음 작업이나 이슈 하나씩")으로 진행했다. 결정 대기 이슈(#31·#32·#33)에는 새 결정이 없고 #34 는 프론트 담당 몫이라, 인수인계의 기술 과제 중 `role:feature` 소유이면서 결정이 필요 없는 것을 골랐다.
+
+### 1. 손님 유형이 4개 이상이면 리뷰 수 상위 3개만 남김 (`47c1130`)
+
+| 항목 | 내용 |
+|---|---|
+| 문제 | 모델이 4개 이상을 돌려주면 pydantic 검증 실패 → Python 5xx → Spring 재시도 가능 실패 → 작업 재실행. 수집·분석 모델 호출이 반복된다 |
+| 확인한 것 | OpenAI 로 보내는 스키마(`to_strict_json_schema`)에는 `maxItems: 3`, rank `maximum: 3` 이 들어간다. **Structured Outputs 가 이를 강제하는지는 공식 문서(developers.openai.com structured-outputs 가이드)에서 확인하지 못했다** |
+| 수정 | `StructuredAnalysis.keep_top_three_personas`(before 검증기). 3개를 넘고 모든 항목의 rank·리뷰 수가 정수면 (리뷰 수 내림차순, 모델 순위) 로 정렬해 상위 3개만 남기고 rank 를 1..3 으로 다시 매긴다. 정수가 아니면 자르지 않아 기존 검증이 거부한다. 스키마 상한은 그대로 보낸다 |
+| 의도한 완화 | 4개 이상일 때는 모델 rank 의 범위·연속 검사가 풀리고(동률 기준으로만 씀), 잘려 나간 항목은 검증하지 않는다. 출력은 항상 rank 1..3·중복 없음이라 DB 제약(`ck_personas_rank`, `uq_personas_analysis_rank`)은 지킨다 |
+| 검증 | ruff PASS, pytest 122개(기존 `test_more_than_three_topics_are_rejected` 를 동작 변경에 맞춰 교체, 새 테스트 5개). `models.py` 만 되돌리면 3개 실패(상위 3개, 동률, JSON 경로 — 독립 Reviewer 가 스크래치에서 재현). 독립 Reviewer 는 권고 반영 전 diff 에 PASS, 반영분(주석 범위, 테스트 이름, JSON 문자열 경로 테스트)은 문서 검토 때 `git show` 로 확인 |
+
+- `maxItems` 가 강제되면 이 코드는 실행되지 않는다. 비용이 작고 해가 없어 방어선으로 둔다.
+- 모델이 limitations 에 "4가지 유형"처럼 잘리기 전 개수를 적을 가능성은 남는다(미확인).
+
+### 2. 결과 문구 필터가 뺀 문장 건수 기록 (`c87b4a7`)
+
+| 항목 | 내용 |
+|---|---|
+| 문제 | "실제 분석 1회" 절에서 필터가 일했는지 알 수 없었다 |
+| 수정 | `reader_facing(text, *, field=...)` 가 문장을 빼면 WARNING "결과 문구 필터: {caveat\|limitations} 에서 문장 N개 중 M개를 뺐습니다." 빠진 문장 본문은 남기지 않는다(리뷰 인용이 섞일 수 있어서) |
+| 검증 | ruff PASS, pytest 124개(새 테스트 2개). 소스를 되돌리면 1개 실패. uvicorn `LOGGING_CONFIG` 적용 상태에서 stderr 출력 확인. 독립 Reviewer PASS — `parse_text` 경로와 FastAPI `response_model` 재검증에서 로그가 중복되지 않음을 probe 로 확인 |
+
+- Python 서비스에는 로그 설정이 없어 이 경고는 logging 의 lastResort 로 **레벨·로거 이름·시각 없이 메시지만** stderr 에 나온다. 운영에서 자체 log config 를 넣으면(`disable_existing_loggers` 기본값 등) 사라질 수 있다.
+- 로그에 작업 ID 가 없다. 여러 작업이 겹치면 어느 분석의 로그인지 구분할 수 없고, 검증이 다른 이유로 실패해 재시도된 시도의 로그도 남는다.
+- 실제 서버(`python -m scc_analysis`)와 실제 OpenAI 응답으로는 확인하지 않았다.
 
 ## Unresolved
 
@@ -610,7 +641,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 > - 브랜치 push 완료
 > 세션 종료 시 확인한 외부 상태: PR #27·#35 OPEN·리뷰 결정 없음. #31·#32 댓글 0, #33 은 2026-09-25 진행 댓글 뒤로 결정 없음.
 > 이어서 할 것(우선순위 순)
-> 1. 결정 없이 할 수 있는 기술 과제 — 모델이 손님 유형을 4개 이상 돌려주면 스키마 검증 실패로 재시도(비용 반복)된다. 리뷰 수 상위 3개로 자르기("2026-09-27" 절 남은 것). 결과 문구 필터가 문장을 뺐는지 알 수 있게 건수 기록("실제 분석 1회" 절 확인하지 못한 것)
+> 1. ~~결정 없이 할 수 있는 기술 과제 2건~~ — 같은 세션에서 처리(`47c1130`, `c87b4a7`). "2026-09-28 결정 없이 처리한 기술 과제 2건" 절
 > 2. 남은 이슈: #33(업종 범위 결정) → #32(PR #27 병합 후) → #31(지식 출처 결정)
 > 3. PR #27 병합 뒤 `main` 연결·인증 충돌 수동 병합·TASK-012 PR 생성("막혀 있는 순서")
 > 스크롤 로딩이 120건보다 적게 된 경우의 수집 수정 효과는 수집만 실측으로 확인했고 전체 분석으로는 확인하지 않았다(필요할 때만, 비용 발생).
@@ -679,7 +710,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 2. 환경은 준비돼 있다. Docker 정상, 로컬 PostgreSQL 18 에 `scc` DB·계정 존재, `backend/.env` 설정 완료(OpenAI 키 포함).
 3. 검증 명령
    - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 53개, skip 0 이어야 한다(Docker 필요)
-   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 118개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
+   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 124개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
 4. E2E 를 돌릴 때는 **OpenAI 실제 비용이 발생한다.** 수집만 확인하려면 `SCC_REVIEW_COLLECTION_LIMIT=20` 으로 띄운다. 50건 게이트에서 막혀 모델을 호출하지 않는다.
 5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
 6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.
@@ -690,7 +721,9 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 
 ## Last Verified Commit
 
-`4177727` — "접기" 중복 수집 수정까지. 이 커밋 기준으로 Python lint·format PASS, pytest 118개 PASS(독립 Reviewer 재검토에서도 실행), 실제 수집(OpenAI 없음) 1회로 "접기" 중복 0 확인. Spring 은 변경 없음(직전 확인 53개 skip 0). API 수준 실제 분석 1회 완료(`76975f3` 에서 실행, 코드는 이 커밋과 같음. 앱 화면·Visual QA 미실행) — "2026-09-28 새 프롬프트·수집 수정으로 실제 분석 1회" 절.
+`c87b4a7` — 결정 없이 처리한 기술 과제 2건(손님 유형 상위 3개 자르기 `47c1130`, 필터 건수 로그)까지. 이 커밋 기준으로 Python lint·format PASS, pytest 124개 PASS, 두 변경 모두 독립 Reviewer PASS. Spring 은 변경 없음(직전 확인 53개 skip 0). 실제 분석은 이 두 변경 뒤로 실행하지 않았다(비용).
+
+이전 기준 `4177727` — "접기" 중복 수집 수정까지. 이 커밋 기준으로 Python lint·format PASS, pytest 118개 PASS(독립 Reviewer 재검토에서도 실행), 실제 수집(OpenAI 없음) 1회로 "접기" 중복 0 확인. Spring 은 변경 없음(직전 확인 53개 skip 0). API 수준 실제 분석 1회 완료(`76975f3` 에서 실행, 코드는 이 커밋과 같음. 앱 화면·Visual QA 미실행) — "2026-09-28 새 프롬프트·수집 수정으로 실제 분석 1회" 절.
 
 이전 기준 `317dc8f` — 결과 문구 내부 표현 필터와 새 프론트 통합 확인 기록까지. 이 커밋 기준으로 Python lint·format PASS, pytest 114개 PASS, 독립 Reviewer 4차 PASS. Spring 은 이번 커밋 변경 없음(직전 확인 53개 skip 0). 새 프롬프트로 실제 분석은 실행하지 않았다(비용).
 
