@@ -75,7 +75,7 @@ docs/design/figma/TASK-020/
 | 하단 아이콘 | 사각형·막대 도형 | 앱과 같은 24×24 SVG path |
 | 손님 유형 그림 | 프로토타입 ImageGen 사진 | 앱과 같은 코드 캐릭터(`GuestCharacter`) |
 
-보드와 앱 코드가 같은 값을 쓰도록, 아이콘 path와 캐릭터 도형은 `frontend/mobile/src/components/icons/`의 것과 같게 적었다. 한쪽을 고치면 다른 쪽도 고쳐야 한다.
+보드와 앱 코드가 같은 값을 쓰도록, 아이콘 path는 `frontend/mobile/src/components/icons/`의 것과 같게 적었다. 한쪽을 고치면 다른 쪽도 고쳐야 한다. 손님 캐릭터 도형은 2026-09-28부터 `generate.mjs`가 앱과 같은 `components/icons/guestCharacterShapes.ts`를 직접 읽으므로 따로 맞출 필요가 없다(세 사람: 안경·올림머리·모자).
 
 5차 독립 리뷰(2026-09-27) 뒤 결과 화면을 앱 코드와 다시 맞췄다.
 

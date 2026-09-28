@@ -88,19 +88,14 @@ const contrastChecks = [
   ['성공 아이콘 / 연한 성공 배경', colors.status.success, colors.status.successSubtle, accessibility.contrast.nonText],
   ['강조 아이콘 / 강조 원', colors.action.onPrimary, colors.action.primary, accessibility.contrast.normalText],
   ['활성 강조 아이콘 / 브랜드 원', colors.brand.onPrimary, colors.brand.primary, accessibility.contrast.nonText],
-  // 자리표시 그림: 얼굴과 옷이 배경 원에서 구분돼야 한다. 세 배경을 모두 본다.
+  // 자리표시 그림: 사람마다 옷이 자기 배경 원에서 구분돼야 하고, 눈·눈썹이 얼굴에서 보여야 한다.
   ...colors.illustration.backgrounds.map((background, index) => [
-    `그림 옷 / 그림 배경 ${index + 1}`,
-    colors.brand.primary,
+    `그림 옷 ${index + 1} / 그림 배경 ${index + 1}`,
+    colors.illustration.outfits[index],
     background,
     accessibility.contrast.nonText,
   ]),
-  ...colors.illustration.backgrounds.map((background, index) => [
-    `그림 얼굴선 / 그림 배경 ${index + 1}`,
-    colors.text.strong,
-    background,
-    accessibility.contrast.nonText,
-  ]),
+  ['그림 눈·눈썹 / 얼굴', colors.illustration.ink, colors.illustration.skin, accessibility.contrast.nonText],
   ['삭제 텍스트 / 삭제 버튼', colors.destructive.onPrimary, colors.destructive.primary, accessibility.contrast.normalText],
   ['삭제 링크 / 카드', colors.destructive.text, colors.background.surface, accessibility.contrast.normalText],
   ['삭제 링크 / 화면 배경', colors.destructive.text, colors.background.canvas, accessibility.contrast.normalText],

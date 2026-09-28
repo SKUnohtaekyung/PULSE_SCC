@@ -24,6 +24,8 @@
 2. **Figma** — `get_metadata`가 Starter 플랜 한도로 두 번 거부됐다. 사용자가 SVG 10장을 드래그해 넣었다. 처음엔 Inter로 바뀌었는데, Figma 앱이 글꼴 설치 전부터 켜져 있었기 때문이다. 재실행 뒤 다시 넣어 Pretendard로 나왔다. 기록은 [보드 README "Import 결과 (2026-09-28)"](../../design/figma/TASK-020/README.md).
 3. **12단계 Spec Update** — 홈 결과 순서(가게 이름 → TOP3 → 선택 유형 → 맨 아래 분석 정보·한계)를 `RESULT_IA`·`USER_FLOW`·기능명세 RESULT-001·`SCREEN_STATES` §6.1에 맞췄다. `AGENTS.md` 2장 테스트 러너 행에 E2E·visual regression 미도입(재검토 시점 TBD)을 적었다.
 
+4. **손님 캐릭터 교체** — 사용자가 시안(대화 안 미리보기)을 보고 골랐다. 서로 다른 세 사람, 얼굴 있음, 안경 쓴 사람은 안경다리까지. 하단 바 아이콘은 "지금이 제일 낫다"고 해서 그대로 뒀다. 도형은 `frontend/mobile/src/components/icons/guestCharacterShapes.ts` 한 곳에 있고 앱과 보드 생성기가 같이 읽는다. 옷 두 벌은 대비 3:1을 넘기려고 시안보다 조금 진하다. 캡처 `guest-v2-*` 2장.
+
 ## 남은 것 (다음 작업 후보 — 사용자가 고른다)
 
 - **`docs/architecture/API.md` 272줄 옛 결과 순서** — `role:platform` 소유. 상태 정본 Unresolved 15. PR 본문에 적고 넘긴다.

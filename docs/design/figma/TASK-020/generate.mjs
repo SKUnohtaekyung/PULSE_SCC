@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { colors, radii, spacing, strokes, typography } from '../../../../frontend/mobile/src/design/tokens/foundation.ts';
+import { guestCharacterShapes } from '../../../../frontend/mobile/src/components/icons/guestCharacterShapes.ts';
 import { PHONE_H, PHONE_W, measure } from './shared.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -395,10 +396,20 @@ const analysisInfo = (y, { date = '2026.09.18', collected = 84, valid = 59 } = {
 };
 
 // slots: [{ kind: 'filled'|'empty', key, name, selected, reason }]
-/** 앱의 `components/icons/GuestCharacter.tsx`와 같은 64×64 그림. 중심과 지름을 받아 그린다. */
+/** 앱의 `components/icons/GuestCharacter.tsx`와 같은 64×64 그림. 도형은 앱과 같은 `guestCharacterShapes.ts`에서 읽는다. */
 let guestClipCount = 0;
+const guestShape = (shape) => {
+  const paint =
+    ` fill="${shape.fill ?? 'none'}"` +
+    (shape.fillOpacity !== undefined ? ` fill-opacity="${shape.fillOpacity}"` : '') +
+    (shape.opacity !== undefined ? ` opacity="${shape.opacity}"` : '') +
+    (shape.stroke ? ` stroke="${shape.stroke}" stroke-width="${shape.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"` : '');
+  if (shape.type === 'circle') return `<circle cx="${shape.cx}" cy="${shape.cy}" r="${shape.r}"${paint}/>`;
+  if (shape.type === 'ellipse') return `<ellipse cx="${shape.cx}" cy="${shape.cy}" rx="${shape.rx}" ry="${shape.ry}"${paint}/>`;
+  return `<path d="${shape.d}"${paint}/>`;
+};
 const guestCharacter = (cx, cy, size, variant = 0) => {
-  const bg = colors.illustration.backgrounds[Math.abs(variant) % colors.illustration.backgrounds.length];
+  const { background, shapes } = guestCharacterShapes(variant, colors.illustration);
   const k = size / 64;
   // 앱처럼 원으로 자른다. 어깨 아래 모서리가 원 밖으로 나가지 않는다. id는 보드 안에서 겹치지 않게 센다.
   const clipId = 'guest-clip-' + ++guestClipCount;
@@ -406,14 +417,8 @@ const guestCharacter = (cx, cy, size, variant = 0) => {
     `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${k})">` +
     `<clipPath id="${clipId}"><circle cx="32" cy="32" r="32"/></clipPath>` +
     `<g clip-path="url(#${clipId})">` +
-    `<circle cx="32" cy="32" r="32" fill="${bg}"/>` +
-    `<path d="M12 64c0-11 9-19 20-19s20 8 20 19H12Z" fill="${colors.brand.primary}"/>` +
-    `<rect x="27" y="38" width="10" height="8" rx="3" fill="${colors.illustration.skinShade}"/>` +
-    `<circle cx="32" cy="28" r="13" fill="${colors.illustration.skin}"/>` +
-    `<path d="M19 27a13 13 0 0 1 26 0c0-4-4-5-7-6-3-1-5-3-9-2s-6 3-7 5-3 2-3 3Z" fill="${colors.text.strong}"/>` +
-    `<circle cx="27" cy="28" r="1.7" fill="${colors.text.strong}"/>` +
-    `<circle cx="37" cy="28" r="1.7" fill="${colors.text.strong}"/>` +
-    `<path d="M28.5 33.5a4.5 4.5 0 0 0 7 0" fill="none" stroke="${colors.text.strong}" stroke-width="1.6" stroke-linecap="round"/>` +
+    `<circle cx="32" cy="32" r="32" fill="${background}"/>` +
+    shapes.map(guestShape).join('') +
     '</g></g>'
   );
 };

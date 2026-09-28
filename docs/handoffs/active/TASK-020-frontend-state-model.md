@@ -48,6 +48,8 @@
 
 ## Changed
 
+- (손님 캐릭터 교체, 2026-09-28) 사용자 선택으로 자리표시 캐릭터를 서로 다른 세 사람(얼굴 있음, 1번은 안경다리까지)으로 바꿨다. 하단 바 아이콘은 바꾸지 않았다(사용자 결정). `components/icons/guestCharacterShapes.ts` 신설(앱·보드 생성기가 함께 읽는 도형 정의), `GuestCharacter.tsx` 교체, `design/tokens/foundation.ts` 그림 색 추가(`skinShade` 값 변경 포함), `scripts/verify-design-tokens.mjs` 그림 대비 검사 교체, 보드 `generate.mjs`와 svg 5장(03·05·07·08·10), `DESIGN_SYSTEM` §3.6, 보드 README, evidence `guest-v2-*` 2장
+
 - (Step 12 Spec Update, 2026-09-28) 홈 결과 순서(TOP3 먼저·분석 정보와 한계는 맨 아래, 2026-09-27 디자인 리뷰 #3)가 `RESULT_IA` §3.1 구조도 아래 본문과 `DESIGN_SYSTEM` §4.1·§6 SC-006 행에는 들어가 있었다. 옛 순서가 남은 곳을 grep으로 찾아 고쳤다: `RESULT_IA.md` §3.1 구조도·§3.2 계층 트리·D7·홈 행, `USER_FLOW.md` 9번·흐름도·기본 흐름 행, `GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` RESULT-001. `SCREEN_STATES.md` §6.1에 빈 슬롯 사유 위치와 한계·2년 경고 위치를 적었다. `AGENTS.md` 2장 테스트 러너 행에 E2E·visual regression 미도입과 재검토 시점을 더했다. 남색·주황 사용처는 `DESIGN_SYSTEM` §2.2·§3.3·§5.4에 이미 있어 바꾸지 않았다
 
 - (가입 비밀번호 확인 칸, 2026-09-28) `features/auth/SignupScreen.tsx` 확인 칸·검증 / `SCREEN_STATES.md` §3.2 세 행·§13 9차 / `DESIGN_SYSTEM.md` §5.3 CredentialForm 행 / 보드 `generate.mjs`·`svg/09-final-auth.svg` / evidence `signup-confirm-*` 5장과 README. `PRD.md`·기능명세는 "필수로 받는 정보"(서버에 보내는 값)를 말하므로 바꾸지 않았다
