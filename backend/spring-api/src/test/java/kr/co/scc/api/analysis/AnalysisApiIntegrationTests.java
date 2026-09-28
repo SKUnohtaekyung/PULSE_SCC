@@ -8,6 +8,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -409,6 +410,105 @@ class AnalysisApiIntegrationTests {
         assertThat(failed.at("/error/code").stringValue()).isEqualTo("STORE_NOT_FOUND");
         assertThat(failed.get("error").has("validReviewCount")).isFalse();
         assertThat(failed.get("error").has("minimumValidReviewCount")).isFalse();
+    }
+
+    @Test
+    void theSameIdempotencyKeySentTwiceAtOnceCreatesOneJob() throws Exception {
+        String key = UUID.randomUUID().toString();
+        String body = "{\"storeName\":\"동시 요청 식당\",\"category\":\"한식\","
+                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}";
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            List<java.util.concurrent.Future<org.springframework.mock.web.MockHttpServletResponse>> results =
+                    new java.util.ArrayList<>();
+            for (int i = 0; i < 2; i++) {
+                results.add(pool.submit(() -> {
+                    start.await();
+                    return mockMvc.perform(post("/api/v1/analysis-jobs")
+                                    .with(userJwt())
+                                    .header("Idempotency-Key", key)
+                                    .contentType("application/json")
+                                    .content(body))
+                            .andReturn().getResponse();
+                }));
+            }
+            start.countDown();
+            java.util.Set<String> jobIds = new java.util.HashSet<>();
+            for (var result : results) {
+                var response = result.get(20, java.util.concurrent.TimeUnit.SECONDS);
+                assertThat(response.getStatus()).isEqualTo(202);
+                jobIds.add(objectMapper.readTree(response.getContentAsString()).get("jobId").stringValue());
+            }
+            assertThat(jobIds).hasSize(1);
+        } finally {
+            pool.shutdownNow();
+        }
+        assertThat(jdbc.sql("SELECT count(*) FROM analysis_jobs WHERE user_id = :userId AND idempotency_key = :key")
+                .param("userId", userId).param("key", key).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void anOverlongIdempotencyKeyIsARequestError() throws Exception {
+        mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", "k".repeat(256))
+                        .contentType("application/json")
+                        .content("{\"storeName\":\"식당\",\"category\":\"한식\","
+                                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void aUserWithoutANotificationSettingRowStillGetsAFailureNotification() throws Exception {
+        // 이 기능 전에 가입해 설정 행이 없는 사용자. 기본값은 켜짐이다.
+        jdbc.sql("DELETE FROM notification_settings WHERE user_id = :userId").param("userId", userId).update();
+        when(gateway.analyze(any())).thenThrow(new AnalysisException(
+                org.springframework.http.HttpStatus.valueOf(422), "STORE_NOT_FOUND", "가게를 찾지 못했습니다.", false));
+        UUID jobId = createJob("설정 없는 식당");
+
+        awaitStatus(jobId, "FAILED");
+
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id AND type = 'ANALYSIS_FAILED'")
+                .param("id", jobId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void anotherUserCannotReachThisUsersJobResultImageOrSavedAnalysis() throws Exception {
+        UUID jobId = createJob("남의 식당");
+        awaitCompleted(jobId);
+        JsonNode result = objectMapper.readTree(mockMvc.perform(
+                        get("/api/v1/analysis-jobs/{jobId}/result", jobId).with(userJwt()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        UUID analysisId = UUID.fromString(result.get("analysisId").stringValue());
+        UUID imageId = UUID.fromString(result.at("/podium/0/persona/image/id").stringValue());
+        var otherUser = jwt().jwt(token -> token.subject(UUID.randomUUID().toString())
+                .claim("sid", UUID.randomUUID().toString()).claim("email", "other@scc.test"));
+
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(otherUser))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", jobId).with(otherUser))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/persona-images/{imageId}", imageId).with(otherUser))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/v1/me/saved-analysis/{analysisId}", analysisId).with(otherUser))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void newEndpointsRequireAuthentication() throws Exception {
+        UUID id = UUID.randomUUID();
+        mockMvc.perform(post("/api/v1/analysis-jobs").contentType("application/json").content("{}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/analysis-jobs/{id}", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/analysis-jobs/{id}/result", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/analyses/{id}/evidence", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/persona-images/{id}", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/me/saved-analysis")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/me/notifications")).andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/v1/me/account")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/legal-documents")).andExpect(status().isOk());
     }
 
     @Test

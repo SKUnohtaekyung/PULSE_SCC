@@ -68,7 +68,11 @@ public class AnalysisRepository {
                 .optional();
     }
 
-    public JobContext insertJob(
+    /**
+     * 작업을 만든다. 같은 사용자가 같은 키로 동시에 요청해 먼저 만들어진 작업이 있으면
+     * 아무것도 만들지 않고 비어 있는 값을 돌려준다. 호출자는 그 작업을 다시 조회한다.
+     */
+    public Optional<JobContext> insertJob(
             UUID userId,
             String idempotencyKey,
             String requestHash,
@@ -86,7 +90,7 @@ public class AnalysisRepository {
                 .param("category", category)
                 .param("url", naverPlaceUrl)
                 .update();
-        jdbc.sql("""
+        int inserted = jdbc.sql("""
                         INSERT INTO analysis_jobs (
                             id, user_id, store_id, idempotency_key, request_hash,
                             status, progress_step, message_code
@@ -94,6 +98,7 @@ public class AnalysisRepository {
                             :id, :userId, :storeId, :idempotencyKey, :requestHash,
                             'QUEUED', 'QUEUED', 'ANALYSIS_QUEUED'
                         )
+                        ON CONFLICT (user_id, idempotency_key) DO NOTHING
                         """)
                 .param("id", jobId)
                 .param("userId", userId)
@@ -101,7 +106,12 @@ public class AnalysisRepository {
                 .param("idempotencyKey", idempotencyKey)
                 .param("requestHash", requestHash)
                 .update();
-        return new JobContext(jobId, userId, storeId, storeName, category, naverPlaceUrl);
+        if (inserted == 0) {
+            // 같은 키의 작업이 먼저 만들어졌다. 방금 넣은 가게 행은 쓰이지 않으므로 지운다.
+            jdbc.sql("DELETE FROM stores WHERE id = :id").param("id", storeId).update();
+            return Optional.empty();
+        }
+        return Optional.of(new JobContext(jobId, userId, storeId, storeName, category, naverPlaceUrl));
     }
 
     public Optional<JobContext> findContext(UUID jobId) {
@@ -255,8 +265,9 @@ public class AnalysisRepository {
                             INSERT INTO notifications (id, user_id, job_id, type, message_code)
                             SELECT gen_random_uuid(), f.user_id, f.id, 'ANALYSIS_FAILED', 'ANALYSIS_RETRY_EXHAUSTED'
                             FROM failed f
-                            JOIN notification_settings s ON s.user_id = f.user_id
-                            WHERE s.analysis_result_enabled = true
+                            LEFT JOIN notification_settings s ON s.user_id = f.user_id
+                            -- 설정 행이 없는 사용자(이 기능 전에 가입)는 기본값 켜짐으로 본다.
+                            WHERE COALESCE(s.analysis_result_enabled, true)
                             ON CONFLICT (job_id, type) DO NOTHING
                         )
                         SELECT count(*)::int FROM failed
@@ -336,9 +347,10 @@ public class AnalysisRepository {
                         INSERT INTO notifications (id, user_id, job_id, type, message_code)
                         SELECT :id, j.user_id, j.id, 'ANALYSIS_FAILED', :messageCode
                         FROM analysis_jobs j
-                        JOIN notification_settings s ON s.user_id = j.user_id
+                        LEFT JOIN notification_settings s ON s.user_id = j.user_id
+                        -- 설정 행이 없는 사용자(이 기능 전에 가입)는 기본값 켜짐으로 본다. 완료 알림과 같다.
                         WHERE j.id = :jobId AND j.status = 'FAILED'
-                          AND s.analysis_result_enabled = true
+                          AND COALESCE(s.analysis_result_enabled, true)
                         ON CONFLICT (job_id, type) DO NOTHING
                         """)
                 .param("id", UUID.randomUUID())

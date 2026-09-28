@@ -25,6 +25,8 @@ import tools.jackson.databind.JsonNode;
 public class AnalysisService {
 
     private static final int DEFAULT_EVIDENCE_PAGE_SIZE = 20;
+    /** analysis_jobs.idempotency_key 컬럼 길이. 넘으면 DB 오류(500) 대신 요청 오류로 돌려준다. */
+    private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 255;
     private static final int MAX_EVIDENCE_PAGE_SIZE = 120;
     private static final Set<String> CATEGORIES =
             Set.of("한식", "중식", "일식", "양식", "카페/디저트", "주점", "기타");
@@ -37,6 +39,14 @@ public class AnalysisService {
 
     @Transactional
     public JobCreated create(UUID userId, String idempotencyKey, CreateJobCommand command) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()
+                || idempotencyKey.length() > MAX_IDEMPOTENCY_KEY_LENGTH) {
+            throw new AnalysisException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_REQUEST",
+                    "요청 키(Idempotency-Key)는 1~255자여야 합니다.",
+                    false);
+        }
         String storeName = command.storeName().trim();
         if (storeName.isBlank() || !CATEGORIES.contains(command.category())) {
             throw new AnalysisException(
@@ -51,33 +61,43 @@ public class AnalysisService {
                 .findByIdempotencyKey(userId, idempotencyKey)
                 .orElse(null);
         if (existing != null) {
-            if (!existing.requestHash().equals(requestHash)) {
-                throw new AnalysisException(
-                        HttpStatus.CONFLICT,
-                        "IDEMPOTENCY_KEY_REUSED",
-                        "같은 요청 키를 다른 가게 분석에 다시 사용할 수 없습니다.",
-                        false);
-            }
-            return new JobCreated(
-                    existing.jobId(),
-                    existing.status(),
-                    existing.progressStep(),
-                    "기존 분석 요청 상태를 반환했습니다.",
-                    existing.createdAt());
+            return existingJob(existing, requestHash);
         }
         JobContext context = repository.insertJob(
-                userId,
-                idempotencyKey,
-                requestHash,
-                storeName,
-                command.category(),
-                normalizedUrl);
+                        userId,
+                        idempotencyKey,
+                        requestHash,
+                        storeName,
+                        command.category(),
+                        normalizedUrl)
+                .orElse(null);
+        if (context == null) {
+            // 같은 키로 동시에 온 다른 요청이 먼저 작업을 만들었다. 500 대신 그 작업을 돌려준다.
+            return existingJob(
+                    repository.findByIdempotencyKey(userId, idempotencyKey).orElseThrow(), requestHash);
+        }
         return new JobCreated(
                 context.jobId(),
                 "QUEUED",
                 "QUEUED",
                 "분석 작업을 준비하고 있습니다.",
                 Instant.now());
+    }
+
+    private static JobCreated existingJob(AnalysisRepository.ExistingJob existing, String requestHash) {
+        if (!existing.requestHash().equals(requestHash)) {
+            throw new AnalysisException(
+                    HttpStatus.CONFLICT,
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "같은 요청 키를 다른 가게 분석에 다시 사용할 수 없습니다.",
+                    false);
+        }
+        return new JobCreated(
+                existing.jobId(),
+                existing.status(),
+                existing.progressStep(),
+                "기존 분석 요청 상태를 반환했습니다.",
+                existing.createdAt());
     }
 
     public JobStatus status(UUID userId, UUID jobId) {
