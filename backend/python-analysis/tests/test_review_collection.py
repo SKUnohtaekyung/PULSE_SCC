@@ -117,6 +117,46 @@ def test_chips_scraped_after_a_short_body_still_find_its_date() -> None:
     assert reviews[0].written_at == date(2026, 9, 1)
 
 
+def test_expanded_copy_with_fold_button_is_not_a_second_review() -> None:
+    first = "반찬이 정갈하고 제육볶음이 맛있어서 점심마다 찾게 됩니다. 사장님도 친절하세요."
+    second = "웨이팅이 길었지만 회전이 빨라서 금방 들어갔어요."
+    scraped = [first, second, first + "\n접기", second + "\n접기\n"]
+
+    reviews = build_reviews(scraped, 120)
+
+    assert [r.content for r in reviews] == [first, second]
+
+
+def test_fold_button_copy_alone_is_kept_without_the_button_and_finds_its_date() -> None:
+    body = "점심에 방문했습니다 국물이 진해요"
+    index = build_date_index([{"items": [_review_node(body, "2026-09-01T03:00:00.000Z")]}])
+
+    reviews = build_reviews([body + "\n접기"], 10, index)
+
+    assert [r.content for r in reviews] == [body]
+    assert reviews[0].written_at == date(2026, 9, 1)
+
+
+def test_fold_button_before_chip_lines_is_dropped_too() -> None:
+    body = "반찬이 정갈하고 제육볶음이 맛있어서 점심마다 찾게 됩니다."
+
+    reviews = build_reviews([body, body + "\n접기\n음식이 맛있어요\n+2"], 10)
+
+    assert [r.content for r in reviews] == [body]
+
+
+def test_fold_word_written_by_the_guest_is_kept() -> None:
+    bodies = [
+        "비 오는 날 우산 접기 편하게 입구가 넓어요",
+        "종이 접기 체험하는 아이들이 많았어요\n접기 좋아요",
+    ]
+
+    assert [r.content for r in build_reviews(bodies, 10)] == [
+        "비 오는 날 우산 접기 편하게 입구가 넓어요",
+        "종이 접기 체험하는 아이들이 많았어요 접기 좋아요",
+    ]
+
+
 def test_rejects_non_naver_and_non_https_urls(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("scc_analysis.collection.naver._reject_non_public_host", lambda _: None)
     with pytest.raises(ReviewCollectionError) as error:

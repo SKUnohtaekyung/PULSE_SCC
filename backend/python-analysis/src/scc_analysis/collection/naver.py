@@ -105,6 +105,9 @@ _KEYWORD_COUNT_LABEL = "이 키워드를 선택한 인원"
 # 칩 목록 끝의 "+3" 접힘 표시.
 _CHIP_OVERFLOW = re.compile(r"\+\d+")
 _QUOTES = "\"'“”‘’"
+# 펼친 리뷰 본문 끝줄의 버튼 문구. 2026-09-28 음식점 매장(2080629959) 실측에서
+# `.pui__vn15t2` 와 `.pui__vn15t2 a` 로 잡은 본문 128건이 모두 이 줄 하나로 끝났다.
+_FOLD_CONTROL = "접기"
 
 # 네이버가 화면에 표시하는 방문일은 KST 기준이다. 늦은 밤 방문은 UTC 날짜와 하루
 # 어긋나므로 표시값과 같은 기준으로 맞춘다.
@@ -174,8 +177,10 @@ def build_reviews(
 ) -> list[CollectedReview]:
     reviews: list[CollectedReview] = []
     seen: set[str] = set()
-    for raw in texts:
-        normalized = normalize_review_text(strip_voted_keywords(raw))
+    for scraped in texts:
+        raw = strip_fold_control(scraped)
+        # 칩 줄이 버튼 줄 뒤에 오면 칩을 뗀 뒤에야 버튼 줄이 끝에 드러난다.
+        normalized = normalize_review_text(strip_fold_control(strip_voted_keywords(raw)))
         if len(normalized) < 10 or len(normalized) > 4000:
             continue
         digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
@@ -193,6 +198,23 @@ def build_reviews(
         if len(reviews) >= limit:
             break
     return reviews
+
+
+def strip_fold_control(raw: str) -> str:
+    """Drop the "접기" button that an expanded review body carries as its last line.
+
+    The same review is scraped once without it and once with it, and the two texts hash
+    differently. When fewer reviews load than the limit, the copies with the button fill
+    the remaining slots as duplicates. The structured body never contains the button, so
+    the visit date is looked up on the text without it. A guest's own last line that says
+    only "접기" cannot be told apart from the button and is dropped as well.
+    """
+    lines = raw.splitlines()
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if lines and lines[-1].strip() == _FOLD_CONTROL:
+        lines.pop()
+    return "\n".join(lines)
 
 
 def _is_chip_line(line: str) -> bool:
@@ -225,10 +247,11 @@ def _written_at_for(
 ) -> date | None:
     """Prefer the structured timestamp, then fall back to a date typed into the body.
 
-    The structured body is never stripped of chip lines, so the original text is looked up
-    first. If a guest's own last line was taken for a chip, the stripped text could match a
-    different review's body and attach its date. Real chips never appear in the structured
-    body, so their original text misses and the stripped text is tried next.
+    The structured body is never stripped of chip lines, so the original text (with only
+    the fold button removed) is looked up first. If a guest's own last line was taken for a
+    chip, the stripped text could match a different review's body and attach its date. Real
+    chips never appear in the structured body, so their original text misses and the
+    stripped text is tried next.
     """
     if date_index is not None and len(date_index):
         for text in (raw, normalized):
