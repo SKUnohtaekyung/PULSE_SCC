@@ -36,6 +36,7 @@ import { useSession } from '@/session/SessionProvider';
 // SC-001 가게 정보 입력 + SC-003 분석 진행. 한 화면에서 이어 보여준다(Step 5 합성).
 // 다루는 상태: STORE-INITIAL/EDITING/FIELD-ERROR/CREATING-JOB/UNSUPPORTED-URL/NOT-FOUND/JOB-ERROR/OFFLINE,
 // ANALYSIS-QUEUED/COLLECTING/(그 밖의 progressStep)/INSUFFICIENT/RETRYABLE-ERROR/FATAL-ERROR, SAVE-FIRST-*.
+// 상태 조회 자체가 실패한 경우(statusUnavailable)는 SC-003 표에 아직 없는 상태다(#34, 불변식 11 유추).
 
 type Phase = 'input' | 'creating' | 'progress' | 'failed' | 'completing';
 type FieldKey = 'name' | 'category' | 'url';
@@ -329,7 +330,19 @@ export function AnalyzeScreen() {
           setOffline(true);
           return;
         }
-        setFailure(statusUnavailableFailure);
+        if (error instanceof ApiError && error.code !== null && error.status < 500) {
+          // 코드가 있는 조회 오류(예: ANALYSIS_NOT_FOUND)는 다시 조회해도 같은 답이 온다.
+          // 작업을 이어 볼 수 없으므로 입력 화면으로 보낸다. 새 작업은 사용자가 직접 요청한다.
+          setFailure({
+            kind: 'fatal',
+            message:
+              error.code === 'ANALYSIS_NOT_FOUND'
+                ? '분석 작업을 찾지 못했어요. 입력 화면에서 다시 분석을 요청해 주세요.'
+                : error.message,
+          });
+        } else {
+          setFailure(statusUnavailableFailure);
+        }
         setPhase('failed');
       } finally {
         inFlight = false;
@@ -594,6 +607,11 @@ export function AnalyzeScreen() {
 
       {phase === 'failed' && failure ? (
         <Button label={failureActionLabel(failure)} onPress={() => runFailureAction(failure)} />
+      ) : null}
+
+      {phase === 'failed' && failure?.kind === 'statusUnavailable' ? (
+        // 조회가 계속 실패해도 화면에 갇히지 않게 한다. 입력은 그대로 두고, 다시 요청하면 새 작업이 된다.
+        <Button label="입력 화면으로" onPress={resetToInput} variant="ghost" />
       ) : null}
 
       <Text style={[styles.footnote, largeText && styles.footnoteLarge]}>
