@@ -239,6 +239,7 @@
 | `RESULT-OLD-REVIEWS` | `metadata.containsReviewsOlderThanTwoYears=true`. 원격 백엔드의 `limitations[].code`는 항상 `ANALYSIS_LIMITATION`이라 코드로 판정하지 않는다 |
 | `RESULT-LIMITS` | 항상 표시. 서버 `limitations[].message`가 있으면 함께 표시 |
 | 분석 기준 정보 | `store.name`, `metadata`의 `platform`, `collectedReviewCount`(수집 건수), `validReviewCount`(분석 사용 건수), `collectedAt`, `analyzedAt` |
+| 선택 유형 요약 카드(2026-09-28) | 유형 이름·요약 아래, 4관점 위. 손님 그림(`persona.image`), `rank`, `topicReviewCount`, 분석 사용 리뷰 대비 비율(앱 계산값 `round(topicReviewCount ÷ validReviewCount × 100)`), 관점별 `evidenceCount` 칩. 비율의 뜻은 §11 미정 항목을 따른다 |
 
 `RESULT-NO-PERSONA`는 계약상 상태지만 원격 백엔드에서는 현재 나올 수 없다. Python 분석 결과가 페르소나를 최소 1개 요구해, 근거를 충족한 토픽이 0개면 결과 대신 재시도 가능한 작업 실패(`ANALYSIS_SERVICE_REJECTED`)가 된다(§11). 앱은 이 상태를 구현하되 검증은 fixture로 한다.
 
@@ -269,6 +270,8 @@
 ### 6.4 `SC-007` 페르소나 이미지
 
 결과의 `image.url`은 `/api/v1/persona-images/{imageId}` 형태의 상대 경로이며, 요청 사용자의 소유권을 확인하므로 `Authorization` 헤더가 필요하다. 앱은 API 기본 주소와 결합하고 인증 헤더를 붙여 요청한다. 401이면 불변식 12에 따라 토큰을 갱신한 뒤 한 번 다시 요청하고, 그래도 실패할 때만 `IMAGE-LOAD-ERROR`로 간다. 이미지 컴포넌트의 오류 콜백으로는 HTTP 상태를 알기 어려우므로, 세션 응답의 `accessTokenExpiresAt`을 보고 만료 전에 미리 갱신하거나 이미지를 앱의 요청 계층으로 받아 표시한다. 마이페이지의 `STORED-IMAGES-*`도 같은 규칙을 따른다.
+
+결과 화면은 2026-09-28부터 이미지를 큰 칸 대신 **TOP3 시상대와 선택 유형 요약 카드의 동그란 그림**으로 보여 준다(§6.1). 카드에서 `IMAGE-LOADING`은 같은 크기의 회색 원으로 자리를 지키고, `IMAGE-LOAD-ERROR`는 그림을 자리표시 캐릭터로 바꾼 뒤 카드 안에 원인 문장과 `이미지 다시 불러오기`를 둔다(원격 이미지일 때만. 가상 서버에는 다시 받을 이미지가 없어 버튼을 두지 않는다). 시상대 그림은 실패하면 자리표시로만 바뀐다 — 같은 이미지의 다시 불러오기는 카드가 맡는다. AI 생성 고지는 시상대 아래 문장이 한 화면에 한 번 한다.
 
 | 상태 ID | 조건 | 사용자에게 보이는 것 | 시스템 규칙 |
 |---|---|---|---|
@@ -393,6 +396,7 @@ Vertical Slice에서 실제 백엔드 endpoint가 아직 없는 단계는 고정
 | 실패한 분석 단계를 서버가 알려줄지(현재 `progressStep`이 `FAILED`로 덮여 알 수 없음, `role:feature`) | `SC-003` 실패 결과 행 | 분석 API 연동 전 |
 | 미저장 새 결과의 접근·보관 시간 | `SAVE-KEEPING` 이후 | 작업 큐·삭제 배치 구현 전 |
 | 알림 읽음 처리 | `SC-012` | 마이페이지 API 구현 전 |
+| 한 리뷰가 여러 손님 유형의 `topicReviewCount`에 함께 세어지는지 (`role:feature`). 겹칠 수 있으면 요약 카드의 "분석한 리뷰 N건 중 M%"를 다른 표현으로 바꾼다. 2026-09-28 사용자 결정: 확인 전까지 비율을 표시한다 | §6.1 선택 유형 요약 카드 | 실제 백엔드 연결 전 |
 | 최소 Android OS·지원 기기·접근성 목표 | 전체 Visual QA | 첫 UI 구현 전 |
 | 오류 화면에 `traceId`를 문의용 코드로 보여줄지 | 모든 `*-ERROR` | 오류 화면 구현 전 |
 | 웹 계정 삭제 요청 링크 제공 방식 (PRD §13-24) | `ACCOUNT-DELETE-*` 밖의 스토어 요구 | Play Console 데이터 보안 양식 작성 전 |

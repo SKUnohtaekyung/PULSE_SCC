@@ -5,15 +5,17 @@ import type { PersonaImageSource } from '@/api/personaImages';
 import { GuestCharacter } from '@/components/icons/GuestCharacter';
 import { colors, spacing, strokes, typography } from '@/design/tokens';
 
-// 순위 목록(TOP3)에 쓰는 동그란 손님 유형 그림.
+// 순위 목록(TOP3)과 선택한 유형 요약 카드에 쓰는 동그란 손님 유형 그림.
 // 실제 서버에 연결되면 AI가 만든 이미지를 원형으로 보여 주고, 그 전에는 코드로 그린 자리표시를 쓴다.
 // 프로토타입 에셋을 제품 화면에 쓰지 않는다(DESIGN_SYSTEM §3.6). 생성 사실 고지는 목록이 한 번만 한다.
 
-export type PersonaAvatarSize = 'first' | 'runner';
+export type PersonaAvatarSize = 'first' | 'runner' | 'compact';
 
 const diameters: Record<PersonaAvatarSize, number> = {
   first: spacing[24],
   runner: spacing[20],
+  // 선택한 유형 요약 카드의 왼쪽 그림(ResultView)
+  compact: spacing[16],
 };
 
 export function PersonaAvatar({
@@ -22,6 +24,7 @@ export function PersonaAvatar({
   size = 'runner',
   selected = false,
   variant = 0,
+  onLoadError,
 }: {
   source: PersonaImageSource;
   /** 기능 중심 대체 텍스트. 이미지가 없을 때도 같은 뜻이 전달돼야 한다. */
@@ -30,6 +33,8 @@ export function PersonaAvatar({
   selected?: boolean;
   /** 자리표시 그림의 사람(모습·배경색)을 고르는 값. 순위를 넣는다 — 유형과 짝짓지 않는다(DESIGN_SYSTEM §3.6). */
   variant?: number;
+  /** 원격 이미지를 받지 못했을 때 알린다. 다시 불러오기를 둘 화면만 쓴다 — 다시 받으려면 부모가 key를 바꿔 새로 그린다. */
+  onLoadError?: () => void;
 }) {
   const [failed, setFailed] = useState(false);
   const diameter = diameters[size];
@@ -48,7 +53,10 @@ export function PersonaAvatar({
     >
       {showImage ? (
         <Image
-          onError={() => setFailed(true)}
+          onError={() => {
+            setFailed(true);
+            onLoadError?.();
+          }}
           source={source.source}
           style={{ width: diameter, height: diameter, borderRadius: diameter / 2 }}
         />

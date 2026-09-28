@@ -666,29 +666,79 @@ const leaveDialog = () =>
       quietButton(44, 454, PHONE_W - 88, '계속 보기'),
   );
 
-const screenImageStates = () =>
-  resultHeader() +
-  ['loading', 'error']
-    .map((kind, index) => {
-      const y = 96 + index * 230;
-      return card(
-        PAD,
-        y,
-        W,
-        210,
-        rect(PAD + 20, y + 20, 120, 120, { fill: colors.background.emphasized, r: radii.control }) +
-          (kind === 'loading'
-            ? text(PAD + 80, y + 70, ['이미지를', '불러오는 중'], typography.caption, colors.text.secondary, { anchor: 'middle' })
-            : text(PAD + 80, y + 40, '!', typography.body5, colors.status.warningText, { anchor: 'middle' }) +
-              text(PAD + 80, y + 64, ['이미지를 불러오지', '못했어요'], typography.caption, colors.text.secondary, { anchor: 'middle' }) +
-              text(PAD + 80, y + 110, '다시 불러오기', typography.body6, colors.text.brand, { anchor: 'middle' })) +
-          text(PAD + 156, y + 30, '1위 손님 유형', typography.caption, colors.text.brand) +
-          text(PAD + 156, y + 50, '추억 재방문형', typography.head5, colors.text.strong) +
-          text(PAD + 156, y + 84, ['변함없는 맛을', '다시 찾는 방문'], typography.body7, colors.text.secondary),
+/**
+ * 선택한 유형 요약 카드(앱 `ResultView`의 `PersonaStatsCard`, 2026-09-28 F안).
+ * 왼쪽 그림 · 순위 · 리뷰 수 · 분석한 리뷰 대비 비율 막대 · 관점별 근거 수 칩. 수치는 가상 데이터(1위 24건 / 67건)다.
+ */
+const statChips = (x, y, maxW) => {
+  const items = [['먼저 볼 것', '12건'], ['잘하고 있는 점', '18건'], ['손님이 불편해한 점', '11건'], ['손님이 기억하는 모습', '9건']];
+  let cx = x;
+  let cy = y;
+  const svgText = items
+    .map(([label, count]) => {
+      const w = measure(label + ' ', typography.caption.fontSize) + measure(count, typography.caption.fontSize) + 24;
+      if (cx + w > x + maxW) {
+        cx = x;
+        cy += 30;
+      }
+      const chip = group(
+        `StatChip/${label}`,
+        rect(cx, cy, w, 24, { fill: colors.background.subtle, stroke: colors.border.default, r: 12 }) +
+          text(cx + 12, cy + 3, label, typography.caption, colors.text.secondary) +
+          text(cx + 12 + measure(label + ' ', typography.caption.fontSize), cy + 3, count, typography.caption, colors.text.brand, { weight: 600 }),
       );
+      cx += w + 8;
+      return chip;
     })
-    .join('') +
-  bottomNav('home');
+    .join('');
+  // 칩이 몇 줄로 접혔는지에 따라 카드 높이가 달라진다. 마지막 줄 바닥을 함께 돌려준다.
+  return { svg: svgText, bottom: cy + 24 };
+};
+
+const statsCard = (y, kind) => {
+  const x0 = PAD + 16;
+  const x1 = x0 + 80;
+  const barW = W - 16 - 80 - 16;
+  const errorH = kind === 'error' ? 72 : 0;
+  const chips = statChips(x0, y + 112 + errorH, W - 32);
+  const h = chips.bottom + 16 - y;
+  const svgText = card(
+    PAD,
+    y,
+    W,
+    h,
+    (kind === 'loading'
+      ? circle(x0 + 32, y + 48, 32, { fill: colors.background.emphasized })
+      : guestCharacter(x0 + 32, y + 48, 64, 0)) +
+      text(x1, y + 18, '1위 손님', typography.caption, colors.text.secondary) +
+      text(x1, y + 36, '리뷰 24건', typography.body1, colors.text.strong) +
+      rect(x1, y + 66, barW, 8, { fill: colors.background.emphasized, r: 4 }) +
+      rect(x1, y + 66, Math.round((barW * 36) / 100), 8, { fill: colors.brand.primary, r: 4 }) +
+      text(x1, y + 80, '분석한 리뷰 67건 중 36%', typography.caption, colors.text.secondary) +
+      (kind === 'error'
+        ? text(x0, y + 112, ['이미지를 불러오지 못했어요.', '손님 유형 내용은 그대로 볼 수 있어요.'], typography.caption, colors.text.secondary) +
+          text(x0, y + 152, '이미지 다시 불러오기', typography.body6, colors.text.brand)
+        : '') +
+      chips.svg,
+  );
+  return { svg: svgText, bottom: y + h };
+};
+
+const screenImageStates = () => {
+  const loading = statsCard(122, 'loading');
+  const errorTop = loading.bottom + 16;
+  const error = statsCard(errorTop + 22, 'error');
+  // 두 번째 카드 바닥이 가운데 분석하기 버튼 위쪽 끝(708)보다 위에 와야 한다.
+  if (error.bottom > PHONE_H - 72 + 10 - 28 - 2) throw new Error('이미지 상태 카드가 하단 내비에 가린다');
+  return (
+    resultHeader() +
+    text(PAD, 100, '불러오는 중 — 자리만 회색 원으로 유지', typography.caption, colors.text.secondary) +
+    loading.svg +
+    text(PAD, errorTop, '불러오지 못함 — 캐릭터로 바꾸고 다시 불러오기', typography.caption, colors.text.secondary) +
+    error.svg +
+    bottomNav('home')
+  );
+};
 
 // ---------- 인증·로딩·빈 상태 화면 (2026-09-27 추가) ----------
 // SCREEN_STATES §3(앱 시작·인증)과 §6·§8의 로딩·빈 상태를 옮긴 것이다.
@@ -1084,7 +1134,7 @@ const boards = {
     { name: 'Evidence-End', caption: '근거 목록 끝 (EVIDENCE-END)', body: screenEvidence({ end: true }), options: {} },
     { name: 'MyPage', caption: '마이페이지 (MYPAGE-NORMAL)', body: screenMyPage(), options: {} },
   ]),
-  '08-final-result-states.svg': phonesBoard('08 · Final UI — 결과 상태', '빈 칸은 점선. 이미지 로딩(IMAGE-LOADING)은 채운 회색 영역과 문장, 조회 실패(IMAGE-LOAD-ERROR)는 같은 영역에 주의 아이콘·문장·다시 불러오기', [
+  '08-final-result-states.svg': phonesBoard('08 · Final UI — 결과 상태', '빈 칸은 점선. 선택 유형 요약 카드의 이미지 로딩(IMAGE-LOADING)은 회색 원, 조회 실패(IMAGE-LOAD-ERROR)는 캐릭터 + 문장 + 다시 불러오기', [
     {
       name: 'Result-Partial',
       caption: '유형 2개만 찾음',
