@@ -48,11 +48,12 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - `backend/python-analysis/**` — 네이버 수집기, OpenAI 분석/이미지 파이프라인, 내부 API와 단위테스트
 - `docs/architecture/**`, `docs/decisions/ADR-009-*` — 실제 실행·저장 경계 동기화
 - `docs/legal/**` — 법률 검토 전 약관·개인정보 처리방침 초안과 체크리스트
+- `docs/decisions/ADR-010-*`(계정 탈퇴), `ADR-012-*`(작업 큐), Flyway V4(임대)·V5(유효 리뷰 수), `backend/.env.example`, `.gitignore`
 - 별도 폴더 `C:\PULSE_SCC_FE` — API client, 보안 토큰 저장, 실제 분석/예외 UI (이 저장소 Git 범위 밖)
 
 ## Decisions
 - Python은 DB를 쓰지 않고 완성 산출물을 내부 HTTP로 반환하며 Spring만 완료 트랜잭션과 영속화를 소유한다. ADR-009 참조.
-- 네이버 수집기는 두 HTTPS host만 허용하고 DNS 사설주소, 로그인·차단 우회를 금지한다.
+- 입력 URL 은 두 HTTPS host(`map.naver.com`, `m.place.naver.com`)만 허용하고, 수집기는 수집 페이지 host 3개(`pcmap.place.naver.com` 포함)와 공개 인터넷 주소만 허용한다. 로그인·차단 우회는 금지한다.
 - 법률 문서는 확정본으로 표시하지 않으며 적격 법률 검토와 운영자·국외이전 정보 확정 전 운영 출시를 차단한다.
 - 근거 조회 `limit` 최대값은 별도 임의값 대신 분석당 공개 리뷰 수집 상한과 같은 120으로 제한한다.
 
@@ -144,7 +145,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 |---|---|---|
 | 1 | 관리자 PowerShell `wsl --install --no-distribution` → 재부팅 | Docker → Testcontainers 6개 |
 | 2 | OpenAI 새 키 발급·이전 키 폐기 → `backend/.env` 의 `SCC_OPENAI_API_KEY` | 수집→분석→이미지 전체 E2E |
-| 3 | PR #27 리뷰어 지정·승인 | 인증 병합 |
+| 3 | ~~PR #27 리뷰어 지정·승인~~ 2026-09-28 병합 | 인증 병합 |
 | 4 | GitHub 브랜치 보호 설정 (현재 없음) | `main` 보호 |
 | 5 | Google OAuth Client ID, 약관 법률 검토, 실기기 확인 | 출시 준비 |
 
@@ -376,6 +377,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 모델이 4개 이상 토픽을 반환하면 스키마(`max_length=3`, `rank le=3`) 검증에서 실패해 재시도된다. 프롬프트로 3개 이하를 요구하지만, 넘겼을 때 상위 3개로 자르는 처리는 없다.
   > 정정(2026-09-28): 검증 전에 리뷰 수 상위 3개로 자르도록 수정했다(`47c1130`). 아래 "2026-09-28 결정 없이 처리한 기술 과제 2건" 절.
 - `docs/decisions/ADR-012` 31행의 "횟수를 다 쓰면 `ANALYSIS_TIMEOUT` 으로 마감"도 임대 만료 경로에만 맞는다. ADR 은 `role:platform` 소유라 고치지 않았다.
+  > 정정(2026-09-28): `dbf6d02` 에서 ADR-012 결정 5번에 #30 갱신 주석을 달았다(원문 유지).
 - 실제 OpenAI 호출로 토픽 1~2개 결과가 나오는지는 확인하지 않았다(비용 발생).
 - **명세 문구 갱신 요청** — 기능명세 PERSONA-007·RESULT-013·인수조건(464행 부근), RESULT_IA, PRD FR-003 의 빈 슬롯 문구는 "리뷰 근거가 부족해 3개보다 적게 도출됐다" 이다. 사용자 결정(2026-09-27)으로 화면 문구를 "리뷰 수가 적어서 도출되지 않았다" 로 바꿨으니 `role:product` 에 명세 문구 갱신을 요청한다. 규칙 자체는 명세와 같다.
 - **소유 영역** — `docs/architecture/API.md` 는 `role:platform` 소유다. AGENTS.md 2장 7번(API 변경 시 동기화)에 따라 예시 문구를 함께 고쳤으므로 PR 본문에 명시하고 platform 리뷰어를 지정한다. ADR-012 은 결정 기록이라 고치지 않았다.
@@ -429,6 +431,7 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 경쟁 상황: 임대가 끝나 작업이 QUEUED 로 돌아갔거나 다른 워커가 다시 가져간 뒤 원래 워커가 실패하면 `requeueForRetry` 가 false 를 돌려준다. 이때 `markRetryExhausted` 는 시도 횟수가 상한 미만이면 아무것도 바꾸지 않는다. 다만 다른 워커가 세 번째 시도로 가져간 뒤라면(시도 횟수 3) 원래 워커가 그 작업을 마감할 수 있다. 워커 소유권 식별이 없는 at-least-once 큐의 기존 한계다(ADR-012).
 - **비용 방지 효과의 한계**: "가게 정보로 돌아가기" 뒤 확인 화면에서 "리뷰 분석 시작"을 한 번 더 누르면 새 작업이 만들어져 다시 최대 3회 시도한다. 사용자가 고른 안(즉시 재시도 버튼만 없앰)의 범위다.
 - 문서 동기화: `docs/architecture/DATA_MODEL.md` 는 `error_code` 를 "공개 가능한 표준 오류 코드"로 설명하지만, 재시도 소진이면 공개 코드는 `message_code` 로 정해진다. `role:platform` 소유라 고치지 않았다. `C:\PULSE_SCC_FE\docs\architecture\API.md` 사본도 병합 후 동기화가 필요하다.
+  > 정정(2026-09-28): `dbf6d02` 에서 DATA_MODEL `error_code` 설명을 고쳤다.
 - 재시도 불가(`retryable=false`)지만 사용자 입력 문제가 아닌 실패(예: 작업 정보를 찾지 못한 `ANALYSIS_OUTPUT_INVALID`)도 제목이 "입력 또는 설정 확인이 필요해요" 로 나온다. 드문 경로라 이번 범위에서 나누지 않았다.
 - Visual QA 미실행.
 
@@ -637,6 +640,39 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - **PR #41(로그인 시도 제한)과의 충돌**: #41 과 이 브랜치가 둘 다 `AuthController`·`AuthService`·`AuthCredentialTests` 를 고친다. 둘 중 늦게 병합되는 쪽에서 손으로 합쳐야 한다(병합 전 시뮬레이션에서 `AuthController` 충돌 확인). #41 의 `AuthService` 생성자 인자 추가와 이 브랜치의 가입 인자 추가가 함께 들어가야 한다.
 - `frontend/mobile/INTEGRATION_GUIDE.md` 206행(프론트 소유)은 ADR 번호 충돌을 아직 "미결정"으로 적고 있다. PR 본문으로 알린다.
 
+## 2026-09-28 브랜치 전체 검토 반영 (PR #36)
+
+독립 Reviewer 가 브랜치 전체(`main...HEAD`)를 검토해 결함 12건과 비용·보안 권고를 냈다. 사용자는 결함 12건과 권고를 모두 고치고, 유효 리뷰 수는 지금 서버에서 전달하고, 법률 초안은 실제 동작에 맞추고, 분석 API 오류는 공통 계약으로 맞추기로 정했다.
+
+| 커밋 | 고친 것 |
+|---|---|
+| `f71d246` | 완료 저장은 첫 문장에서 `RUNNING` → `COMPLETED` 를 바꾸고 1행이 아니면 전부 되돌린다(임대 만료로 실패 마감된 작업에 결과·알림이 커밋되던 문제). 큐 `inFlight` 를 실행 수로 셈. 결과 저장이 되돌려지면 방금 쓴 이미지 파일 삭제, 탈퇴는 커밋 뒤 파일 삭제. 탈퇴 시 JWT `sid` 세션이 살아 있는지 확인(`401 SESSION_REVOKED`) |
+| `ef74aad` | 분석 API 오류를 API.md 2.1 공통 계약(`fieldErrors`, `traceId`)으로. 본문 검증·헤더/쿼리 누락·경로 값 형식·깨진 JSON 은 `400 INVALID_REQUEST` |
+| `1c7e0dd`, `62f6003` | REVIEW-008: 유효 리뷰 50건 미만 실패에 `validReviewCount`·`minimumValidReviewCount`(Flyway V5). `1c7e0dd` 는 ruff 실패 상태로 커밋돼 `62f6003` 에서 고쳤다 |
+| `632aa3d` | Python: 모델 출력 검증 실패 502 `ANALYSIS_OUTPUT_INVALID`, 이미지 생성 실패 502 `IMAGE_GENERATION_FAILED`, OpenAI 호출 실패 503 `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE`(모두 재시도 대상). 수집 host 는 공개 인터넷 주소만(CGNAT·멀티캐스트 차단), DNS 일시 실패는 재시도 가능. 서비스 토큰을 본문 검증보다 먼저 확인 |
+| `c61f432` | 같은 `Idempotency-Key` 동시 요청이 500 이던 문제(`ON CONFLICT DO NOTHING`), 255자 초과 키 400, 알림 설정 행 없는 사용자의 실패 알림 누락 |
+| 이 절의 문서 커밋 | API.md v0.6, DATA_MODEL(V3~V5 컬럼·인덱스, 완료·알림 경계 서술), ADR-009·010·012 갱신 주석·과장 표현, 법률 초안(OpenAI 로 보내는 항목, 탈퇴 구현 상태), `backend/README.md`·`AGENTS.md` 3장(`playwright install chromium`) |
+
+- 완료 저장 소유권·되돌림 시 이미지 정리 테스트는 수정을 되돌려 실패하는 것을 직접 확인했다.
+- 법률 초안은 실제 동작을 적었을 뿐이다. 가명 처리는 하지 않으며 적격 법률 검토 전 초안이라는 상태는 그대로다.
+
+| 검증 | 명령 | 결과 |
+|---|---|---|
+| Spring build·test | `.\backend\spring-api\gradlew.bat -p backend\spring-api build --rerun-tasks` (Docker) | PASS — tests=112 failures=0 errors=0 skipped=0 (BUILD SUCCESSFUL, Docker 29.8.0) |
+| Python lint·format | `ruff check --no-cache`, `ruff format --check --no-cache` (`backend\python-analysis`) | PASS — All checks passed, 21 files already formatted |
+| Python test | `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` | PASS — 156 passed |
+| 실제 분석 | — | 미실행(비용). 이번 수정 뒤 실제 서버로 분석하지 않았다 |
+| Visual QA | — | 미실행 |
+
+### 남은 권고 (이번 범위 밖, 이슈 후보)
+
+- 알림 설정 `PATCH` 에 빈 본문 `{}` 을 보내면 조용히 꺼진다
+- 비밀번호 재확인 실패(`PASSWORD_CONFIRMATION_FAILED`)가 401 이라 앱이 로그아웃으로 오인할 수 있다
+- 입력 URL 의 포트·경로를 검사하지 않는다
+- 쓰지 않는 `markRunning`·`@EnableAsync`
+- Google 가입은 약관 동의를 기록하지 않는다
+- Tomcat `/error` 가 `denyAll` 에 걸려 400·500 이 403 으로 보일 수 있다(확인 필요)
+
 ## Unresolved
 
 ### 제품·법무 결정
@@ -661,22 +697,31 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 - 폴링 주기·임대 시간·재시도 횟수는 로컬 실측 기준값이다. 운영 부하를 보고 조정한다.
 - 내부 호출 read timeout 15m 은 동기 호출 구조를 전제한 값이다. 작업을 더 쪼개면 줄일 수 있다.
 - Visual QA 미실행. 빈 포디움 슬롯·분석 불가 화면·알림 목록을 실기기에서 확인해야 한다.
-- 회원 탈퇴의 실제 PostgreSQL 삭제 검증은 통합 테스트 코드로만 확인했다.
+- 회원 탈퇴의 실제 PostgreSQL 삭제 검증은 통합 테스트 코드로만 확인했다(2026-09-28 완료된 분석이 있는 사용자 탈퇴 통합 테스트 추가, 앱 화면은 아직 연결 안 됨).
 - ~~**임대 만료로 재시도 횟수를 다 쓴 작업에는 실패 알림이 생기지 않는다.**~~ 2026-09-27 수정(아래 절 참조, 통합 테스트 실행 확인 대기). 재시도 소진에는 두 경로가 있다.
   - 작업 안에서 실패(Python 이 재시도 가능한 오류를 반환하는 등): `AnalysisJobRunner.finishFailure` → `requeueForRetry` 가 `attempt_count < maxAttempts` 조건에 걸려 false → `markFailed` 가 원래 오류 코드로 마감하고 **알림을 만든다.**
   - 임대 만료(워커 종료·하트비트 끊김): `AnalysisJobQueue.recoverAbandonedJobs` → `failExhaustedJobs` 가 `ANALYSIS_TIMEOUT` 으로 FAILED 처리하는 UPDATE 뿐이다. **알림이 빠지는 건 이 경로다.** 알림 설정이 켜져 있어도 마이페이지에 아무것도 뜨지 않는다.
   - 2026-09-26 인수인계 검토에서 코드를 읽어 확인했다. 실행 재현은 하지 않았다. 코드 미수정.
+  > 정정(2026-09-28): 위 두 줄은 수정 전 상태다. 2026-09-27 임대 만료 경로에도 알림을 만들도록 고쳤고, 2026-09-28 알림 설정 행이 없는 사용자도 알림을 받도록 고쳤다(`c61f432`).
 
 ## Do Not Assume
 - Android 번들 성공은 실기기 E2E 성공이나 네이버 selector 안정성을 증명하지 않는다.
 - 약관과 개인정보 처리방침은 법률 검토 전 초안이다.
 - 프론트는 2026-09-28 부터 `frontend/mobile`(`feat/TASK-020-frontend-mobile`, PR #35)이다. 그 이전 절에 적힌 앱 변경은 사용자가 임시로 만든 `C:\PULSE_SCC_FE`(Git 저장소 아님)에만 있고 새 앱에는 없다.
-- PR #36 은 draft 다. Ready 전에 PR #27 병합과 인증 충돌 수동 병합, 브랜치 전체 독립 Reviewer, `role:platform` 의 문서 불일치 정리(PR #36 본문 "알려진 문서 불일치")가 필요하다.
+- PR #36 은 draft 다. PR #27 병합·인증 충돌 병합·문서 불일치 정리는 끝났고, 브랜치 전체 독립 Reviewer 결함 수정은 아래 "2026-09-28 브랜치 전체 검토 반영" 절이다. Ready 전환은 사용자가 정한다.
+- PR #41(로그인 시도 제한)과 이 브랜치는 `AuthController`·`AuthService`·`AuthCredentialTests` 를 함께 고친다. 늦게 병합되는 쪽에서 손으로 합친다. 이 브랜치는 `MyPageService` 생성자에 `Clock` 도 추가했다.
 - E2E 가 성공했다고 네이버 selector 안정성이 증명된 것은 아니다. 전체 E2E 는 음식점 1개 매장에서 COMPLETED 3회 이상(230초·268초·196초, 재시작 복구 1회 포함)이 전부고, 카페 1개 매장은 수집 단계만 확인했다.
 - 선택형 키워드 제외 목록(50개)은 사용자 제공 통계와 카페 1곳 실측으로 모은 것이다. 네이버 전체 선택지 목록이 아니다.
 - 큐의 재시작 복구는 실제로 검증했지만 다중 인스턴스 동시 운영은 검증하지 않았다.
 
 ## Next Action
+
+> **2026-09-28 세 번째 작업(PR #36 전체 검토 반영).** 결함·권고 코드 수정 6커밋(`f71d246`~`c61f432`)과 문서 정리 커밋. 위 "2026-09-28 브랜치 전체 검토 반영" 절.
+> 같은 날 병합: PR #40(`7a968b9`), PR #25(`44da270`) squash, PR #27 merge commit(`fcd095a`, #26 자동 종료). #33 은 "업종 키워드 목록 불필요" 결정으로 종료, #31 은 MVP 에서 RAG 제외·화면 '없음' 유지 결정 댓글 뒤 열어 둠. #32 는 PR #41 로, #34 는 PR #39 로 진행 중.
+> 이어서 할 것
+> 1. PR #36 Ready 전환(사용자 결정) → 리뷰어 지정. 소유 영역 밖 파일 목록은 PR 본문에 있다
+> 2. PR #41 과 PR #36 중 늦게 병합되는 쪽에서 인증 파일 손 병합
+> 3. 위 "남은 권고" 를 이슈로 만들지 사용자에게 묻는다
 
 > **2026-09-28 두 번째 세션 종료 시점.** 시작 시 HEAD `61b9b15`, 이 인수인계 갱신 직전 HEAD 는 `a22935d` 이고 원격과 같았다. 이 인수인계 갱신 커밋 자체에는 코드 변경이 없다.
 > 이 세션에서 한 것
@@ -762,8 +807,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 1. `git status --short`, `git branch -a`, `git log -3 --oneline` 으로 상태를 확인한다. **`git branch -a` 를 빼먹지 않는다** — 이전 세션이 로컬 브랜치를 못 보고 같은 TASK 를 중복 구현한 적이 있다.
 2. 환경은 준비돼 있다. Docker 정상, 로컬 PostgreSQL 18 에 `scc` DB·계정 존재, `backend/.env` 설정 완료(OpenAI 키 포함).
 3. 검증 명령
-   - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 53개, skip 0 이어야 한다(Docker 필요)
-   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 128개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
+   - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 112개, skip 0 이어야 한다(Docker 필요)
+   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 156개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
 4. E2E 를 돌릴 때는 **OpenAI 실제 비용이 발생한다.** 수집만 확인하려면 `SCC_REVIEW_COLLECTION_LIMIT=20` 으로 띄운다. 50건 게이트에서 막혀 모델을 호출하지 않는다.
 5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
 6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.
@@ -773,6 +818,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 10. **새 앱(`frontend/mobile`) 통합 확인 방법**: 먼저 `git worktree list` 로 `C:\PULSE_SCC-mobile` 이 있는지 본다. 없을 때만 `git worktree add ../PULSE_SCC-mobile feat/TASK-020-frontend-mobile` 후 `npm --prefix ../PULSE_SCC-mobile/frontend/mobile ci`. 있으면 `git -C ../PULSE_SCC-mobile pull` 로 최신화하고, `package-lock.json` 이 바뀌었으면 `npm ci` 를 다시 한다. 이 PC 에 Android SDK 가 없어 Expo 웹으로 띄운다(에이전트 Bash 기준): `cd ../PULSE_SCC-mobile/frontend/mobile && CI=1 EXPO_PUBLIC_API_BASE_URL=http://localhost:8090 npx expo start --web --port 8081`. Spring 에 CORS 가 없으므로 `/api/` 는 8080, 나머지는 8081 로 넘기는 작은 Node 프록시(8090, 웹소켓 업그레이드 포함)를 스크래치 폴더에 두고 띄운다. 이 프록시는 저장소 밖이라 세션마다 다시 만든다. 브라우저 창에서 주소창으로 이동하면 새로고침돼 로그아웃되므로 앱 안 메뉴로 이동한다. 테스트 계정은 매번 새로 만든다(`@scc.test`, 비밀번호는 채팅에 적지 않고 스크래치에만).
 
 ## Last Verified Commit
+
+`c61f432` — 브랜치 전체 검토 결함·권고 코드 수정까지(그 뒤 문서 커밋은 코드 변경 없음). 이 코드로 Spring build·test {SPRING}, Python lint·format PASS·pytest 156개. 실제 분석·Visual QA 미실행.
 
 `dbf6d02` — `main`(PR #27) 연결·ADR 번호 변경·문서 불일치 정리까지. 코드는 `e17fe61` 과 같다. `e17fe61` 에서 Spring 99개 skip 0, Python 128개, 로컬 DB `bootRun` 인증 흐름 확인. 브랜치 전체 독립 Reviewer 는 아직이다.
 

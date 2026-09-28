@@ -34,4 +34,5 @@ Python은 서비스 토큰으로 보호된 내부 HTTP 요청 안에서 네이�
 - Spring 완료 트랜잭션에서 정규화 결과, JSON read model, 첫 저장본과 알림을 함께 기록할 수 있다.
 - 내부 응답 크기에 이미지 base64가 포함되므로 timeout과 메모리 사용을 관측해야 한다.
 - 현재 `@Async` executor 작업은 Spring 재시작 시 유실될 수 있다. 운영 전 내구성 있는 큐, lease, 재조정 및 idempotent 결과 저장을 도입해야 한다.
+  > 갱신(2026-09-28): [ADR-012](ADR-012-durable-analysis-job-queue.md)의 PostgreSQL 임대 큐로 해결했다. 분석 실행은 더 이상 `@Async` 를 쓰지 않는다(`AnalysisConfiguration` 의 `@EnableAsync` 는 남아 있으나 쓰는 곳이 없다).
 - Python 오류 코드는 Spring이 구조화해 앱의 재시도 가능 여부로 전달한다.

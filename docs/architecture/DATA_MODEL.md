@@ -125,7 +125,7 @@ SCC는 가입 시 매장 소유 관계를 강제하지 않는다. 사용자가 �
 | `id` | uuid | PK, 외부 `jobId` |
 | `user_id` | uuid | FK → `users.id` |
 | `store_id` | uuid | FK → `stores.id` |
-| `idempotency_key` | varchar | 동일 요청 재전송 식별 |
+| `idempotency_key` | varchar(255) | 동일 요청 재전송 식별. 1~255자(초과는 API 가 400 으로 거부) |
 | `request_hash` | varchar | 같은 키에 다른 payload 사용 방지 |
 | `status` | varchar | `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED` |
 | `progress_step` | varchar | API 계약의 단계 enum |
@@ -137,6 +137,9 @@ SCC는 가입 시 매장 소유 관계를 강제하지 않는다. 사용자가 �
 | `completed_at` | timestamptz nullable | 완료·실패 시각 |
 | `created_at` | timestamptz | 생성 시각 |
 | `updated_at` | timestamptz | 변경 시각 |
+| `lease_expires_at` | timestamptz nullable | V4. 작업을 집은 워커의 임대 만료 시각. 지나면 회수·재대기 또는 재시도 소진 실패([ADR-012](../decisions/ADR-012-durable-analysis-job-queue.md)) |
+| `last_heartbeat_at` | timestamptz nullable | V4. 마지막 하트비트 시각 |
+| `valid_review_count` | integer nullable | V5. 유효 리뷰가 기준보다 적어 실패한 작업의 현재 유효 리뷰 수(REVIEW-008). 0 이상. 그 밖의 작업은 비어 있다 |
 
 필수 제약:
 
@@ -347,6 +350,8 @@ OS push token과 홍보 수신 동의 컬럼은 MVP 범위가 아니므로 만�
 | `auth_sessions` | `refresh_token_hash` unique | 갱신 토큰 해시 조회·중복 방지 |
 | `analysis_jobs` | `(user_id, created_at DESC)` | 사용자 작업 이력·최신 상태 |
 | `analysis_jobs` | `(status, updated_at)` | 복구·운영 작업 탐색 |
+| `analysis_jobs` | `ix_analysis_jobs_queued_created (created_at) WHERE status = 'QUEUED'` | V4. 다음 작업 집기 |
+| `analysis_jobs` | `ix_analysis_jobs_running_lease (lease_expires_at) WHERE status = 'RUNNING'` | V4. 임대 만료 작업 찾기 |
 | `reviews` | `(job_id, content_hash)` unique | 작업 내 중복 방지 |
 | `analyses` | `(user_id, analyzed_at DESC)` | 사용자 분석 소유권·최신 조회 |
 | `personas` | `(analysis_id, rank)` unique | 포디움 조립 |
@@ -358,7 +363,9 @@ OS push token과 홍보 수신 동의 컬럼은 MVP 범위가 아니므로 만�
 
 ## 9. 삭제·보관 정책
 
-자동 보관 기간은 아직 확정되지 않았다. migration에 임의 TTL이나 자동 삭제 기간을 넣지 않는다. 계정 탈퇴 요청은 자체 계정의 현재 비밀번호를 확인한 뒤 사용자 소유 세션·동의·작업·리뷰·분석·근거·알림과 페르소나 이미지 파일을 같은 서비스 작업에서 삭제한다. Google 전용 계정은 현재 인증 세션으로 본인을 확인한다.
+자동 보관 기간은 아직 확정되지 않았다. migration에 임의 TTL이나 자동 삭제 기간을 넣지 않는다. 계정 탈퇴 요청은 자체 계정의 현재 비밀번호를 확인한 뒤 사용자 소유 세션·동의·작업·리뷰·분석·근거·알림과 페르소나 이미지 파일을 같은 서비스 작업에서 삭제한다. Google 전용 계정은 현재 인증 세션으로 본인을 확인한다. 모든 계정은 탈퇴 요청의 인증 세션이 DB 에서 살아 있어야 한다([ADR-010](../decisions/ADR-010-account-deletion.md)). 이미지 파일은 DB 삭제가 커밋된 뒤에 지운다.
+
+보관 정책을 확정할 때 최소한 다음을 함께 결정한다.
 
 - 실패·완료 작업 보관 기간
 - 원본 리뷰와 정규화 리뷰 보관 기간
@@ -386,10 +393,10 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 분석 완료 경계는 Spring Boot가 소유한다.
 
 1. Python은 리뷰·분석·근거·이미지 바이너리를 구조화된 내부 응답으로 전달하며 DB에 직접 접근하지 않는다.
-2. Spring Boot는 응답 schema와 필수 산출물·근거 인덱스를 검증하고 같은 `(job_id, user_id, store_id)`에 저장한다.
-3. 하나의 PostgreSQL 트랜잭션에서 작업을 `COMPLETED`로 전이하고, `saved_analyses`가 없으면 첫 결과를 insert한다. 현재 알림 설정 row를 잠가 `analysis_result_enabled=true`인 경우에만 `(job_id, type)` unique를 이용해 완료 알림을 insert한다.
-4. 트랜잭션 전후 장애가 나면 작업은 `RUNNING`으로 남거나 이미 완전히 완료된 상태 중 하나이며, 재조정 작업이 같은 전이를 멱등하게 재시도한다.
-5. 실패 확정도 Spring Boot가 작업 `FAILED` 전이와, 알림 설정이 켜진 경우의 실패 알림 insert를 하나의 트랜잭션에서 처리한다.
+2. Python 이 응답 schema 와 근거 인덱스 범위를 검증해 돌려준다. Spring Boot 는 같은 `(job_id, user_id, store_id)`에 저장하고, 저장 중 필수 산출물(페르소나 이미지 등)이 빠져 있으면 트랜잭션을 되돌린다.
+3. 하나의 PostgreSQL 트랜잭션에서 **먼저** 작업을 `RUNNING` 에서 `COMPLETED`로 전이한다. 바뀐 행이 없으면(임대가 끝나 이미 실패·재대기로 넘어감) 아무것도 저장하지 않고 되돌린다. 그다음 결과를 저장하고, `saved_analyses`가 없으면 첫 결과를 insert한다. 알림 설정 행이 없으면 기본값(켜짐)으로 만들고 `analysis_result_enabled=true`인 경우에만 `(job_id, type)` unique 의 `ON CONFLICT DO NOTHING` 으로 완료 알림을 insert한다. 설정 행은 잠그지 않는다.
+4. 트랜잭션이 되돌려지면 작업은 `RUNNING`으로 남거나 이미 다른 경로(실패 마감·재대기)가 정한 상태이며, 결과 저장 중 쓴 이미지 파일도 지운다. 임대가 끝난 `RUNNING` 작업은 큐가 회수해 다시 시도한다.
+5. 실패 확정도 Spring Boot가 작업 `FAILED` 전이와, 알림 설정이 켜진(설정 행이 없으면 켜짐으로 봄) 경우의 실패 알림 insert를 하나의 트랜잭션 또는 하나의 문장에서 처리한다.
 
 결과·근거 조회 API는 작업이 `COMPLETED`가 된 분석만 반환한다.
 
@@ -407,4 +414,20 @@ PostgreSQL 하나를 사용하더라도 Spring Boot와 Python이 모든 테이�
 
 V2는 `auth_sessions`와 토큰 회전 제약을 추가했다. 전화번호에는 정책에 따라 unique 제약을 두지 않았고, 전화번호 암호화·자동 삭제·네이버 URL unique 정책은 아직 추가하지 않는다.
 
-V3는 API 조회용 `analysis_result_documents` JSONB read model과 문서 종류·버전·동의 시각을 기록하는 `legal_consents`를 추가했다. JSON 문서는 정규화 테이블의 대체 정본이 아니라 현재 API 응답을 원자적으로 조회하기 위한 파생 read model이다. 약관·처리방침 본문, 실제 시행일과 보유기간은 법률 검토 후 확정해야 한다.
+V3는 API 조회용 `analysis_result_documents` JSONB read model과 문서 종류·버전·동의 시각을 기록하는 `legal_consents`를 추가했다(컬럼은 아래 표). JSON 문서는 정규화 테이블의 대체 정본이 아니라 현재 API 응답을 원자적으로 조회하기 위한 파생 read model이다. 약관·처리방침 본문, 실제 시행일과 보유기간은 법률 검토 후 확정해야 한다.
+
+| V3 테이블 | 컬럼 | 제약·설명 |
+|---|---|---|
+| `analysis_result_documents` | `analysis_id` uuid | PK, FK → `analyses.id` |
+| | `payload` jsonb | 결과 API 응답 문서. JSON object 여야 한다 |
+| | `created_at` timestamptz | 생성 시각 |
+| `legal_consents` | `id` uuid | PK |
+| | `user_id` uuid | FK → `users.id` |
+| | `document_type` varchar(32) | `TERMS_OF_SERVICE`, `PRIVACY_POLICY` |
+| | `document_version` varchar(32) | 동의한 문서 버전 |
+| | `accepted_at` timestamptz | 동의 시각 |
+| | | `(user_id, document_type, document_version)` unique |
+
+V4는 작업 큐 임대 컬럼 `lease_expires_at`·`last_heartbeat_at` 과 부분 인덱스 2개를 추가했다([ADR-012](../decisions/ADR-012-durable-analysis-job-queue.md)).
+
+V5는 유효 리뷰가 기준보다 적어 실패한 작업의 현재 건수 `valid_review_count` 를 추가했다(기능명세 REVIEW-008). 실패한 작업은 `analyses` 행이 없어 작업에 남긴다.
