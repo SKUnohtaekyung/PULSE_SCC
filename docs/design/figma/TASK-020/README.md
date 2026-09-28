@@ -120,6 +120,13 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 - 글꼴: **Pretendard**로 나온다(사용자 보고).
 - 미확인: 에이전트는 Figma MCP 한도로 파일을 직접 보지 못했다 — 잘림·굵기·08 카드 모양은 사용자 확인에만 기댄다.
 
+### 2026-09-28 교체분 (보드 10 한 장)
+
+마이페이지 스크롤 아래 화면(`MyPage-Images`)을 더한 `10-final-loading-empty.svg`(너비 2608 → 3032)를 사용자가 지우고 다시 넣었다. 맨 아래 보드라 좌표 X=0, Y=13840은 그대로다.
+
+- 글꼴: **Pretendard**로 나온다(사용자 보고).
+- 미확인: 에이전트는 Figma MCP 한도로 파일을 직접 보지 못했다.
+
 ## Import 결과 (2026-09-22)
 
 - 보드 8장이 각각 프레임으로 들어갔고 레이어 이름은 파일명과 같다(`01-ia-flow` …). 크기는 원본과 같다.
