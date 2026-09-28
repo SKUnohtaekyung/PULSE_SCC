@@ -92,7 +92,7 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 - **2026-09-28 push했고 PR #38(`feat/TASK-020-design-followup` → `main`)을 열었다.** 라벨 `type:feature`·`type:ui`·`role:feature`를 조회로 확인했다. 범위는 `git log --oneline origin/main..HEAD`로 뽑는다.
   - 비밀번호 확인 칸·Figma 기록·12단계, 첫 인계 정리, 손님 캐릭터·요약 카드·마이페이지 이미지·Figma 재교체 기록, 마감 인계 정리, PR 뒤 인계 문서 정리
 - 옛 로컬 커밋 번호는 원격에 없다. 인계 문서 두 개의 번호는 새 번호로 바꿨고, 대응은 상태 정본 "Last Verified Commit" 머리 주석에 있다. `docs/design/figma/TASK-020/README.md` 118줄의 `923734f`(= 새 `8df630e`)는 그때의 기록이라 고치지 않았다.
-- 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`은 지우지 않고 남겨 두었다(원격 `feat/TASK-020-frontend-mobile` 추적). 새 작업은 `feat/TASK-020-design-followup`에서 한다.
+- 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`은 지우지 않고 남겨 두었다(추적하던 원격 `feat/TASK-020-frontend-mobile`은 병합 뒤 지워졌다. 그 커밋은 GitHub에서 `refs/pull/35/head`로만 닿는다). 새 작업은 `feat/TASK-020-design-followup`에서 한다.
 
 ## GitHub 반영 — 끝남 (2026-09-28)
 
