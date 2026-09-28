@@ -3,6 +3,7 @@ import sys
 import uvicorn
 
 from scc_analysis.core.config import get_settings
+from scc_analysis.core.logs import log_config
 
 # Windows 에서 reload 를 켜면 uvicorn 이 SelectorEventLoop 를 고른다
 # (uvicorn/loops/asyncio.py — win32 이고 use_subprocess 면 Selector).
@@ -23,6 +24,7 @@ def main() -> None:
         port=settings.port,
         reload=settings.environment == "local",
         loop=WINDOWS_LOOP_FACTORY if sys.platform == "win32" else "auto",
+        log_config=log_config(),
     )
 
 

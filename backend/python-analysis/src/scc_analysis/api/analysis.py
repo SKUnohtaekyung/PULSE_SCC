@@ -1,4 +1,6 @@
 import hmac
+import logging
+import time
 
 from fastapi import APIRouter, Header, HTTPException, status
 
@@ -7,7 +9,9 @@ from scc_analysis.analysis.openai_analyzer import AnalysisConfigurationError
 from scc_analysis.analysis.pipeline import run_analysis
 from scc_analysis.collection.naver import ReviewCollectionError
 from scc_analysis.core.config import get_settings
+from scc_analysis.core.logs import current_job_id
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["analysis"])
 
 
@@ -26,6 +30,35 @@ async def analyze(
     x_scc_service_token: str | None = Header(default=None),
 ) -> AnalyzeResponse:
     _authorize(x_scc_service_token)
+    started = time.monotonic()
+    token = current_job_id.set(request.job_id)
+    try:
+        logger.info("분석 요청을 받았습니다.")
+        response = await _run(request)
+    except HTTPException as error:
+        code = error.detail.get("code") if isinstance(error.detail, dict) else error.status_code
+        logger.warning("분석이 실패했습니다: %s (%.0f초)", code, time.monotonic() - started)
+        raise
+    except Exception as error:
+        # traceback 은 uvicorn 이 남긴다. 검증 오류에는 모델 출력·리뷰 인용이 들어 있을 수
+        # 있어 여기서는 예외 이름만 남긴다.
+        logger.warning(
+            "분석이 실패했습니다: %s (%.0f초)", type(error).__name__, time.monotonic() - started
+        )
+        raise
+    else:
+        logger.info(
+            "분석을 마쳤습니다: 유효 리뷰 %d건, 손님 유형 %d개 (%.0f초)",
+            response.valid_review_count,
+            len(response.analysis.personas),
+            time.monotonic() - started,
+        )
+        return response
+    finally:
+        current_job_id.reset(token)
+
+
+async def _run(request: AnalyzeRequest) -> AnalyzeResponse:
     try:
         return await run_analysis(request)
     except ReviewCollectionError as error:

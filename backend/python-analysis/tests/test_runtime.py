@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from scc_analysis import __main__ as runtime
+from scc_analysis.core.logs import log_config
 
 
 def run_main(monkeypatch, platform: str, environment: str = "test") -> dict[str, object]:
@@ -31,6 +32,7 @@ def test_runtime_uses_service_settings(monkeypatch) -> None:
         "port": 18001,
         "reload": False,
         "loop": "auto",
+        "log_config": log_config(),
     }
 
 
