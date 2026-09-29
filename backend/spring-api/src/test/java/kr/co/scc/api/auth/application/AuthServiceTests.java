@@ -45,7 +45,8 @@ class AuthServiceTests {
                 mock(PasswordEncoder.class),
                 tokenService,
                 mock(GoogleIdTokenVerifier.class),
-                Clock.fixed(now, ZoneOffset.UTC));
+                Clock.fixed(now, ZoneOffset.UTC),
+                true);
 
         assertThatThrownBy(() -> service.refresh("rotated-token"))
                 .isInstanceOf(AuthException.class)

@@ -19,6 +19,7 @@ import java.util.UUID;
 import kr.co.scc.api.auth.domain.SessionTokens;
 import kr.co.scc.api.auth.domain.UserAccount;
 import kr.co.scc.api.auth.infrastructure.AuthRepository;
+import kr.co.scc.api.legal.LegalDocuments;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -49,7 +50,14 @@ class AuthCredentialTests {
                 passwordEncoder,
                 tokenService,
                 mock(GoogleIdTokenVerifier.class),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                true);
+    }
+
+    /** 가입은 현재 약관 버전 동의를 함께 받는다(TASK-012). 여기서는 자격 증명 규칙만 본다. */
+    private AuthService.AuthResult register(String email, String password, String phoneNumber) {
+        return service.register(
+                email, password, phoneNumber, LegalDocuments.TERMS_VERSION, LegalDocuments.PRIVACY_VERSION);
     }
 
     private static UserAccount account(String email, String credentialHash) {
@@ -127,11 +135,52 @@ class AuthCredentialTests {
     // ---------- register ----------
 
     @Test
+    void blocksLocalRegistrationUntilLegalLaunchApprovalIsEnabled() {
+        AuthService disabled = new AuthService(
+                repository,
+                passwordEncoder,
+                tokenService,
+                mock(GoogleIdTokenVerifier.class),
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                false);
+
+        AuthException error = catchAuth(() -> disabled.register(
+                "owner@example.com",
+                "plaintext-password",
+                "010-1234-5678",
+                LegalDocuments.TERMS_VERSION,
+                LegalDocuments.PRIVACY_VERSION));
+
+        assertThat(error.code()).isEqualTo("REGISTRATION_NOT_AVAILABLE");
+        verify(repository, never()).insertUser(any());
+    }
+
+    @Test
+    void blocksNewGoogleAccountsUntilLegalLaunchApprovalIsEnabled() {
+        GoogleIdTokenVerifier verifier = mock(GoogleIdTokenVerifier.class);
+        when(verifier.verify("google-token"))
+                .thenReturn(new GoogleIdentity("google-subject", "owner@example.com"));
+        when(repository.findUserByIdentity("GOOGLE", "google-subject")).thenReturn(Optional.empty());
+        AuthService disabled = new AuthService(
+                repository,
+                passwordEncoder,
+                tokenService,
+                verifier,
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                false);
+
+        AuthException error = catchAuth(() -> disabled.loginWithGoogle("google-token"));
+
+        assertThat(error.code()).isEqualTo("REGISTRATION_NOT_AVAILABLE");
+        verify(repository, never()).insertUser(any());
+    }
+
+    @Test
     void storesTheHashedPasswordNotThePlaintext() {
         when(repository.findUserByEmail("owner@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("plaintext-password")).thenReturn("bcrypt-hash");
 
-        service.register("owner@example.com", "plaintext-password", "010-1234-5678");
+        register("owner@example.com", "plaintext-password", "010-1234-5678");
 
         verify(repository).insertUser(argThatStores("bcrypt-hash"));
         verify(passwordEncoder).encode("plaintext-password");
@@ -143,7 +192,7 @@ class AuthCredentialTests {
                 .thenReturn(Optional.of(account("owner@example.com", "stored-hash")));
 
         AuthException error = catchAuth(
-                () -> service.register("owner@example.com", "plaintext-password", "010-1234-5678"));
+                () -> register("owner@example.com", "plaintext-password", "010-1234-5678"));
 
         assertThat(error.code()).isEqualTo("EMAIL_ALREADY_EXISTS");
         verify(repository, never()).insertUser(any());
@@ -157,7 +206,7 @@ class AuthCredentialTests {
                 .when(repository).insertUser(any());
 
         AuthException error = catchAuth(
-                () -> service.register("owner@example.com", "plaintext-password", "010-1234-5678"));
+                () -> register("owner@example.com", "plaintext-password", "010-1234-5678"));
 
         assertThat(error.code()).isEqualTo("EMAIL_ALREADY_EXISTS");
         assertThat(error.getMessage()).doesNotContain("duplicate key");
@@ -165,7 +214,7 @@ class AuthCredentialTests {
 
     @Test
     void rejectsAPasswordShorterThanTheMinimum() {
-        AuthException error = catchAuth(() -> service.register("owner@example.com", "short", "010-1234-5678"));
+        AuthException error = catchAuth(() -> register("owner@example.com", "short", "010-1234-5678"));
 
         assertThat(error.code()).isEqualTo("INVALID_PASSWORD");
         verify(repository, never()).insertUser(any());
@@ -175,13 +224,13 @@ class AuthCredentialTests {
     void rejectsAPasswordOverTheBcryptByteLimit() {
         String tooLong = "가".repeat(25); // UTF-8 기준 75바이트
 
-        assertThat(catchAuth(() -> service.register("owner@example.com", tooLong, "010-1234-5678")).code())
+        assertThat(catchAuth(() -> register("owner@example.com", tooLong, "010-1234-5678")).code())
                 .isEqualTo("INVALID_PASSWORD");
     }
 
     @Test
     void rejectsAPhoneNumberThatCannotBeNormalized() {
-        assertThat(catchAuth(() -> service.register("owner@example.com", "plaintext-password", "not-a-number")).code())
+        assertThat(catchAuth(() -> register("owner@example.com", "plaintext-password", "not-a-number")).code())
                 .isEqualTo("INVALID_PHONE_NUMBER");
     }
 
@@ -189,7 +238,7 @@ class AuthCredentialTests {
     void doesNotEchoTheSubmittedPasswordInAnyFailure() {
         String secret = "super-secret-password";
 
-        AuthException error = catchAuth(() -> service.register("owner@example.com", secret, "not-a-number"));
+        AuthException error = catchAuth(() -> register("owner@example.com", secret, "not-a-number"));
 
         assertThat(error.getMessage()).doesNotContain(secret);
     }

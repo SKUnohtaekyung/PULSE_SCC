@@ -79,7 +79,7 @@ Android SDK·adb·emulator → `%LOCALAPPDATA%\Android\Sdk`, `Medium_Phone` AVD(
 | Spring test | `.\backend\spring-api\gradlew.bat -p backend\spring-api test` |
 | Spring build | `.\backend\spring-api\gradlew.bat -p backend\spring-api build` |
 | Spring dev | `.\backend\spring-api\gradlew.bat -p backend\spring-api bootRun` |
-| Python install | `python -m venv backend\python-analysis\.venv` 후 `.\backend\python-analysis\.venv\Scripts\python.exe -m pip install -e ".\backend\python-analysis[dev]"` |
+| Python install | `python -m venv backend\python-analysis\.venv` 후 `.\backend\python-analysis\.venv\Scripts\python.exe -m pip install -e ".\backend\python-analysis[dev]"`, 이어서 수집용 브라우저 `.\backend\python-analysis\.venv\Scripts\python.exe -m playwright install chromium` |
 | Python lint | `.\backend\python-analysis\.venv\Scripts\python.exe -m ruff check --no-cache backend\python-analysis` |
 | Python format check | `.\backend\python-analysis\.venv\Scripts\python.exe -m ruff format --check --no-cache backend\python-analysis` |
 | Python test | `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest backend\python-analysis` |
