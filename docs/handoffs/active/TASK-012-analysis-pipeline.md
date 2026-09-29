@@ -1,7 +1,7 @@
 # TASK-012 — 네이버 리뷰 수집·분석 API와 프론트 연결
 
 ## Status
-구현 완료, PR #36 Ready·재리뷰 대기 — 전체 파이프라인이 실제 환경에서 끝까지 동작한다.
+구현 완료, PR #36 Ready·최종 독립 재리뷰 PASS·병합 대기 — 전체 파이프라인이 실제 환경에서 끝까지 동작한다.
 회원가입부터 페르소나 이미지 생성까지 E2E 확인, Testcontainers 포함 전체 테스트 skip 0.
 
 ## Owner
@@ -12,10 +12,18 @@
 
 ## Work Note
 - 원격 작업 브랜치에 push 완료. 2026-09-28 만든 PR #36은 2026-09-29 Ready for review로 전환했다(`type:feature`·`role:feature`). TASK-012 이슈 #37 을 만들어 `Closes #37` 로 연결했다.
-- 2026-09-29 독립 리뷰의 6개 지적을 반영했다: 시도 번호 기반 lease 소유권, V3→V4의 기존 RUNNING 작업 재대기, 모델 근거 인용·토픽 건수 검증, 네이버 URL 정규화와 요청 전 navigation 차단, 수집 후보 수/유효 리뷰 수 분리, 법률 검토 전 서버 가입 게이트. 재리뷰 후 결과를 이 문서와 PR에 기록한다.
+- 2026-09-29 독립 리뷰의 6개 지적을 반영했다: 시도 번호 기반 lease 소유권, V3→V4의 기존 RUNNING 작업 재대기, 모델 근거 인용·토픽 건수 검증, 네이버 URL 정규화와 요청 전 navigation 차단, 수집 후보 수/유효 리뷰 수 분리, 법률 검토 전 서버 가입 게이트. 공백 근거 인용 우회와 navigation abort 테스트까지 보완한 최종 재리뷰는 PASS다.
 - 분석 파이프라인 기능 구현 커밋은 `36561f6`이다. 이후 변경은 아래 날짜별 절을 본다.
 - **Docker 정상 동작.** WSL2 백엔드로 붙어 Testcontainers 가 실제로 돈다.
 - **OpenAI 키 설정 완료.** 실제 분석·이미지 생성까지 확인했다. 디버깅 중 `SCC_SERVICE_TOKEN` 이 로그에 노출됐으므로 교체를 권한다(localhost 전용 로컬 토큰).
+
+## 2026-09-30 인수인계 변동 사항
+
+- 코드 변경 기준 커밋은 `353285a`, Handoff 갱신 HEAD는 `79b06c6`이다. 로컬 작업 트리는 깨끗하고 원격 브랜치와 동기화돼 있다.
+- PR #36은 OPEN·Ready for review·MERGEABLE이며 `type:feature`, `role:feature` 라벨이 붙어 있다. GitHub의 사람 리뷰 결정과 CI status check는 아직 없다.
+- 최종 독립 Reviewer 판정은 PASS다. 차단 이슈와 추가 actionable finding은 없다.
+- 최종 검증은 Spring Testcontainers 포함 116개 PASS(skip 0)와 build PASS, Python Ruff PASS와 pytest 166개 PASS다.
+- 이번 보완 뒤 실제 네이버 수집·OpenAI 분석 E2E와 Visual QA는 실행하지 않았다. 다음 작업은 소유 역할 교차 리뷰 후 PR #36 병합 여부를 결정하는 것이다.
 
 ## Goal
 Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실제 분석 상태·결과 조회와 오류 복구를 제공하고 약관 동의 이력을 기록한다. 관련 이슈: #37(TASK-012, 2026-09-28 뒤늦게 생성해 PR #36 에 `Closes` 로 연결), 후속 제품·정책 결정은 #28~#33. 관련 요구사항: PRD FR-001~FR-011.
