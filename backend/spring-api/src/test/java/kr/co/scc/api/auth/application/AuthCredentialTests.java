@@ -50,7 +50,8 @@ class AuthCredentialTests {
                 passwordEncoder,
                 tokenService,
                 mock(GoogleIdTokenVerifier.class),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                true);
     }
 
     /** 가입은 현재 약관 버전 동의를 함께 받는다(TASK-012). 여기서는 자격 증명 규칙만 본다. */
@@ -132,6 +133,47 @@ class AuthCredentialTests {
     }
 
     // ---------- register ----------
+
+    @Test
+    void blocksLocalRegistrationUntilLegalLaunchApprovalIsEnabled() {
+        AuthService disabled = new AuthService(
+                repository,
+                passwordEncoder,
+                tokenService,
+                mock(GoogleIdTokenVerifier.class),
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                false);
+
+        AuthException error = catchAuth(() -> disabled.register(
+                "owner@example.com",
+                "plaintext-password",
+                "010-1234-5678",
+                LegalDocuments.TERMS_VERSION,
+                LegalDocuments.PRIVACY_VERSION));
+
+        assertThat(error.code()).isEqualTo("REGISTRATION_NOT_AVAILABLE");
+        verify(repository, never()).insertUser(any());
+    }
+
+    @Test
+    void blocksNewGoogleAccountsUntilLegalLaunchApprovalIsEnabled() {
+        GoogleIdTokenVerifier verifier = mock(GoogleIdTokenVerifier.class);
+        when(verifier.verify("google-token"))
+                .thenReturn(new GoogleIdentity("google-subject", "owner@example.com"));
+        when(repository.findUserByIdentity("GOOGLE", "google-subject")).thenReturn(Optional.empty());
+        AuthService disabled = new AuthService(
+                repository,
+                passwordEncoder,
+                tokenService,
+                verifier,
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                false);
+
+        AuthException error = catchAuth(() -> disabled.loginWithGoogle("google-token"));
+
+        assertThat(error.code()).isEqualTo("REGISTRATION_NOT_AVAILABLE");
+        verify(repository, never()).insertUser(any());
+    }
 
     @Test
     void storesTheHashedPasswordNotThePlaintext() {

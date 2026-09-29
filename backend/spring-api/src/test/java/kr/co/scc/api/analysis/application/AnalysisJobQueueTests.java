@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
+import kr.co.scc.api.analysis.infrastructure.AnalysisRepository.ClaimedJob;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -43,7 +44,8 @@ class AnalysisJobQueueTests {
     }
 
     private void queueHolds(UUID... jobIds) {
-        var responses = new java.util.ArrayDeque<UUID>(List.of(jobIds));
+        var responses = new java.util.ArrayDeque<ClaimedJob>(
+                java.util.Arrays.stream(jobIds).map(id -> new ClaimedJob(id, 1)).toList());
         when(repository.claimNextQueuedJob(any()))
                 .thenAnswer(invocation ->
                         responses.isEmpty() ? Optional.empty() : Optional.of(responses.poll()));
@@ -62,7 +64,7 @@ class AnalysisJobQueueTests {
         queue.poll();
         submitted.forEach(Runnable::run);
 
-        verify(runner).runClaimed(jobId);
+        verify(runner).runClaimed(new ClaimedJob(jobId, 1));
     }
 
     @Test
@@ -115,7 +117,8 @@ class AnalysisJobQueueTests {
     void freesCapacityEvenWhenTheRunnerThrows() {
         UUID jobId = UUID.randomUUID();
         queueHolds(jobId);
-        doThrow(new IllegalStateException("boom")).when(runner).runClaimed(jobId);
+        doThrow(new IllegalStateException("boom"))
+                .when(runner).runClaimed(new ClaimedJob(jobId, 1));
 
         AnalysisJobQueue queue = queue(1);
         queue.poll();
@@ -175,7 +178,7 @@ class AnalysisJobQueueTests {
         queue.poll();
 
         assertThat(queue.inFlightCount()).isZero();
-        verify(repository).requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS);
+        verify(repository).requeueForRetry(new ClaimedJob(jobId, 1), AnalysisJobQueue.MAX_ATTEMPTS);
     }
 
     @Test
@@ -188,13 +191,13 @@ class AnalysisJobQueueTests {
         queue.poll();
         queue.heartbeat();
 
-        verify(repository).extendLease(jobId, AnalysisJobQueue.LEASE);
+        verify(repository).extendLease(new ClaimedJob(jobId, 1), AnalysisJobQueue.LEASE);
 
         submitted.forEach(Runnable::run);
         queue.heartbeat();
 
         // 끝난 작업에는 더 이상 하트비트를 보내지 않는다.
-        verify(repository, times(1)).extendLease(eq(jobId), any());
+        verify(repository, times(1)).extendLease(eq(new ClaimedJob(jobId, 1)), any());
     }
 
     @Test

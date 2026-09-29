@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.JobContext;
 import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
+import kr.co.scc.api.analysis.infrastructure.AnalysisRepository.ClaimedJob;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,7 @@ class AnalysisJobRunnerTests {
     private TransactionTemplate transactions;
     private AnalysisJobRunner runner;
     private UUID jobId;
+    private ClaimedJob claim;
 
     @BeforeEach
     void setUp() {
@@ -38,6 +40,7 @@ class AnalysisJobRunnerTests {
         transactions = mock(TransactionTemplate.class);
         runner = new AnalysisJobRunner(repository, gateway, transactions);
         jobId = UUID.randomUUID();
+        claim = new ClaimedJob(jobId, 1);
 
         doAnswer(invocation -> {
             Consumer<TransactionStatus> action = invocation.getArgument(0);
@@ -70,9 +73,9 @@ class AnalysisJobRunnerTests {
     void aJobWithoutContextIsFailedWithoutCallingTheAnalysisService() {
         when(repository.findContext(jobId)).thenReturn(Optional.empty());
 
-        runner.runClaimed(jobId);
+        runner.runClaimed(claim);
 
-        verify(repository).markFailed(jobId, "ANALYSIS_OUTPUT_INVALID");
+        verify(repository).markFailed(claim, "ANALYSIS_OUTPUT_INVALID");
         verifyNoInteractions(gateway);
     }
 
@@ -81,10 +84,10 @@ class AnalysisJobRunnerTests {
         jobExists();
         gatewayFailsWith("COLLECTION_BLOCKED", false);
 
-        runner.runClaimed(jobId);
+        runner.runClaimed(claim);
 
         verify(transactions).executeWithoutResult(any());
-        verify(repository).markFailed(jobId, "COLLECTION_BLOCKED");
+        verify(repository).markFailed(claim, "COLLECTION_BLOCKED");
     }
 
     @Test
@@ -92,21 +95,21 @@ class AnalysisJobRunnerTests {
         jobExists();
         gatewayFailsWith("INSUFFICIENT_VALID_REVIEWS", false);
 
-        runner.runClaimed(jobId);
+        runner.runClaimed(claim);
 
         verify(repository, never()).requeueForRetry(any(), anyInt());
-        verify(repository).markFailed(jobId, "INSUFFICIENT_VALID_REVIEWS");
+        verify(repository).markFailed(claim, "INSUFFICIENT_VALID_REVIEWS");
     }
 
     @Test
     void aRetryableFailureGoesBackOnTheQueue() {
         jobExists();
         gatewayFailsWith("REVIEW_COLLECTION_BLOCKED", true);
-        when(repository.requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS)).thenReturn(true);
+        when(repository.requeueForRetry(claim, AnalysisJobQueue.MAX_ATTEMPTS)).thenReturn(true);
 
-        runner.runClaimed(jobId);
+        runner.runClaimed(claim);
 
-        verify(repository).requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS);
+        verify(repository).requeueForRetry(claim, AnalysisJobQueue.MAX_ATTEMPTS);
         verify(repository, never()).markFailed(any(), any());
     }
 
@@ -114,12 +117,12 @@ class AnalysisJobRunnerTests {
     void aRetryableFailureIsFailedOnceTheAttemptsAreUsedUp() {
         jobExists();
         gatewayFailsWith("REVIEW_COLLECTION_BLOCKED", true);
-        when(repository.requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS)).thenReturn(false);
+        when(repository.requeueForRetry(claim, AnalysisJobQueue.MAX_ATTEMPTS)).thenReturn(false);
 
-        runner.runClaimed(jobId);
+        runner.runClaimed(claim);
 
         // 앱이 곧바로 다시 요청하지 않도록 재시도 소진으로 마감한다. 원인 코드는 남긴다.
-        verify(repository).markRetryExhausted(jobId, "REVIEW_COLLECTION_BLOCKED", AnalysisJobQueue.MAX_ATTEMPTS);
+        verify(repository).markRetryExhausted(claim, "REVIEW_COLLECTION_BLOCKED", AnalysisJobQueue.MAX_ATTEMPTS);
         verify(repository, never()).markFailed(any(), any());
     }
 
@@ -127,10 +130,10 @@ class AnalysisJobRunnerTests {
     void anUnexpectedErrorIsTreatedAsRetryable() {
         jobExists();
         when(gateway.analyze(any())).thenThrow(new IllegalStateException("boom"));
-        when(repository.requeueForRetry(eq(jobId), anyInt())).thenReturn(true);
+        when(repository.requeueForRetry(eq(claim), anyInt())).thenReturn(true);
 
-        runner.runClaimed(jobId);
+        runner.runClaimed(claim);
 
-        verify(repository).requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS);
+        verify(repository).requeueForRetry(claim, AnalysisJobQueue.MAX_ATTEMPTS);
     }
 }

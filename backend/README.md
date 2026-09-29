@@ -17,7 +17,7 @@ backend/
 ## 1. 환경 파일
 
 PowerShell에서 `backend/.env.example`을 `backend/.env`로 복사하고 로컬 전용 비밀번호와 공유 서비스 토큰을 변경한다. `.env`는 Git에 커밋하지 않는다.
-Spring과 Python을 각각 문서에 적힌 디렉터리에서 실행하면 두 서비스 모두 `backend/.env`를 읽는다. `ANALYSIS_SERVICE_TOKEN`과 `SCC_SERVICE_TOKEN`에는 같은 값을 넣는다. `AUTH_ACCESS_TOKEN_SECRET`에는 32바이트 이상의 예측 불가능한 값을, `GOOGLE_CLIENT_ID`에는 Android용 Google OAuth client ID를 넣는다.
+Spring과 Python을 각각 문서에 적힌 디렉터리에서 실행하면 두 서비스 모두 `backend/.env`를 읽는다. `ANALYSIS_SERVICE_TOKEN`과 `SCC_SERVICE_TOKEN`에는 같은 값을 넣는다. `AUTH_ACCESS_TOKEN_SECRET`에는 32바이트 이상의 예측 불가능한 값을, `GOOGLE_CLIENT_ID`에는 Android용 Google OAuth client ID를 넣는다. 법률 검토 전에는 `LEGAL_REGISTRATION_ENABLED=false`를 유지한다. 로컬에서 가입 흐름을 검증할 때만 `true`로 바꾼다.
 
 ## 2. PostgreSQL
 
@@ -41,7 +41,7 @@ Set-Location backend/spring-api
 
 애플리케이션 실행에는 PostgreSQL, `POSTGRES_PASSWORD`, `AUTH_ACCESS_TOKEN_SECRET` 환경변수가 필요하다. Google 로그인에는 `GOOGLE_CLIENT_ID`도 필요하다. 공개 헬스 체크와 가입·로그인·갱신 endpoint 외 요청은 기본 거부하거나 Bearer Access Token을 요구한다.
 
-migration 은 `src/main/resources/db/migration/` 의 V1~V5 이며 테이블 설명은 [DATA_MODEL.md](../docs/architecture/DATA_MODEL.md) 가 정본이다. `gradlew test`는 Docker가 있으면 PostgreSQL 18.6 컨테이너에서 migration·제약 테스트(`InitialSchemaMigrationTests`)와 분석·마이페이지 API 통합 테스트(`AnalysisApiIntegrationTests`)를 실행하고, Docker가 없으면 이 두 클래스를 명시적으로 건너뛴다. 나머지 테스트는 Docker 없이 돈다.
+migration 은 `src/main/resources/db/migration/` 의 V1~V5 이며 테이블 설명은 [DATA_MODEL.md](../docs/architecture/DATA_MODEL.md) 가 정본이다. `gradlew test`는 Docker가 있으면 PostgreSQL 18.6 컨테이너에서 migration·제약 테스트(`InitialSchemaMigrationTests`, `AnalysisLeaseMigrationUpgradeTests`)와 분석·마이페이지 API 통합 테스트(`AnalysisApiIntegrationTests`)를 실행하고, Docker가 없으면 이 세 클래스를 명시적으로 건너뛴다. 나머지 테스트는 Docker 없이 돈다.
 
 ## 4. Python 분석 서비스
 

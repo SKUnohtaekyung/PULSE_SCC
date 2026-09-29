@@ -1,5 +1,6 @@
 import logging
 import re
+import unicodedata
 from datetime import date, datetime
 from typing import Any, Literal
 
@@ -69,6 +70,10 @@ def reader_facing(text: str, *, field: str = "text") -> str:
 _DEFAULT_CAVEAT = "리뷰에서 반복된 상황을 묶은 유형이며 실제 개인이나 전체 손님을 뜻하지 않습니다."
 # 손님 유형은 근거 리뷰 수 상위 3개까지다(PERSONA-002, 2026-09-27 사용자 결정).
 _MAX_PERSONAS = 3
+
+
+def _normalized_quote(value: str) -> str:
+    return re.sub(r"\s+", " ", unicodedata.normalize("NFKC", value)).strip()
 
 
 class AnalyzeRequest(BaseModel):
@@ -203,10 +208,25 @@ class AnalyzeResponse(BaseModel):
     @model_validator(mode="after")
     def validate_evidence_and_images(self) -> "AnalyzeResponse":
         review_count = len(self.reviews)
+        if self.valid_review_count != review_count:
+            raise ValueError("Valid review count must equal the returned review collection")
+        if self.collected_review_count < self.valid_review_count:
+            raise ValueError("Collected review count cannot be smaller than valid review count")
         for persona in self.analysis.personas:
+            if persona.topic_review_count > review_count:
+                raise ValueError("Persona topic review count exceeds the review collection")
             for item in [*persona.insights, *persona.advice]:
-                if any(reference.review_index >= review_count for reference in item.evidence):
-                    raise ValueError("Evidence reference points outside the review collection")
+                for reference in item.evidence:
+                    if reference.review_index >= review_count:
+                        raise ValueError("Evidence reference points outside the review collection")
+                    review = _normalized_quote(
+                        self.reviews[reference.review_index].normalized_content
+                    )
+                    excerpt = _normalized_quote(reference.excerpt)
+                    if not excerpt or excerpt not in review:
+                        raise ValueError(
+                            "Evidence excerpt is not quoted from the referenced review"
+                        )
         if {item.rank for item in self.images} != {item.rank for item in self.analysis.personas}:
             raise ValueError("Every persona must have exactly one generated image")
         return self

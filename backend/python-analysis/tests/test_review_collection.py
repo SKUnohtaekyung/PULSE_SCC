@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import date
 from pathlib import Path
@@ -9,7 +10,9 @@ from scc_analysis.collection.naver import (
     AUTHOR_FIELDS,
     ReviewCollectionError,
     ReviewDateIndex,
+    _guard_collection_navigation,
     build_date_index,
+    build_review_batch,
     build_reviews,
     is_voted_keyword_text,
     match_key,
@@ -25,6 +28,16 @@ def test_normalize_and_deduplicate_reviews() -> None:
     )
     assert len(reviews) == 1
     assert reviews[0].normalized_content == "음식이 정말 맛있고 친절해요."
+
+
+def test_collected_count_is_measured_before_validation_and_review_deduplication() -> None:
+    valid = "음식이 정말 맛있고 직원도 친절해서 다시 방문하고 싶어요."
+    batch = build_review_batch(
+        [valid, valid + "\n접기", "짧음", "음식이 맛있어요\n가성비가 좋아요"], 10
+    )
+
+    assert batch.collected_review_count == 3
+    assert [review.content for review in batch.reviews] == [valid]
 
 
 def test_keyword_statistics_are_not_reviews() -> None:
@@ -174,6 +187,25 @@ def test_accepts_supported_naver_url(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://user@map.naver.com/p/entry/place/123",
+        "https://map.naver.com:8443/p/entry/place/123",
+        "https://map.naver.com/p/search/no-place-id",
+    ],
+)
+def test_rejects_urls_that_cannot_be_safely_canonicalized(
+    monkeypatch: pytest.MonkeyPatch, url: str
+) -> None:
+    monkeypatch.setattr("scc_analysis.collection.naver._reject_non_public_host", lambda _: None)
+
+    with pytest.raises(ReviewCollectionError) as error:
+        review_collection_url(url)
+
+    assert error.value.code == "INVALID_NAVER_PLACE_URL"
+
+
 def test_converts_map_place_url_to_public_review_surface(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -181,6 +213,45 @@ def test_converts_map_place_url_to_public_review_surface(
     assert review_collection_url("https://map.naver.com/p/search/store/place/2017974390") == (
         "https://pcmap.place.naver.com/restaurant/2017974390/review/visitor"
     )
+
+
+def test_converts_mobile_place_url_to_the_same_review_surface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("scc_analysis.collection.naver._reject_non_public_host", lambda _: None)
+
+    assert review_collection_url("https://m.place.naver.com/restaurant/123/home?x=1") == (
+        "https://pcmap.place.naver.com/restaurant/123/review/visitor"
+    )
+
+
+def test_external_navigation_is_aborted_before_it_can_continue() -> None:
+    class Route:
+        def __init__(self) -> None:
+            self.aborted = False
+            self.continued = False
+
+        async def abort(self) -> None:
+            self.aborted = True
+
+        async def continue_(self) -> None:
+            self.continued = True
+
+    class Request:
+        url = "https://example.com/redirected"
+
+        @staticmethod
+        def is_navigation_request() -> bool:
+            return True
+
+    route = Route()
+
+    blocked = asyncio.run(_guard_collection_navigation(route, Request()))
+
+    assert blocked is not None
+    assert blocked.code == "INVALID_NAVER_PLACE_URL"
+    assert route.aborted is True
+    assert route.continued is False
 
 
 def _review_node(body: str, iso: str | None) -> dict:

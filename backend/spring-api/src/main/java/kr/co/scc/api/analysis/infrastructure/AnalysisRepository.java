@@ -167,7 +167,7 @@ public class AnalysisRepository {
      *
      * @return 집어온 작업 id. 대기 중인 작업이 없으면 비어 있다
      */
-    public Optional<UUID> claimNextQueuedJob(Duration lease) {
+    public Optional<ClaimedJob> claimNextQueuedJob(Duration lease) {
         return jdbc.sql("""
                         UPDATE analysis_jobs
                         SET status = 'RUNNING',
@@ -185,24 +185,27 @@ public class AnalysisRepository {
                             FOR UPDATE SKIP LOCKED
                             LIMIT 1
                         )
-                        RETURNING id
+                        RETURNING id, attempt_count
                         """)
                 .param("leaseSeconds", lease.toSeconds())
-                .query(UUID.class)
+                .query((rs, rowNum) -> new ClaimedJob(
+                        rs.getObject("id", UUID.class), rs.getInt("attempt_count")))
                 .optional();
     }
 
     /** 처리 중인 작업의 임대를 연장한다. 워커가 살아 있다는 신호다. */
-    public boolean extendLease(UUID jobId, Duration lease) {
+    public boolean extendLease(ClaimedJob claim, Duration lease) {
         return jdbc.sql("""
                         UPDATE analysis_jobs
                         SET lease_expires_at = CURRENT_TIMESTAMP + (:leaseSeconds * INTERVAL '1 second'),
                             last_heartbeat_at = CURRENT_TIMESTAMP,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
                         """)
                 .param("leaseSeconds", lease.toSeconds())
-                .param("jobId", jobId)
+                .param("jobId", claim.jobId())
+                .param("attemptCount", claim.attemptCount())
                 .update() == 1;
     }
 
@@ -278,7 +281,7 @@ public class AnalysisRepository {
     }
 
     /** 재시도 가능한 실패를 다시 큐에 넣는다. 시도 횟수가 남아 있을 때만이다. */
-    public boolean requeueForRetry(UUID jobId, int maxAttempts) {
+    public boolean requeueForRetry(ClaimedJob claim, int maxAttempts) {
         return jdbc.sql("""
                         UPDATE analysis_jobs
                         SET status = 'QUEUED',
@@ -287,9 +290,12 @@ public class AnalysisRepository {
                             error_code = NULL,
                             lease_expires_at = NULL,
                             updated_at = CURRENT_TIMESTAMP
-                        WHERE id = :jobId AND status = 'RUNNING' AND attempt_count < :maxAttempts
+                        WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
+                          AND attempt_count < :maxAttempts
                         """)
-                .param("jobId", jobId)
+                .param("jobId", claim.jobId())
+                .param("attemptCount", claim.attemptCount())
                 .param("maxAttempts", maxAttempts)
                 .update() == 1;
     }
@@ -300,13 +306,13 @@ public class AnalysisRepository {
      * <p>실패한 작업은 사용자가 곧바로 다시 시도할 대상이 아니므로 {@code retryable} 은 항상
      * {@code false} 다. 재시도할 수 있는 원인은 서버가 먼저 자동으로 다시 시도한다.
      */
-    public void markFailed(UUID jobId, String code) {
-        fail(jobId, code, "ANALYSIS_FAILED", 0, null);
+    public void markFailed(ClaimedJob claim, String code) {
+        fail(claim, code, "ANALYSIS_FAILED", 0, null);
     }
 
     /** 유효 리뷰가 기준보다 적어 실패한 작업을 현재 건수와 함께 마감한다(REVIEW-008). */
-    public void markFailed(UUID jobId, String code, int validReviewCount) {
-        fail(jobId, code, "ANALYSIS_FAILED", 0, validReviewCount);
+    public void markFailed(ClaimedJob claim, String code, int validReviewCount) {
+        fail(claim, code, "ANALYSIS_FAILED", 0, validReviewCount);
     }
 
     /**
@@ -316,23 +322,30 @@ public class AnalysisRepository {
      * 앱이 곧바로 다시 요청하면 수집·모델 호출이 또 최대 {@code MAX_ATTEMPTS} 번 반복되므로
      * {@code retryable} 을 끈다(#30, 2026-09-27 결정).
      */
-    public boolean markRetryExhausted(UUID jobId, String causeCode, int maxAttempts) {
+    public boolean markRetryExhausted(ClaimedJob claim, String causeCode, int maxAttempts) {
         // 시도 횟수가 상한에 닿은 작업만 마감한다. 임대가 끝나 다른 워커가 이 작업을 다시
         // 가져간 뒤라면 다시 넣기가 실패해도 시도 횟수가 남아 있으므로 건드리지 않는다.
-        return fail(jobId, causeCode, RETRY_EXHAUSTED, maxAttempts, null);
+        return fail(claim, causeCode, RETRY_EXHAUSTED, maxAttempts, null);
     }
 
     /** @return 이 호출이 작업을 실패로 바꿨는지 */
-    private boolean fail(UUID jobId, String code, String messageCode, int minAttempts, Integer validReviewCount) {
+    private boolean fail(
+            ClaimedJob claim,
+            String code,
+            String messageCode,
+            int minAttempts,
+            Integer validReviewCount) {
         int updated = jdbc.sql("""
                         UPDATE analysis_jobs
                         SET status = 'FAILED', progress_step = 'FAILED', message_code = :messageCode,
                             error_code = :code, retryable = false, valid_review_count = :validReviewCount,
                             completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-                        WHERE id = :jobId AND status IN ('QUEUED', 'RUNNING')
+                        WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
                           AND attempt_count >= :minAttempts
                         """)
-                .param("jobId", jobId)
+                .param("jobId", claim.jobId())
+                .param("attemptCount", claim.attemptCount())
                 .param("code", code)
                 .param("messageCode", messageCode)
                 .param("minAttempts", minAttempts)
@@ -354,7 +367,7 @@ public class AnalysisRepository {
                         ON CONFLICT (job_id, type) DO NOTHING
                         """)
                 .param("id", UUID.randomUUID())
-                .param("jobId", jobId)
+                .param("jobId", claim.jobId())
                 .param("messageCode", messageCode)
                 .update();
         return true;
@@ -367,7 +380,7 @@ public class AnalysisRepository {
      * 이미 실패로 마감됐거나 다시 큐에 들어간 것이므로 아무것도 저장하지 않고 예외를 던진다.
      * 이 UPDATE 가 행을 잠그므로 저장이 끝날 때까지 다른 경로가 이 작업을 실패로 바꾸지 못한다.
      */
-    public UUID saveCompleted(JobContext context, WorkerResponse response) {
+    public UUID saveCompleted(ClaimedJob claim, JobContext context, WorkerResponse response) {
         int claimed = jdbc.sql("""
                         UPDATE analysis_jobs
                         SET status = 'COMPLETED', progress_step = 'COMPLETED',
@@ -375,8 +388,10 @@ public class AnalysisRepository {
                             lease_expires_at = NULL,
                             completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                         WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
                         """)
                 .param("jobId", context.jobId())
+                .param("attemptCount", claim.attemptCount())
                 .update();
         if (claimed != 1) {
             throw new JobOwnershipLostException(context.jobId());
@@ -889,6 +904,10 @@ public class AnalysisRepository {
 
     public record ExistingJob(
             UUID jobId, String requestHash, String status, String progressStep, Instant createdAt) {
+    }
+
+    /** 작업을 집은 특정 실행. attemptCount가 임대 소유권 토큰 역할을 한다. */
+    public record ClaimedJob(UUID jobId, int attemptCount) {
     }
 
     public record ImageRecord(String storageKey, String altText) {

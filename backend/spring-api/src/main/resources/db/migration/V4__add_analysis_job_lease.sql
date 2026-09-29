@@ -9,6 +9,15 @@ ALTER TABLE analysis_jobs
     ADD COLUMN lease_expires_at timestamptz,
     ADD COLUMN last_heartbeat_at timestamptz;
 
+-- V1~V3에서는 RUNNING 작업에 임대 정보가 없었다. 그대로 두면 새 poller가 집지도,
+-- 만료 작업으로 회수하지도 못해 영구 정지하므로 배포 시 안전하게 다시 대기열로 보낸다.
+UPDATE analysis_jobs
+SET status = 'QUEUED',
+    progress_step = 'QUEUED',
+    message_code = 'QUEUED',
+    updated_at = CURRENT_TIMESTAMP
+WHERE status = 'RUNNING';
+
 -- 집어갈 작업을 고를 때 쓰는 인덱스. QUEUED 행만 담아 작게 유지한다.
 CREATE INDEX ix_analysis_jobs_queued_created
     ON analysis_jobs (created_at)

@@ -18,7 +18,8 @@ async def run_analysis(request: AnalyzeRequest) -> AnalyzeResponse:
         timeout_seconds=settings.review_collection_timeout_seconds,
     )
     collected_at = datetime.now(UTC)
-    reviews = await collector.collect(request.naver_place_url)
+    collection = await collector.collect(request.naver_place_url)
+    reviews = collection.reviews
     if len(reviews) < MINIMUM_VALID_REVIEWS:
         raise ValueError(f"INSUFFICIENT_VALID_REVIEWS:{len(reviews)}")
     analyzer = OpenAiReviewAnalyzer(
@@ -29,7 +30,7 @@ async def run_analysis(request: AnalyzeRequest) -> AnalyzeResponse:
     analysis, images = await asyncio.to_thread(analyzer.analyze, reviews)
     return AnalyzeResponse(
         job_id=request.job_id,
-        collected_review_count=len(reviews),
+        collected_review_count=collection.collected_review_count,
         valid_review_count=len(reviews),
         contains_reviews_older_than_two_years=contains_old_reviews(reviews, date.today()),
         collected_at=collected_at,

@@ -123,7 +123,7 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 
 전화번호 인증·계정 복구는 정책이 확정되지 않았다. 계정 탈퇴는 `DELETE /api/v1/me/account`로 제공하며 자체 계정은 현재 비밀번호 확인 후 계정과 연계 데이터를 삭제한다. Google 전용 계정은 현재 인증 세션으로 본인을 확인한다. 모든 계정은 Access Token 의 세션(`sid`)이 DB 에서 폐기되지 않고 만료 전이어야 하며, 아니면 `401 SESSION_REVOKED` 다(ADR-010). 페르소나 이미지 파일은 DB 삭제가 커밋된 뒤에 지운다.
 
-`GET /api/v1/legal-documents`는 현재 동의 가능한 `termsVersion`, `privacyVersion`과 `legallyReviewed`를 반환한다. 법률 전문가 검토가 완료되기 전에는 `legallyReviewed=false`이며 운영 가입을 열어서는 안 된다.
+`GET /api/v1/legal-documents`는 현재 동의 가능한 `termsVersion`, `privacyVersion`과 `legallyReviewed`를 반환한다. 법률 전문가 검토가 완료되기 전에는 `legallyReviewed=false`다. 이때 서버의 `LEGAL_REGISTRATION_ENABLED` 기본값은 `false`이며, 자체 회원가입과 신규 Google 계정 생성은 `503 REGISTRATION_NOT_AVAILABLE`로 거부한다. 기존 계정 로그인은 유지한다. 로컬 가입 흐름 검증에서만 이 값을 명시적으로 `true`로 바꾼다.
 
 ### 3.2 분석 작업과 결과
 

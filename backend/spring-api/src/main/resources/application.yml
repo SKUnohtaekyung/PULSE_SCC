@@ -28,6 +28,9 @@ management:
       show-details: never
 
 scc:
+  legal:
+    # 법률 검토 전 운영 가입을 서버에서 차단한다. 로컬·검증 환경에서만 명시적으로 연다.
+    registration-enabled: ${LEGAL_REGISTRATION_ENABLED:false}
   auth:
     access-token-secret: ${AUTH_ACCESS_TOKEN_SECRET:}
     access-token-ttl: 15m

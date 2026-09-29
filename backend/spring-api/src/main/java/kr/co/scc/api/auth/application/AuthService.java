@@ -12,6 +12,7 @@ import kr.co.scc.api.auth.domain.SessionTokens;
 import kr.co.scc.api.auth.domain.UserAccount;
 import kr.co.scc.api.auth.infrastructure.AuthRepository;
 import kr.co.scc.api.legal.LegalDocuments;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +37,7 @@ public class AuthService {
     private final TokenService tokenService;
     private final GoogleIdTokenVerifier googleVerifier;
     private final Clock clock;
+    private final boolean registrationEnabled;
     private volatile String decoyHash;
 
     public AuthService(
@@ -43,12 +45,14 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             TokenService tokenService,
             GoogleIdTokenVerifier googleVerifier,
-            Clock clock) {
+            Clock clock,
+            @Value("${scc.legal.registration-enabled:false}") boolean registrationEnabled) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.googleVerifier = googleVerifier;
         this.clock = clock;
+        this.registrationEnabled = registrationEnabled;
     }
 
     @Transactional
@@ -58,6 +62,7 @@ public class AuthService {
             String phoneNumber,
             String termsVersion,
             String privacyVersion) {
+        requireRegistrationEnabled();
         String normalizedEmail = AuthPolicy.normalizeEmail(email);
         validatePassword(password);
         try {
@@ -188,6 +193,7 @@ public class AuthService {
     }
 
     private UserAccount createGoogleUser(String subject, String normalizedEmail) {
+        requireRegistrationEnabled();
         if (repository.findUserByEmail(normalizedEmail).isPresent()) {
             throw new AuthException(
                     HttpStatus.CONFLICT,
@@ -253,6 +259,15 @@ public class AuthService {
 
     private static AuthException invalidRefreshToken() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "로그인이 만료되었습니다. 다시 로그인해 주세요.");
+    }
+
+    private void requireRegistrationEnabled() {
+        if (!registrationEnabled) {
+            throw new AuthException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "REGISTRATION_NOT_AVAILABLE",
+                    "현재 신규 가입을 받을 수 없습니다. 잠시 후 다시 시도해 주세요.");
+        }
     }
 
     public record AuthResult(

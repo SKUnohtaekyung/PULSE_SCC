@@ -132,7 +132,7 @@ SCC는 가입 시 매장 소유 관계를 강제하지 않는다. 사용자가 �
 | `message_code` | varchar nullable | 사용자 메시지 번역·정규화용 코드 |
 | `error_code` | varchar nullable | 실패 원인 오류 코드. 보통 이 값이 공개 오류 코드지만, 재시도를 모두 쓴 실패(`message_code = ANALYSIS_RETRY_EXHAUSTED`)는 공개 코드를 `message_code` 로 정하고 이 값은 원인으로 남긴다(API.md §5.3) |
 | `retryable` | boolean | 사용자 재시도 가능 여부 |
-| `attempt_count` | integer | 0 이상 |
+| `attempt_count` | integer | 0 이상. 작업 선점 때 증가하며 `(id, attempt_count)`가 해당 실행의 소유권 토큰 역할을 한다 |
 | `started_at` | timestamptz nullable | 시작 시각 |
 | `completed_at` | timestamptz nullable | 완료·실패 시각 |
 | `created_at` | timestamptz | 생성 시각 |

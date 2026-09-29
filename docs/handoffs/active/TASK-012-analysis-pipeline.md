@@ -1,7 +1,7 @@
 # TASK-012 — 네이버 리뷰 수집·분석 API와 프론트 연결
 
 ## Status
-구현 완료, 리뷰·병합 대기 — 전체 파이프라인이 실제 환경에서 끝까지 동작한다.
+구현 완료, PR #36 Ready·재리뷰 대기 — 전체 파이프라인이 실제 환경에서 끝까지 동작한다.
 회원가입부터 페르소나 이미지 생성까지 E2E 확인, Testcontainers 포함 전체 테스트 skip 0.
 
 ## Owner
@@ -11,7 +11,8 @@
 `feat/TASK-012-analysis-pipeline`
 
 ## Work Note
-- 원격 작업 브랜치에 push 완료. 2026-09-28 사용자 요청으로 **draft PR #36** 을 만들었다(`type:feature`·`role:feature`, 리뷰어 지정 전). Ready for review 조건은 PR 본문 상단에 적었다. TASK-012 이슈 #37 을 만들어 `Closes #37` 로 연결했다.
+- 원격 작업 브랜치에 push 완료. 2026-09-28 만든 PR #36은 2026-09-29 Ready for review로 전환했다(`type:feature`·`role:feature`). TASK-012 이슈 #37 을 만들어 `Closes #37` 로 연결했다.
+- 2026-09-29 독립 리뷰의 6개 지적을 반영했다: 시도 번호 기반 lease 소유권, V3→V4의 기존 RUNNING 작업 재대기, 모델 근거 인용·토픽 건수 검증, 네이버 URL 정규화와 요청 전 navigation 차단, 수집 후보 수/유효 리뷰 수 분리, 법률 검토 전 서버 가입 게이트. 재리뷰 후 결과를 이 문서와 PR에 기록한다.
 - 분석 파이프라인 기능 구현 커밋은 `36561f6`이다. 이후 변경은 아래 날짜별 절을 본다.
 - **Docker 정상 동작.** WSL2 백엔드로 붙어 Testcontainers 가 실제로 돈다.
 - **OpenAI 키 설정 완료.** 실제 분석·이미지 생성까지 확인했다. 디버깅 중 `SCC_SERVICE_TOKEN` 이 로그에 노출됐으므로 교체를 권한다(localhost 전용 로컬 토큰).

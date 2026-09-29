@@ -8,6 +8,7 @@ import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
 import kr.co.scc.api.analysis.domain.JobOwnershipLostException;
 import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
+import kr.co.scc.api.analysis.infrastructure.AnalysisRepository.ClaimedJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -43,11 +44,12 @@ public class AnalysisJobRunner {
      * <p>재시도 가능한 실패는 시도 횟수가 남아 있으면 다시 큐에 넣는다. 남아 있지 않거나
      * 재시도해도 결과가 같은 실패는 그대로 실패로 마감한다.
      */
-    public void runClaimed(UUID jobId) {
+    public void runClaimed(ClaimedJob claim) {
+        UUID jobId = claim.jobId();
         JobContext context = repository.findContext(jobId).orElse(null);
         if (context == null) {
             log.warn("집어온 작업의 정보를 찾지 못했습니다. jobId={}", jobId);
-            markFailed(jobId, "ANALYSIS_OUTPUT_INVALID");
+            markFailed(claim, "ANALYSIS_OUTPUT_INVALID");
             return;
         }
         try {
@@ -56,37 +58,39 @@ public class AnalysisJobRunner {
                     context.storeName(),
                     context.category(),
                     context.naverPlaceUrl()));
-            transactions.executeWithoutResult(status -> repository.saveCompleted(context, response));
+            transactions.executeWithoutResult(status -> repository.saveCompleted(claim, context, response));
         } catch (JobOwnershipLostException exception) {
             // 임대가 끝나 이 작업은 이미 실패로 마감됐거나 다른 시도로 넘어갔다. 결과는 버리고
             // 상태도 건드리지 않는다. 다시 넣거나 실패로 바꾸면 다른 경로의 결정을 덮어쓴다.
             log.warn("작업 소유권을 잃어 분석 결과를 저장하지 않았습니다. jobId={}", jobId);
         } catch (AnalysisException exception) {
-            finishFailure(jobId, exception.code(), exception.retryable(), exception.validReviewCount());
+            finishFailure(claim, exception.code(), exception.retryable(), exception.validReviewCount());
         } catch (RuntimeException exception) {
             log.error("분석 작업 처리 중 예기치 못한 오류가 발생했습니다. jobId={}", jobId, exception);
-            finishFailure(jobId, "ANALYSIS_OUTPUT_INVALID", true, null);
+            finishFailure(claim, "ANALYSIS_OUTPUT_INVALID", true, null);
         }
     }
 
-    private void finishFailure(UUID jobId, String errorCode, boolean retryable, Integer validReviewCount) {
+    private void finishFailure(
+            ClaimedJob claim, String errorCode, boolean retryable, Integer validReviewCount) {
+        UUID jobId = claim.jobId();
         if (!retryable) {
             if (validReviewCount == null) {
-                markFailed(jobId, errorCode);
+                markFailed(claim, errorCode);
             } else {
                 transactions.executeWithoutResult(
-                        status -> repository.markFailed(jobId, errorCode, validReviewCount));
+                        status -> repository.markFailed(claim, errorCode, validReviewCount));
             }
             return;
         }
-        if (requeue(jobId)) {
+        if (requeue(claim)) {
             log.info("재시도 가능한 실패라 작업을 다시 큐에 넣었습니다. jobId={} code={}", jobId, errorCode);
             return;
         }
         // 재시도할 수 있는 실패인데 다시 넣지 못했다. 시도 횟수를 다 썼거나, 임대가 끝나
         // 이 작업이 이미 다른 워커에게 넘어간 경우다.
         boolean closed = Boolean.TRUE.equals(transactions.execute(status -> repository.markRetryExhausted(
-                jobId, errorCode, AnalysisJobQueue.MAX_ATTEMPTS)));
+                claim, errorCode, AnalysisJobQueue.MAX_ATTEMPTS)));
         if (closed) {
             log.warn("재시도 횟수를 모두 써서 실패로 마감했습니다. jobId={} code={}", jobId, errorCode);
         } else {
@@ -95,13 +99,13 @@ public class AnalysisJobRunner {
         }
     }
 
-    private boolean requeue(UUID jobId) {
+    private boolean requeue(ClaimedJob claim) {
         return Boolean.TRUE.equals(transactions.execute(
-                status -> repository.requeueForRetry(jobId, AnalysisJobQueue.MAX_ATTEMPTS)));
+                status -> repository.requeueForRetry(claim, AnalysisJobQueue.MAX_ATTEMPTS)));
     }
 
-    private void markFailed(UUID jobId, String errorCode) {
+    private void markFailed(ClaimedJob claim, String errorCode) {
         transactions.executeWithoutResult(
-                status -> repository.markFailed(jobId, errorCode));
+                status -> repository.markFailed(claim, errorCode));
     }
 }

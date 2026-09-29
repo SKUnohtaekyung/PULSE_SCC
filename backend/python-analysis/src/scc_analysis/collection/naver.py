@@ -4,6 +4,7 @@ import json
 import re
 import socket
 from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
@@ -123,7 +124,19 @@ class ReviewCollectionError(RuntimeError):
 
 def validate_public_naver_url(url: str) -> str:
     parsed = urlparse(url.strip())
-    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_NAVER_HOSTS:
+    try:
+        port = parsed.port
+    except ValueError as error:
+        raise ReviewCollectionError(
+            "INVALID_NAVER_PLACE_URL", "올바른 네이버 지도 주소가 아닙니다.", retryable=False
+        ) from error
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in ALLOWED_NAVER_HOSTS
+        or parsed.username is not None
+        or parsed.password is not None
+        or port is not None
+    ):
         raise ReviewCollectionError(
             "INVALID_NAVER_PLACE_URL",
             "지원하는 네이버 지도 HTTPS 주소가 아닙니다.",
@@ -135,16 +148,32 @@ def validate_public_naver_url(url: str) -> str:
 
 def review_collection_url(url: str) -> str:
     parsed = urlparse(validate_public_naver_url(url))
-    match = re.search(r"/place/(\d+)", parsed.path)
-    if parsed.hostname == "map.naver.com" and match:
-        place_id = match.group(1)
-        return f"https://pcmap.place.naver.com/restaurant/{place_id}/review/visitor"
-    return parsed.geturl()
+    match = re.search(r"/(?:place|restaurant)/(\d+)(?:/|$)", parsed.path)
+    if match is None:
+        raise ReviewCollectionError(
+            "INVALID_NAVER_PLACE_URL",
+            "가게 식별 번호가 포함된 네이버 지도 주소가 아닙니다.",
+            retryable=False,
+        )
+    place_id = match.group(1)
+    return f"https://pcmap.place.naver.com/restaurant/{place_id}/review/visitor"
 
 
 def validate_collection_page_url(url: str) -> None:
     parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.hostname not in COLLECTION_NAVER_HOSTS:
+    try:
+        port = parsed.port
+    except ValueError as error:
+        raise ReviewCollectionError(
+            "INVALID_NAVER_PLACE_URL", "허용되지 않은 주소로 이동했습니다.", retryable=False
+        ) from error
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in COLLECTION_NAVER_HOSTS
+        or parsed.username is not None
+        or parsed.password is not None
+        or port is not None
+    ):
         raise ReviewCollectionError(
             "INVALID_NAVER_PLACE_URL", "허용되지 않은 주소로 이동했습니다.", retryable=False
         )
@@ -176,23 +205,38 @@ def normalize_review_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
-def build_reviews(
+@dataclass(frozen=True)
+class CollectedReviewBatch:
+    """고유 DOM 후보 수와, 검증·중복 제거를 통과한 리뷰를 함께 전달한다."""
+
+    collected_review_count: int
+    reviews: list[CollectedReview]
+
+
+def build_review_batch(
     texts: Iterable[str],
     limit: int,
     date_index: "ReviewDateIndex | None" = None,
-) -> list[CollectedReview]:
+) -> CollectedReviewBatch:
     reviews: list[CollectedReview] = []
-    seen: set[str] = set()
+    seen_candidates: set[str] = set()
+    seen_reviews: set[str] = set()
     for scraped in texts:
         raw = strip_fold_control(scraped)
         # 칩 줄이 버튼 줄 뒤에 오면 칩을 뗀 뒤에야 버튼 줄이 끝에 드러난다.
         normalized = normalize_review_text(strip_fold_control(strip_voted_keywords(raw)))
+        raw_normalized = normalize_review_text(raw)
+        candidate_key = normalized or raw_normalized
+        if candidate_key:
+            seen_candidates.add(candidate_key)
         if len(normalized) < 10 or len(normalized) > 4000:
             continue
         digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-        if digest in seen:
+        if digest in seen_reviews:
             continue
-        seen.add(digest)
+        seen_reviews.add(digest)
+        if len(reviews) >= limit:
+            continue
         reviews.append(
             CollectedReview(
                 content=normalized,
@@ -201,9 +245,15 @@ def build_reviews(
                 written_at=_written_at_for(normalized, date_index, raw),
             )
         )
-        if len(reviews) >= limit:
-            break
-    return reviews
+    return CollectedReviewBatch(collected_review_count=len(seen_candidates), reviews=reviews)
+
+
+def build_reviews(
+    texts: Iterable[str],
+    limit: int,
+    date_index: "ReviewDateIndex | None" = None,
+) -> list[CollectedReview]:
+    return build_review_batch(texts, limit, date_index).reviews
 
 
 def strip_fold_control(raw: str) -> str:
@@ -372,12 +422,24 @@ def _extract_date(text: str) -> date | None:
         return None
 
 
+async def _guard_collection_navigation(route: Any, request: Any) -> ReviewCollectionError | None:
+    """브라우저가 document 이동 요청을 전송하기 전에 허용 목록을 적용한다."""
+    if request.is_navigation_request():
+        try:
+            validate_collection_page_url(request.url)
+        except ReviewCollectionError as error:
+            await route.abort()
+            return error
+    await route.continue_()
+    return None
+
+
 class NaverPublicReviewCollector:
     def __init__(self, *, limit: int, timeout_seconds: int) -> None:
         self.limit = limit
         self.timeout_ms = timeout_seconds * 1000
 
-    async def collect(self, url: str) -> list[CollectedReview]:
+    async def collect(self, url: str) -> CollectedReviewBatch:
         target = review_collection_url(url)
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(headless=True)
@@ -386,7 +448,7 @@ class NaverPublicReviewCollector:
             finally:
                 await browser.close()
 
-    async def _collect_from_browser(self, browser: Browser, target: str) -> list[CollectedReview]:
+    async def _collect_from_browser(self, browser: Browser, target: str) -> CollectedReviewBatch:
         page = await browser.new_page(locale="ko-KR")
         page.set_default_timeout(self.timeout_ms)
 
@@ -395,6 +457,13 @@ class NaverPublicReviewCollector:
         # 응답 원본에는 닉네임·userIdno 가 들어 있으므로 보관하지 않고 즉시 날짜만
         # 추려 버린다. 보관하지 않으면 이후 로깅으로도 유출될 수 없다.
         date_index = ReviewDateIndex()
+        blocked_navigation: ReviewCollectionError | None = None
+
+        async def guard_navigation(route: Any, request: Any) -> None:
+            nonlocal blocked_navigation
+            blocked = await _guard_collection_navigation(route, request)
+            if blocked is not None:
+                blocked_navigation = blocked
 
         async def capture(response: Any) -> None:
             if "graphql" not in response.url.lower():
@@ -406,6 +475,7 @@ class NaverPublicReviewCollector:
             date_index.add(payload)
 
         page.on("response", capture)
+        await page.route("**/*", guard_navigation)
         try:
             await page.goto(target, wait_until="domcontentloaded", timeout=self.timeout_ms)
             validate_collection_page_url(page.url)
@@ -416,6 +486,8 @@ class NaverPublicReviewCollector:
         except ReviewCollectionError:
             raise
         except Exception as error:
+            if blocked_navigation is not None:
+                raise blocked_navigation from error
             raise ReviewCollectionError(
                 "REVIEW_COLLECTION_BLOCKED",
                 "네이버 공개 리뷰를 가져오지 못했습니다. 페이지 변경 또는 접근 제한일 수 있습니다.",
@@ -424,14 +496,14 @@ class NaverPublicReviewCollector:
         finally:
             await page.close()
 
-        reviews = build_reviews(texts, self.limit, date_index)
-        if not reviews:
+        batch = build_review_batch(texts, self.limit, date_index)
+        if not batch.reviews:
             raise ReviewCollectionError(
                 "REVIEW_COLLECTION_BLOCKED",
                 "공개 리뷰 본문을 확인하지 못했습니다.",
                 retryable=True,
             )
-        return reviews
+        return batch
 
     async def _open_review_surface(self, page: Page) -> None:
         if "접근이 제한" in await page.locator("body").inner_text():

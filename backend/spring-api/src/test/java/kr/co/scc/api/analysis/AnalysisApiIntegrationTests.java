@@ -33,6 +33,7 @@ import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
 import kr.co.scc.api.analysis.application.AnalysisException;
 import kr.co.scc.api.analysis.domain.JobOwnershipLostException;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
+import kr.co.scc.api.analysis.infrastructure.AnalysisRepository.ClaimedJob;
 import kr.co.scc.api.analysis.infrastructure.AnalysisServiceProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-@SpringBootTest
+@SpringBootTest(properties = "scc.legal.registration-enabled=true")
 @AutoConfigureMockMvc
 @Testcontainers(disabledWithoutDocker = true)
 class AnalysisApiIntegrationTests {
@@ -241,7 +242,7 @@ class AnalysisApiIntegrationTests {
                 .param("key", UUID.randomUUID().toString()).update();
 
         // 분석 도중 난 재시도 가능한 실패가 세 번째 시도에서도 났을 때다.
-        repository.markRetryExhausted(jobId, "REVIEW_COLLECTION_BLOCKED", 3);
+        repository.markRetryExhausted(new ClaimedJob(jobId, 3), "REVIEW_COLLECTION_BLOCKED", 3);
 
         assertThat(jdbc.sql("SELECT error_code FROM analysis_jobs WHERE id = :id")
                 .param("id", jobId).query(String.class).single()).isEqualTo("REVIEW_COLLECTION_BLOCKED");
@@ -271,7 +272,7 @@ class AnalysisApiIntegrationTests {
                 .param("id", jobId).param("userId", userId).param("storeId", storeId)
                 .param("key", UUID.randomUUID().toString()).update();
 
-        repository.markRetryExhausted(jobId, "REVIEW_COLLECTION_BLOCKED", 3);
+        repository.markRetryExhausted(new ClaimedJob(jobId, 2), "REVIEW_COLLECTION_BLOCKED", 3);
 
         assertThat(jdbc.sql("SELECT status FROM analysis_jobs WHERE id = :id")
                 .param("id", jobId).query(String.class).single()).isEqualTo("RUNNING");
@@ -333,7 +334,7 @@ class AnalysisApiIntegrationTests {
         var context = repository.findContext(jobId).orElseThrow();
 
         assertThatThrownBy(() -> transactions.executeWithoutResult(
-                status -> repository.saveCompleted(context, workerResponse())))
+                status -> repository.saveCompleted(new ClaimedJob(jobId, 3), context, workerResponse())))
                 .isInstanceOf(JobOwnershipLostException.class);
 
         assertNothingSavedFor(jobId, "FAILED");
@@ -354,11 +355,31 @@ class AnalysisApiIntegrationTests {
         long filesBefore = imageFileCount();
 
         assertThatThrownBy(() -> transactions.executeWithoutResult(
-                status -> repository.saveCompleted(context, missingImage)))
+                status -> repository.saveCompleted(new ClaimedJob(jobId, 1), context, missingImage)))
                 .hasMessageContaining("Missing persona image");
 
         assertNothingSavedFor(jobId, "RUNNING");
         assertThat(imageFileCount()).isEqualTo(filesBefore);
+    }
+
+    @Test
+    void aStaleWorkerCannotChangeANewerAttempt() {
+        UUID jobId = insertJob("RUNNING", 2);
+        ClaimedJob stale = new ClaimedJob(jobId, 1);
+        var context = repository.findContext(jobId).orElseThrow();
+
+        repository.markFailed(stale, "REVIEW_COLLECTION_BLOCKED");
+        assertThat(repository.requeueForRetry(stale, 3)).isFalse();
+        assertThat(repository.markRetryExhausted(stale, "REVIEW_COLLECTION_BLOCKED", 3)).isFalse();
+        assertThatThrownBy(() -> transactions.executeWithoutResult(
+                status -> repository.saveCompleted(stale, context, workerResponse())))
+                .isInstanceOf(JobOwnershipLostException.class);
+
+        assertNothingSavedFor(jobId, "RUNNING");
+        assertThat(jdbc.sql("SELECT attempt_count FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId)
+                .query(Integer.class)
+                .single()).isEqualTo(2);
     }
 
     @Test
