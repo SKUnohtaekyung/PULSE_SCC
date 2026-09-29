@@ -19,7 +19,7 @@
 
 ## 2026-09-30 인수인계 변동 사항
 
-- 코드 변경 기준 커밋은 `353285a`, Handoff 갱신 HEAD는 `79b06c6`이다. 로컬 작업 트리는 깨끗하고 원격 브랜치와 동기화돼 있다.
+- 최종 리뷰 반영 코드 기준은 `353285a`, 당시 검증 결과를 기록한 문서 커밋은 `79b06c6`이다. 이후 변경은 인수인계 문서뿐이며 원격 브랜치와 동기화돼 있다.
 - PR #36은 OPEN·Ready for review·MERGEABLE이며 `type:feature`, `role:feature` 라벨이 붙어 있다. GitHub의 사람 리뷰 결정과 CI status check는 아직 없다.
 - 최종 독립 Reviewer 판정은 PASS다. 차단 이슈와 추가 actionable finding은 없다.
 - 최종 검증은 Spring Testcontainers 포함 116개 PASS(skip 0)와 build PASS, Python Ruff PASS와 pytest 166개 PASS다.
