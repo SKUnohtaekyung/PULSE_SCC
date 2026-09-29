@@ -815,8 +815,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 1. `git status --short`, `git branch -a`, `git log -3 --oneline` 으로 상태를 확인한다. **`git branch -a` 를 빼먹지 않는다** — 이전 세션이 로컬 브랜치를 못 보고 같은 TASK 를 중복 구현한 적이 있다.
 2. 환경은 준비돼 있다. Docker 정상, 로컬 PostgreSQL 18 에 `scc` DB·계정 존재, `backend/.env` 설정 완료(OpenAI 키 포함).
 3. 검증 명령
-   - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 112개, skip 0 이어야 한다(Docker 필요)
-   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 156개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
+   - Spring: `.\backend\spring-api\gradlew.bat -p backend\spring-api test` → 116개, skip 0 이어야 한다(Docker 필요)
+   - Python: `.\backend\python-analysis\.venv\Scripts\python.exe -m pytest -p no:cacheprovider backend\python-analysis` → 166개 (`-p no:cacheprovider` 는 `.pytest_cache` 쓰기 권한 오류 회피)
 4. E2E 를 돌릴 때는 **OpenAI 실제 비용이 발생한다.** 수집만 확인하려면 `SCC_REVIEW_COLLECTION_LIMIT=20` 으로 띄운다. 50건 게이트에서 막혀 모델을 호출하지 않는다.
 5. 서비스 기동 순서: Python(`python -m scc_analysis`, 8000) → Spring(`gradlew bootRun`, 8080). 전체 분석은 약 200~310초 걸린다.
 6. 사용자 터미널은 PowerShell 이다. Git Bash 경로(`/c/...`)나 `&` 없는 따옴표 경로를 안내하면 실패한다.
@@ -826,6 +826,8 @@ Expo 앱에서 Spring 공개 API를 통해 네이버 공개 리뷰 수집, 실�
 10. **새 앱(`frontend/mobile`) 통합 확인 방법**: 먼저 `git worktree list` 로 `C:\PULSE_SCC-mobile` 이 있는지 본다. 없을 때만 `git worktree add ../PULSE_SCC-mobile feat/TASK-020-frontend-mobile` 후 `npm --prefix ../PULSE_SCC-mobile/frontend/mobile ci`. 있으면 `git -C ../PULSE_SCC-mobile pull` 로 최신화하고, `package-lock.json` 이 바뀌었으면 `npm ci` 를 다시 한다. 이 PC 에 Android SDK 가 없어 Expo 웹으로 띄운다(에이전트 Bash 기준): `cd ../PULSE_SCC-mobile/frontend/mobile && CI=1 EXPO_PUBLIC_API_BASE_URL=http://localhost:8090 npx expo start --web --port 8081`. Spring 에 CORS 가 없으므로 `/api/` 는 8080, 나머지는 8081 로 넘기는 작은 Node 프록시(8090, 웹소켓 업그레이드 포함)를 스크래치 폴더에 두고 띄운다. 이 프록시는 저장소 밖이라 세션마다 다시 만든다. 브라우저 창에서 주소창으로 이동하면 새로고침돼 로그아웃되므로 앱 안 메뉴로 이동한다. 테스트 계정은 매번 새로 만든다(`@scc.test`, 비밀번호는 채팅에 적지 않고 스크래치에만).
 
 ## Last Verified Commit
+
+`353285a` — PR #36 독립 리뷰의 6개 지적과 최종 재리뷰의 공백 근거 우회까지 수정했다. Spring Testcontainers 포함 116개 failures 0·errors 0·skipped 0, Spring build PASS, Python Ruff lint·format PASS, pytest 166개 PASS. 독립 Reviewer 최종 재리뷰 PASS(차단·추가 actionable finding 없음). 실제 네이버 수집·OpenAI 분석·Visual QA는 이번 수정 뒤 미실행.
 
 `c61f432` — 브랜치 전체 검토 결함·권고 코드 수정까지(그 뒤 문서 커밋은 코드 변경 없음). 이 코드로 Spring build·test PASS(`build --rerun-tasks`, Docker 29.8.0, BUILD SUCCESSFUL, tests=112 failures=0 errors=0 skipped=0), Python lint·format PASS·pytest 156개. 실제 분석·Visual QA 미실행.
 
