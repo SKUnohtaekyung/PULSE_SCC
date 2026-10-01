@@ -281,6 +281,12 @@ export function MyPageScreen() {
                   source={personaSources[index]}
                 />
               ))}
+              {/* 부분 결과(1~2장)여도 칸 폭을 3등분으로 유지한다. 홈 관점 카드의 홀수 빈칸과 같은 규칙. */}
+              {expanded
+                ? Array.from({ length: Math.max(0, 3 - personaImages.length) }, (_, index) => (
+                    <View key={`empty-${index}`} style={styles.imageCell} />
+                  ))
+                : null}
             </View>
             <Text style={styles.empty}>
               읽기 전용이에요. 새 결과로 바꾸면 이미지도 함께 바뀌어요.

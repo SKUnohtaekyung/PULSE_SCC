@@ -122,6 +122,9 @@ export function PreviewResultScreen({ jobId }: { jobId: string }) {
     return () => subscription.remove();
   }, [phase, saving]);
 
+  // 결과를 보여 줄 때만 넓힌다. 불러오는 중·오류는 640 그대로 둔다(HomeScreen과 같은 기준).
+  const wide = phase === 'ready' && preview !== null;
+
   return (
     <Screen
       footer={
@@ -157,8 +160,8 @@ export function PreviewResultScreen({ jobId }: { jobId: string }) {
           </View>
         ) : null
       }
-      header={<ScreenHeader label="새 분석 결과" badge="아직 저장하지 않음" wide />}
-      wide
+      header={<ScreenHeader label="새 분석 결과" badge="아직 저장하지 않음" wide={wide} />}
+      wide={wide}
     >
       <StatusBar style="dark" />
 
