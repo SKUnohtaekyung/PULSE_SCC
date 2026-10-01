@@ -44,13 +44,25 @@ feat/TASK-027-analysis-resume
 - 분석 생성 POST 응답을 받기 전에 프로세스가 종료된 경우에는 jobId를 알 수 없어 자동 복구할 수 없다.
 - 세션 만료 후 다시 로그인했을 때 진행 작업을 자동 재개할지에 대한 제품 정책은 SCREEN_STATES §5.1에서 아직 미정이다.
 - GitHub 이슈와 PR은 GitHub 인증 복구 후 생성해야 한다.
+- 원격 CI와 독립 Reviewer 검토는 PR 생성 전이므로 아직 미실행이다.
 
 ## Do Not Assume
 - 앱 재실행 복구는 서버 작업을 새로 만들지 않는다. 저장된 jobId를 조회할 뿐이다.
 - SecureStore를 지원하지 않는 환경에서는 현재 프로세스 메모리만 사용하므로 앱 재실행 복구가 보장되지 않는다.
 
 ## Next Action
-GitHub 인증 복구 후 PR을 만들고 `role:feature` 리뷰를 요청한다.
+1. GitHub 인증을 복구한다.
+2. `ui/TASK-024-production-auth-entry`를 base로 PR을 생성하고 `type:feature`, `role:feature` 라벨을 붙인다.
+3. 원격 CI 결과를 확인하고 독립 Reviewer 검토를 요청한다.
+4. 선행 TASK-024가 `main`에 반영되면 이 PR의 base를 `main`으로 변경한다.
+
+PR 생성 링크: <https://github.com/SKUnohtaekyung/PULSE_SCC/compare/ui/TASK-024-production-auth-entry...feat/TASK-027-analysis-resume?expand=1>
+
+## Session Closeout — 2026-10-01
+- 기능 구현, 로컬 정적 검증, Android 재실행 Visual QA, 커밋 및 원격 브랜치 push까지 완료했다.
+- QA에서 앱 종료 후 진행 중이던 36% 분석을 복원했고 실제 분석 완료 화면까지 확인했다.
+- 작업 종료 시 Metro/Expo(8081), Spring API(8080), Python API(8000), Android 에뮬레이터를 모두 종료했으며 포트와 ADB 연결 해제를 확인했다.
+- 현재 개발 서버가 실행 중이라고 가정하지 않는다. 다음 세션에서 필요한 서비스만 다시 시작한다.
 
 ## Last Verified Commit
 5a2d388 — 이 시점의 코드와 위 Verification·Visual QA가 유효하다
