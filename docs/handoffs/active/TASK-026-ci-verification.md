@@ -50,4 +50,4 @@ PR과 main push마다 Spring, Python, 모바일 프론트엔드의 정본 검증
 GitHub 인증 복구 후 PR을 만들고 최초 `Verify` workflow가 세 job 모두 통과하는지 확인한다.
 
 ## Last Verified Commit
-미커밋 — 검증 완료 후 기록
+a67556b — 이 시점의 workflow와 위 로컬 Verification이 유효하다
