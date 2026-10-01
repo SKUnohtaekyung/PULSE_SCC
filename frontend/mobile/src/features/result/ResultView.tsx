@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { type ReactElement, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import type { ApiClient } from '@/api/client';
@@ -12,6 +12,7 @@ import {
   usePersonaImageRetry,
 } from '@/components/ui/PersonaAvatar';
 import { PodiumTop3 } from '@/components/ui/PodiumTop3';
+import { useBodyMaxWidth, useExpandedLayout } from '@/components/ui/Screen';
 import { colors, fontFamilies, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
 // 결과 표시. 읽는 순서는 DESIGN_SYSTEM §4.1을 따른다.
@@ -63,6 +64,8 @@ export function ResultView({
   const [selectedRank, setSelectedRank] = useState<number | null>(filled[0]?.rank ?? null);
   const selected = filled.find((slot) => slot.rank === selectedRank) ?? filled[0] ?? null;
   // 고지 문구가 달라진다. 실제 이미지가 한 장이라도 있으면 "AI가 만든 가상 이미지"라고 알린다.
+  // 넓은 화면에서 관점 카드를 2열로 놓는 화면이라 Screen·ScreenHeader와 같은 wide 폭을 쓴다.
+  const bodyMaxWidth = useBodyMaxWidth(true);
   const anyRemoteImage = useMemo(
     () =>
       filled.some((slot) =>
@@ -72,7 +75,7 @@ export function ResultView({
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { maxWidth: bodyMaxWidth }]}>
       <Text accessibilityRole="header" style={styles.storeName}>
         {result.store.name}
       </Text>
@@ -244,6 +247,25 @@ function PersonaStatsCard({
   );
 }
 
+// 넓은 화면(expanded)에서는 관점 카드를 두 장씩 한 줄로 놓는다(DESIGN_SYSTEM §7, TASK-024).
+// 읽는 순서는 그대로다 — 줄 안에서 왼쪽→오른쪽, 줄은 위→아래라 4관점 순서가 바뀌지 않는다.
+// 홀수면 마지막 줄 오른쪽을 빈칸으로 채워 카드 폭을 다른 줄과 같게 둔다.
+function arrangePerspectiveCards(expanded: boolean, cards: (ReactElement | null)[]) {
+  const present = cards.filter((card): card is ReactElement => card !== null);
+  if (!expanded) return present;
+  const rows: ReactElement[] = [];
+  for (let index = 0; index < present.length; index += 2) {
+    const pair = present.slice(index, index + 2);
+    rows.push(
+      <View key={`row-${pair[0].key}`} style={styles.cardRow}>
+        {pair}
+        {pair.length === 1 ? <View style={styles.cardInRow} /> : null}
+      </View>,
+    );
+  }
+  return rows;
+}
+
 function PersonaDetail({
   slot,
   client,
@@ -259,6 +281,7 @@ function PersonaDetail({
 }) {
   const persona = slot.persona;
   const source = persona ? personaImageSource(client, persona.image) : null;
+  const expanded = useExpandedLayout();
 
   if (!persona) return null;
 
@@ -281,66 +304,69 @@ function PersonaDetail({
         />
       ) : null}
 
-      {perspectiveOrder.map((item) => {
-        const block = persona.perspectives[item.key];
-        if (!block) return null;
-        return (
-          <View key={item.key} style={styles.card}>
-            <Text style={styles.cardTitle}>{item.label}</Text>
-            <Text style={styles.cardWhy}>{item.why}</Text>
+      {arrangePerspectiveCards(
+        expanded,
+        perspectiveOrder.map((item) => {
+          const block = persona.perspectives[item.key];
+          if (!block) return null;
+          return (
+            <View key={item.key} style={[styles.card, expanded && styles.cardInRow]}>
+              <Text style={styles.cardTitle}>{item.label}</Text>
+              <Text style={styles.cardWhy}>{item.why}</Text>
 
-            {block.reviewFacts.map((fact) => (
-              <View key={fact.id} style={styles.layer}>
-                <Text style={styles.layerBadge}>리뷰에서 확인</Text>
-                <Text style={styles.layerText}>{fact.text}</Text>
-              </View>
-            ))}
+              {block.reviewFacts.map((fact) => (
+                <View key={fact.id} style={styles.layer}>
+                  <Text style={styles.layerBadge}>리뷰에서 확인</Text>
+                  <Text style={styles.layerText}>{fact.text}</Text>
+                </View>
+              ))}
 
-            {block.evidencePreview.length > 0 ? (
-              <View style={styles.evidence}>
-                {block.evidencePreview.map((review) => (
-                  <View key={review.reviewId} style={styles.quote}>
-                    <Text style={styles.quoteText}>“{review.excerpt}”</Text>
-                    <Text style={styles.quoteDate}>{formatDate(review.writtenAt)}</Text>
-                  </View>
-                ))}
+              {block.evidencePreview.length > 0 ? (
+                <View style={styles.evidence}>
+                  {block.evidencePreview.map((review) => (
+                    <View key={review.reviewId} style={styles.quote}>
+                      <Text style={styles.quoteText}>“{review.excerpt}”</Text>
+                      <Text style={styles.quoteDate}>{formatDate(review.writtenAt)}</Text>
+                    </View>
+                  ))}
+                  <Text style={styles.evidenceCount}>
+                    이 관점에 연결된 근거 리뷰 {block.evidenceCount}건 가운데 대표 {block.evidencePreview.length}건이에요.
+                  </Text>
+                  {onOpenEvidence ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() =>
+                        onOpenEvidence({
+                          analysisId,
+                          personaId: persona.id,
+                          personaLabel: persona.label,
+                          perspective: item.key.toUpperCase(),
+                        })
+                      }
+                      style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
+                    >
+                      <Text style={styles.disclosureText}>근거 리뷰 전체 보기</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : (
+                // INSIGHT-LIMITED — 없는 근거를 채워 넣지 않고 한계를 적는다(SCREEN_STATES §6.2).
                 <Text style={styles.evidenceCount}>
-                  이 관점에 연결된 근거 리뷰 {block.evidenceCount}건 가운데 대표 {block.evidencePreview.length}건이에요.
+                  이 관점에는 보여드릴 대표 리뷰가 없어요.
                 </Text>
-                {onOpenEvidence ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() =>
-                      onOpenEvidence({
-                        analysisId,
-                        personaId: persona.id,
-                        personaLabel: persona.label,
-                        perspective: item.key.toUpperCase(),
-                      })
-                    }
-                    style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.disclosureText}>근거 리뷰 전체 보기</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            ) : (
-              // INSIGHT-LIMITED — 없는 근거를 채워 넣지 않고 한계를 적는다(SCREEN_STATES §6.2).
-              <Text style={styles.evidenceCount}>
-                이 관점에는 보여드릴 대표 리뷰가 없어요.
-              </Text>
-            )}
+              )}
 
-            {block.aiInterpretations.map((interpretation) => (
-              <View key={interpretation.id} style={[styles.layer, styles.layerAi]}>
-                <Text style={styles.layerBadge}>AI 해석</Text>
-                <Text style={styles.layerText}>{interpretation.text}</Text>
-                <Text style={styles.layerNote}>리뷰를 바탕으로 한 추론이라 사실과 다를 수 있어요.</Text>
-              </View>
-            ))}
-          </View>
-        );
-      })}
+              {block.aiInterpretations.map((interpretation) => (
+                <View key={interpretation.id} style={[styles.layer, styles.layerAi]}>
+                  <Text style={styles.layerBadge}>AI 해석</Text>
+                  <Text style={styles.layerText}>{interpretation.text}</Text>
+                  <Text style={styles.layerNote}>리뷰를 바탕으로 한 추론이라 사실과 다를 수 있어요.</Text>
+                </View>
+              ))}
+            </View>
+          );
+        }),
+      )}
 
       <View style={styles.section}>
         <Text accessibilityRole="header" style={styles.sectionTitle}>
@@ -464,7 +490,6 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing[6],
     width: '100%',
-    maxWidth: layout.readingMaxWidth,
     alignSelf: 'center',
   },
   section: {
@@ -615,6 +640,16 @@ const styles = StyleSheet.create({
   personaCaveat: {
     ...typography.body7,
     color: colors.text.secondary,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing[3],
+  },
+  // 한 줄 안 두 카드의 폭을 같게 나눈다. 높이는 줄 안에서 긴 쪽에 맞춘다(cardRow의 stretch).
+  cardInRow: {
+    flex: 1,
+    flexBasis: 0,
   },
   card: {
     backgroundColor: colors.background.surface,

@@ -93,7 +93,8 @@ export function HomeScreen() {
           />
         )
       }
-      header={<ScreenHeader brand badge="저장된 결과" />}
+      header={<ScreenHeader brand badge="저장된 결과" wide />}
+      wide
     >
       <StatusBar style="dark" />
 

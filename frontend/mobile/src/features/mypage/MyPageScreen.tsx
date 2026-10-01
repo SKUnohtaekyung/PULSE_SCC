@@ -27,7 +27,7 @@ import {
   PersonaImageError,
   usePersonaImageRetry,
 } from '@/components/ui/PersonaAvatar';
-import { Screen } from '@/components/ui/Screen';
+import { Screen, useExpandedLayout } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ToggleRow } from '@/components/ui/ToggleRow';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -54,6 +54,7 @@ const formatDateTime = (value: string) => {
 export function MyPageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const expanded = useExpandedLayout();
   const { client, user, signOut } = useSession();
 
   const [notifications, setNotifications] = useState<SectionState<NotificationItem[]>>({
@@ -268,15 +269,19 @@ export function MyPageScreen() {
           <View style={styles.images}>
             {/* 홈 시상대와 같은 고지 — 실제 이미지가 한 장이라도 있으면 AI 이미지라고, 없으면 자리표시라고 알린다. */}
             <PersonaAvatarNotice anyRemote={personaSources.some((source) => source.kind === 'remote')} />
-            {personaImages.map(({ rank, persona }, index) => (
-              <StoredPersonaRow
-                altText={persona.image.altText}
-                key={persona.id}
-                label={persona.label}
-                rank={rank}
-                source={personaSources[index]}
-              />
-            ))}
+            {/* 넓은 화면(expanded)에서는 3칸으로 놓는다(DESIGN_SYSTEM §7, TASK-024). 순위 순서는 왼쪽→오른쪽이다. */}
+            <View style={expanded ? styles.imageGrid : styles.images}>
+              {personaImages.map(({ rank, persona }, index) => (
+                <StoredPersonaRow
+                  altText={persona.image.altText}
+                  inGrid={expanded}
+                  key={persona.id}
+                  label={persona.label}
+                  rank={rank}
+                  source={personaSources[index]}
+                />
+              ))}
+            </View>
             <Text style={styles.empty}>
               읽기 전용이에요. 새 결과로 바꾸면 이미지도 함께 바뀌어요.
             </Text>
@@ -348,20 +353,23 @@ function StoredPersonaRow({
   label,
   altText,
   source,
+  inGrid = false,
 }: {
   rank: number;
   label: string;
   altText: string;
   source: PersonaImageSource;
+  /** 3칸 격자 안이면 그림 위·이름 아래로 세운다. 칸 폭이 좁아 가로 배치는 이름이 줄바꿈된다. */
+  inGrid?: boolean;
 }) {
   const image = usePersonaImageRetry(source);
   return (
-    <View style={styles.imageItem}>
+    <View style={[styles.imageItem, inGrid && styles.imageCell]}>
       <View
         accessible
         // 그림과 이름을 한 번에 읽는다. 묶으면 그림 라벨이 가려지므로 서버 대체 텍스트를 함께 붙인다.
         accessibilityLabel={`${altText}. ${rank}위 ${label}`}
-        style={styles.imageRow}
+        style={inGrid ? styles.imageColumn : styles.imageRow}
       >
         <PersonaAvatar
           altText={altText}
@@ -371,9 +379,9 @@ function StoredPersonaRow({
           source={source}
           variant={rank - 1}
         />
-        <View style={styles.imageText}>
-          <Text style={styles.imageRank}>{rank}위 손님</Text>
-          <Text style={styles.imageLabel}>{label}</Text>
+        <View style={[styles.imageText, inGrid && styles.imageTextCentered]}>
+          <Text style={[styles.imageRank, inGrid && styles.textCentered]}>{rank}위 손님</Text>
+          <Text style={[styles.imageLabel, inGrid && styles.textCentered]}>{label}</Text>
         </View>
       </View>
       {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
@@ -414,6 +422,26 @@ const styles = StyleSheet.create({
   },
   images: {
     gap: spacing[3],
+  },
+  imageGrid: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+  },
+  imageCell: {
+    flex: 1,
+    flexBasis: 0,
+  },
+  imageColumn: {
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  imageTextCentered: {
+    flex: 0,
+    alignItems: 'center',
+  },
+  textCentered: {
+    textAlign: 'center',
   },
   imageItem: {
     gap: spacing[2],

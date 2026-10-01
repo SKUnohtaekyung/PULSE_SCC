@@ -14,7 +14,7 @@ import { LoadingBlock } from '@/components/ui/LoadingBlock';
 import { Notice } from '@/components/ui/Notice';
 import { Screen, usePagePadding } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
+import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 import { FixtureBanner } from '@/features/dev/FixtureBanner';
 import { ResultView } from '@/features/result/ResultView';
 import { useSession } from '@/session/SessionProvider';
@@ -132,29 +132,33 @@ export function PreviewResultScreen({ jobId }: { jobId: string }) {
               { paddingBottom: Math.max(insets.bottom, spacing[3]), paddingHorizontal: horizontalPadding },
             ]}
           >
-            {replaceError ? (
-              <Notice alert title="바꾸지 못했어요" message={replaceError} tone="error" />
-            ) : null}
-            <Text style={styles.saveBarNote}>
-              기존 결과를 유지하면 이 새 결과는 저장되지 않고, 화면을 닫은 뒤에는 다시 보지 못할 수 있어요.
-            </Text>
-            <Button
-              label="새 결과로 바꾸기"
-              loading={saving === 'replace'}
-              loadingLabel="바꾸는 중이에요"
-              onPress={() => setDialog('replace')}
-            />
-            <Button
-              label="기존 결과 유지"
-              loading={saving === 'keep'}
-              loadingLabel="기존 결과로 돌아가는 중이에요"
-              onPress={keepExisting}
-              variant="ghost"
-            />
+            {/* 띠는 화면 전체 폭, 안쪽 문구·버튼은 읽기 폭 안에 둔다. 태블릿 가로에서 버튼이 1280dp로 늘어나지 않게 한다(TASK-024). */}
+            <View style={styles.saveBarInner}>
+              {replaceError ? (
+                <Notice alert title="바꾸지 못했어요" message={replaceError} tone="error" />
+              ) : null}
+              <Text style={styles.saveBarNote}>
+                기존 결과를 유지하면 이 새 결과는 저장되지 않고, 화면을 닫은 뒤에는 다시 보지 못할 수 있어요.
+              </Text>
+              <Button
+                label="새 결과로 바꾸기"
+                loading={saving === 'replace'}
+                loadingLabel="바꾸는 중이에요"
+                onPress={() => setDialog('replace')}
+              />
+              <Button
+                label="기존 결과 유지"
+                loading={saving === 'keep'}
+                loadingLabel="기존 결과로 돌아가는 중이에요"
+                onPress={keepExisting}
+                variant="ghost"
+              />
+            </View>
           </View>
         ) : null
       }
-      header={<ScreenHeader label="새 분석 결과" badge="아직 저장하지 않음" />}
+      header={<ScreenHeader label="새 분석 결과" badge="아직 저장하지 않음" wide />}
+      wide
     >
       <StatusBar style="dark" />
 
@@ -241,8 +245,13 @@ const styles = StyleSheet.create({
     borderTopWidth: strokes.hairline,
     borderTopLeftRadius: radii.panel,
     borderTopRightRadius: radii.panel,
-    gap: spacing[2],
     paddingTop: spacing[4],
+  },
+  saveBarInner: {
+    width: '100%',
+    maxWidth: layout.readingMaxWidth,
+    alignSelf: 'center',
+    gap: spacing[2],
   },
   saveBarNote: {
     ...typography.caption,

@@ -9,6 +9,7 @@ import { colors, layout, spacing } from '@/design/tokens';
 //
 // - header: 화면 폭 전체를 쓰는 영역. 좌우 여백은 헤더가 직접 가진다.
 // - children: 읽기 폭(readingMaxWidth) 안에서 가운데 정렬되는 본문.
+//   wide를 켜면 expanded(1024dp 이상)에서만 contentMaxWidth까지 넓힌다. 열을 늘리는 결과 화면이 쓴다.
 // - footer: 스크롤에서 빠지는 하단 고정 영역(하단 내비게이션 등).
 // - scroll: false면 스크롤을 만들지 않는다. 목록(FlatList)을 담는 화면은 반드시 false로 둔다.
 //   FlatList를 ScrollView 안에 넣으면 가상화가 꺼지고 경고가 난다.
@@ -21,6 +22,18 @@ export function usePagePadding() {
   return layout.pagePadding.compact;
 }
 
+/** expanded 중단점 이상인가. 열 수를 늘리는 판단은 모두 이 값으로 한다(DESIGN_SYSTEM §7). */
+export function useExpandedLayout() {
+  const { width } = useWindowDimensions();
+  return width >= layout.breakpoint.expanded;
+}
+
+/** 본문 최대 폭. wide 화면만 expanded에서 contentMaxWidth를 쓴다. 헤더·본문이 같은 값을 써야 왼쪽 끝이 맞는다. */
+export function useBodyMaxWidth(wide: boolean) {
+  const expanded = useExpandedLayout();
+  return wide && expanded ? layout.contentMaxWidth : layout.readingMaxWidth;
+}
+
 export function Screen({
   children,
   header,
@@ -28,6 +41,7 @@ export function Screen({
   centered = false,
   scroll = true,
   verticalEdges = ['top'],
+  wide = false,
 }: {
   children: ReactNode;
   header?: ReactNode;
@@ -38,8 +52,11 @@ export function Screen({
   scroll?: boolean;
   /** 위·아래 SafeArea. 좌우는 컷아웃 때문에 항상 적용한다. */
   verticalEdges?: ('top' | 'bottom')[];
+  /** 넓은 화면에서 열을 늘리는 화면이면 true. expanded에서만 본문을 contentMaxWidth까지 넓힌다. */
+  wide?: boolean;
 }) {
   const horizontalPadding = usePagePadding();
+  const bodyMaxWidth = useBodyMaxWidth(wide);
 
   const body = (
     <>
@@ -51,7 +68,7 @@ export function Screen({
           // 스크롤을 끄면 본문이 남은 높이를 모두 차지해야 한다.
           // 그래야 안에 넣은 목록(FlatList)이 스크롤 영역을 갖는다.
           !scroll && styles.bodyFill,
-          { paddingHorizontal: horizontalPadding },
+          { maxWidth: bodyMaxWidth, paddingHorizontal: horizontalPadding },
         ]}
       >
         {children}
@@ -114,7 +131,6 @@ const styles = StyleSheet.create({
   },
   body: {
     width: '100%',
-    maxWidth: layout.readingMaxWidth,
     alignSelf: 'center',
     gap: spacing[5],
     paddingTop: spacing[6],
