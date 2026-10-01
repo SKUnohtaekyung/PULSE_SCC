@@ -132,7 +132,7 @@ TASK-024(브랜치 `feat/TASK-024-responsive-tablet`)의 기록이다. 캡처를
   - P2 — 홈·미리보기의 불러오는 중·빈 상태·오류도 1024 이상에서 960으로 넓어져 버튼이 약 896dp로 늘어났다. 결과가 준비됐을 때만 `wide`를 켜도록 고쳤다(`HomeScreen.tsx`·`PreviewResultScreen.tsx`). 결과 화면이 여전히 넓은 것은 `유형 부족` 상황에서 가게 이름 줄 x 384~2176px(192~1088dp)로 확인했다. 불러오는 중·빈 상태·오류 화면 모습은 재현할 가상 서버 상황이 없어 **미확인**이다(코드 조건만 확인).
   - P3 — 마이페이지 이미지가 1~2장이면 칸이 넓게 늘어났다. 남은 칸을 빈칸으로 채웠다(`tablet-15`).
   - P3 — 하단 내비 `분석하기` 원형 버튼 윗부분이 새 감싸는 View 밖으로 나간다. 가로 1280dp 마이페이지에서 띠 안쪽·감싸는 View 밖 y=1406px와 띠 위로 튀어나온 y=1390px를 각각 눌러 두 번 모두 분석하기 화면으로 이동함을 확인했다(`uiautomator`로 이동 뒤 제목 확인).
-  - P3 — `docs/architecture/FRONTEND_STRUCTURE.md` 116줄의 가로 화면 서술은 이제 1024 미만에서만 맞는다. role:platform 소유라 고치지 않고 넘긴다(TASK-024 인계 Unresolved).
+  - P3 — `docs/architecture/FRONTEND_STRUCTURE.md` 115줄의 가로 화면 서술은 이제 1024 미만에서만 맞는다. role:platform 소유라 고치지 않고 넘긴다(TASK-024 인계 Unresolved).
 - 미확인: 실제 iOS·아이패드, 태블릿 실기기, 실제 빌드(development build)에서의 화면 방향 기본값, TalkBack 실제 낭독(이번 범위 밖).
 
 ## 가입 약관 오류 표시·TalkBack 확인 (2026-09-28)
