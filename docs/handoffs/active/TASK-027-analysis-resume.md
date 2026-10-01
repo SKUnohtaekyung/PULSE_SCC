@@ -53,4 +53,4 @@ feat/TASK-027-analysis-resume
 GitHub 인증 복구 후 PR을 만들고 `role:feature` 리뷰를 요청한다.
 
 ## Last Verified Commit
-미커밋 — 검증 완료 후 기록
+5a2d388 — 이 시점의 코드와 위 Verification·Visual QA가 유효하다
