@@ -30,6 +30,11 @@ import {
   readJobFailure,
   type JobFailure,
 } from '@/features/analysis/jobOutcome';
+import {
+  clearPendingAnalysis,
+  readPendingAnalysis,
+  writePendingAnalysis,
+} from '@/features/analysis/pendingAnalysisStorage';
 import { useSession } from '@/session/SessionProvider';
 
 // SC-001 가게 정보 입력 + SC-003 분석 진행. 한 화면에서 이어 보여준다(Step 5 합성).
@@ -81,9 +86,11 @@ export function AnalyzeScreen() {
   const [returnedNotice, setReturnedNotice] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [resumed, setResumed] = useState(false);
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [steps, setSteps] = useState<string[]>([]);
+  const stepsRef = useRef<string[]>([]);
   const [failure, setFailure] = useState<JobFailure | null>(null);
   const [completionIssue, setCompletionIssue] = useState<{ title: string; message: string } | null>(null);
 
@@ -91,12 +98,40 @@ export function AnalyzeScreen() {
   const idempotencyKey = useRef<string | null>(null);
   /** 그 키로 보낸 입력. 지금 입력과 다르면 같은 제출이 아니므로 키를 새로 만든다. */
   const submittedInput = useRef<string | null>(null);
+  const restoredUserId = useRef<string | null>(null);
 
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
     const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    if (!user || restoredUserId.current === user.id) return;
+    restoredUserId.current = user.id;
+    let cancelled = false;
+
+    const restorePending = async () => {
+      const pending = await readPendingAnalysis(user.id);
+      if (cancelled || !pending) return;
+      setName(pending.storeName);
+      setCategory(pending.category);
+      setUrl(pending.naverPlaceUrl);
+      setActiveStep(2);
+      setReachedStep(2);
+      setJobId(pending.jobId);
+      const restoredSteps = pending.progressSteps.length > 0 ? pending.progressSteps : ['QUEUED'];
+      stepsRef.current = restoredSteps;
+      setSteps(restoredSteps);
+      setResumed(true);
+      setPhase('progress');
+    };
+
+    void restorePending();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const nextIncomplete = (nextName = name, nextCategory = category): InputStep =>
     !nextName.trim() ? 0 : !nextCategory ? 1 : 2;
@@ -140,6 +175,7 @@ export function AnalyzeScreen() {
   const resetToInput = () => {
     setPhase('input');
     setJobId(null);
+    stepsRef.current = [];
     setSteps([]);
     setFailure(null);
     setCompletionIssue(null);
@@ -198,8 +234,19 @@ export function AnalyzeScreen() {
           { storeName: name.trim(), category, naverPlaceUrl: url.trim() },
           idempotencyKey.current,
         );
+        if (user) {
+          await writePendingAnalysis(user.id, {
+            jobId: created.jobId,
+            storeName: name.trim(),
+            category,
+            naverPlaceUrl: url.trim(),
+            progressSteps: [created.progressStep],
+          });
+        }
         setJobId(created.jobId);
+        stepsRef.current = [created.progressStep];
         setSteps([created.progressStep]);
+        setResumed(false);
         setReturnedNotice(false);
         setFailure(null);
         setPhase('progress');
@@ -221,7 +268,7 @@ export function AnalyzeScreen() {
         applyCreateError(error);
       }
     },
-    [applyCreateError, client, name, category, url],
+    [applyCreateError, client, name, category, url, user],
   );
 
   /** 작업이 COMPLETED가 된 뒤 첫 저장 여부를 판정한다(SCREEN_STATES §7). */
@@ -249,6 +296,7 @@ export function AnalyzeScreen() {
       }
 
       if (saved.analysisId === job.analysisId) {
+        if (user) await clearPendingAnalysis(user.id);
         setHasSavedAnalysis(true);
         const personaCount = saved.podium.filter((slot) => slot.status === 'FILLED').length;
         router.replace({
@@ -263,9 +311,10 @@ export function AnalyzeScreen() {
       }
 
       // 저장본이 다르면 이 결과는 저장되지 않았다. 미리보기와 저장 선택으로 보낸다(SCREEN_STATES §7).
+      if (user) await clearPendingAnalysis(user.id);
       router.replace({ pathname: '/preview-result', params: { jobId: job.jobId } });
     },
-    [client, router, setHasSavedAnalysis],
+    [client, router, setHasSavedAnalysis, user],
   );
 
   useEffect(() => {
@@ -284,6 +333,7 @@ export function AnalyzeScreen() {
         setOffline(false);
 
         if (job.status === 'FAILED') {
+          if (user) await clearPendingAnalysis(user.id);
           const next = readJobFailure(job);
           if (next.kind === 'storeNotFound') {
             setErrors({
@@ -310,11 +360,24 @@ export function AnalyzeScreen() {
           return;
         }
 
-        setSteps((current) =>
-          current.includes(job.progressStep) || job.progressStep === 'COMPLETED'
-            ? current
-            : [...current, job.progressStep],
-        );
+        const currentSteps = stepsRef.current;
+        const nextSteps =
+          currentSteps.includes(job.progressStep) || job.progressStep === 'COMPLETED'
+            ? currentSteps
+            : [...currentSteps, job.progressStep];
+        if (nextSteps !== currentSteps) {
+          stepsRef.current = nextSteps;
+          setSteps(nextSteps);
+          if (user) {
+            await writePendingAnalysis(user.id, {
+              jobId,
+              storeName: name,
+              category,
+              naverPlaceUrl: url,
+              progressSteps: nextSteps,
+            });
+          }
+        }
 
         if (job.status === 'COMPLETED') {
           await resolveCompletion(job);
@@ -325,6 +388,16 @@ export function AnalyzeScreen() {
         if (error instanceof NetworkError) {
           // 마지막으로 확인한 단계를 유지한 채 연결 상태만 알린다(ANALYSIS-OFFLINE).
           setOffline(true);
+          return;
+        }
+        if (error instanceof ApiError && error.code === 'ANALYSIS_NOT_FOUND') {
+          if (user) await clearPendingAnalysis(user.id);
+          setFormNotice({
+            title: '이전 분석 작업을 찾지 못했어요',
+            message: '가게 정보는 그대로 두었어요. 다시 분석하기를 눌러 새 작업을 시작해 주세요.',
+          });
+          setResumed(false);
+          resetToInput();
           return;
         }
         setFailure({
@@ -343,7 +416,7 @@ export function AnalyzeScreen() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [client, jobId, phase, resolveCompletion]);
+  }, [category, client, jobId, name, phase, resolveCompletion, url, user]);
 
   const locked = phase !== 'input';
   const rows: ProgressRow[] = steps.map((step, index) => {
@@ -428,6 +501,13 @@ export function AnalyzeScreen() {
 
       {returnedNotice ? (
         <Notice title="입력한 내용은 그대로 두었어요" message="확인한 뒤 다시 분석할 수 있어요." />
+      ) : null}
+
+      {resumed && phase === 'progress' ? (
+        <Notice
+          title="진행 중이던 분석을 이어서 확인하고 있어요"
+          message="서버에서 마지막으로 확인된 단계부터 결과가 나올 때까지 계속 확인해요."
+        />
       ) : null}
 
       {offline ? (
