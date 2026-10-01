@@ -2,6 +2,7 @@
   "expo": {
     "name": "PULSE",
     "slug": "pulse-scc",
+    "scheme": "pulse-scc",
     "version": "1.0.0",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",

@@ -21,6 +21,13 @@ export const login = (client: ApiClient, email: string, password: string) =>
     body: { email, password },
   });
 
+export const loginWithGoogle = (client: ApiClient, idToken: string) =>
+  client.requestPublic<SessionResponse>({
+    method: 'POST',
+    path: '/api/v1/auth/google',
+    body: { idToken },
+  });
+
 /** 저장된 인증 정보로 세션을 확인한다(AUTH-RESTORING). */
 export const restoreSession = (client: ApiClient) =>
   client.request<ApiUser>({ method: 'GET', path: '/api/v1/auth/session' });

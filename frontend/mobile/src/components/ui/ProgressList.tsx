@@ -1,4 +1,5 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
 
@@ -20,15 +21,67 @@ export type ProgressRow = {
 
 export function ProgressList({
   rows,
+  progress,
+  progressStatus,
   reduceMotion = false,
   hint,
 }: {
   rows: ProgressRow[];
+  progress: number;
+  progressStatus: string;
   reduceMotion?: boolean;
   hint?: string;
 }) {
+  const safeProgress = Math.max(0, Math.min(100, progress));
+  const [animatedProgress] = useState(() => new Animated.Value(safeProgress));
+  const failed = rows.some((row) => row.state === 'failed');
+
+  useEffect(() => {
+    if (reduceMotion) {
+      animatedProgress.setValue(safeProgress);
+      return;
+    }
+    const animation = Animated.timing(animatedProgress, {
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      toValue: safeProgress,
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [animatedProgress, reduceMotion, safeProgress]);
+
+  const progressWidth = animatedProgress.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
+
   return (
     <View accessibilityLiveRegion="polite" style={styles.card}>
+      <View style={styles.progressHeader}>
+        <View style={styles.progressCopy}>
+          <Text style={[styles.progressValue, failed && styles.progressValueFailed]}>{safeProgress}%</Text>
+          <Text style={styles.progressStatus}>{progressStatus}</Text>
+        </View>
+        <Text style={styles.progressBasis}>서버 단계 기준</Text>
+      </View>
+      <View
+        accessibilityLabel={`분석 진행률 ${safeProgress}%`}
+        accessibilityRole="progressbar"
+        accessibilityValue={{ min: 0, max: 100, now: safeProgress }}
+        style={styles.progressTrack}
+      >
+        <Animated.View
+          style={[
+            styles.progressFill,
+            failed && styles.progressFillFailed,
+            { width: progressWidth },
+          ]}
+        >
+          <View style={[styles.progressKnob, failed && styles.progressKnobFailed]} />
+        </Animated.View>
+      </View>
+      <View style={styles.rows}>
       {rows.map((row, index) => (
         <View key={row.key} style={[styles.row, index > 0 && styles.rowDivided]}>
           <View style={styles.marker}>
@@ -69,6 +122,7 @@ export function ProgressList({
           </View>
         </View>
       ))}
+      </View>
       {hint ? (
         <View style={styles.hintRow}>
           <Text style={styles.hint}>{hint}</Text>
@@ -86,8 +140,63 @@ const styles = StyleSheet.create({
     borderColor: colors.border.default,
     borderRadius: radii.panel,
     borderWidth: strokes.hairline,
-    gap: spacing[4],
-    padding: spacing[5],
+    gap: spacing[3],
+    padding: spacing[4],
+  },
+  progressHeader: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressCopy: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  progressValue: {
+    ...typography.head2,
+    color: colors.text.brand,
+  },
+  progressValueFailed: {
+    color: colors.status.errorText,
+  },
+  progressStatus: {
+    ...typography.body6,
+    color: colors.text.primary,
+  },
+  progressBasis: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  progressTrack: {
+    backgroundColor: colors.background.emphasized,
+    borderRadius: radii.pill,
+    height: spacing[3],
+    overflow: 'hidden',
+  },
+  progressFill: {
+    alignItems: 'flex-end',
+    backgroundColor: colors.brand.primary,
+    borderRadius: radii.pill,
+    height: '100%',
+    justifyContent: 'center',
+    minWidth: spacing[3],
+  },
+  progressFillFailed: {
+    backgroundColor: colors.status.errorText,
+  },
+  progressKnob: {
+    backgroundColor: colors.brand.onPrimary,
+    borderRadius: radii.pill,
+    height: spacing[2],
+    marginRight: spacing[1] / 2,
+    width: spacing[2],
+  },
+  progressKnobFailed: {
+    backgroundColor: colors.text.inverse,
+  },
+  rows: {
+    gap: spacing[3],
   },
   row: {
     flexDirection: 'row',
@@ -96,7 +205,7 @@ const styles = StyleSheet.create({
   rowDivided: {
     borderTopColor: colors.border.default,
     borderTopWidth: strokes.hairline,
-    paddingTop: spacing[4],
+    paddingTop: spacing[3],
   },
   labelRow: {
     alignItems: 'center',

@@ -17,10 +17,10 @@ import { colors, layout, radii, spacing, strokes, typography } from '@/design/to
 // 상태 판정은 SCREEN_STATES §6.1: FILLED 개수 3 / 1~2 / 0 = RESULT-NORMAL / PARTIAL / NO-PERSONA.
 
 const perspectiveOrder: { key: PerspectiveKey; label: string; why: string }[] = [
-  { key: 'priority', label: '먼저 볼 것', why: '반복된 리뷰가 가장 많아 먼저 확인할 항목이에요.' },
-  { key: 'positive', label: '잘하고 있는 점', why: '손님이 좋게 본 경험이에요.' },
-  { key: 'negative', label: '손님이 불편해한 점', why: '아쉬움으로 남은 경험이에요.' },
-  { key: 'perception', label: '손님이 기억하는 모습', why: '가게를 어떤 곳으로 여기는지 보여줘요.' },
+  { key: 'priority', label: '1. 먼저 볼 것', why: '반복된 리뷰가 가장 많아 먼저 확인할 항목이에요.' },
+  { key: 'positive', label: '2. 잘하고 있는 점', why: '손님이 좋게 본 경험이에요.' },
+  { key: 'negative', label: '3. 손님이 불편해한 점', why: '아쉬움으로 남은 경험이에요.' },
+  { key: 'perception', label: '4. 손님이 기억하는 모습', why: '가게를 어떤 곳으로 여기는지 보여줘요.' },
 ];
 
 const formatDate = (value: string) => {
@@ -69,9 +69,23 @@ export function ResultView({
 
   return (
     <View style={styles.container}>
-      <Text accessibilityRole="header" style={styles.storeName}>
-        {result.store.name}
-      </Text>
+      <View style={styles.resultSummary}>
+        <View style={styles.resultSummaryHead}>
+          <View style={styles.savedBadge}>
+            <Text style={styles.savedBadgeText}>저장된 분석</Text>
+          </View>
+          <Text style={styles.category}>{result.store.category}</Text>
+        </View>
+        <Text accessibilityRole="header" style={styles.storeName}>
+          {result.store.name}
+        </Text>
+        <View style={styles.resultMetrics}>
+          <Text style={styles.resultMetricStrong}>{result.metadata.validReviewCount}건</Text>
+          <Text style={styles.resultMetric}>의 리뷰에서</Text>
+          <Text style={styles.resultMetricStrong}>{filled.length}개</Text>
+          <Text style={styles.resultMetric}>손님 유형을 찾았어요</Text>
+        </View>
+      </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHead}>
@@ -89,6 +103,7 @@ export function ResultView({
             podium={podium}
             selectedRank={selected?.rank ?? null}
           />
+          <Text style={styles.selectionHint}>손님 유형을 누르면 아래 상세 결과가 바뀌어요.</Text>
           <PersonaAvatarNotice anyRemote={anyRemoteImage} />
         </View>
       </View>
@@ -173,11 +188,14 @@ function PersonaDetail({
 
   return (
     <View style={styles.section}>
-      <Text accessibilityRole="header" style={styles.sectionTitle}>
-        {persona.label}
-      </Text>
-      <Text style={styles.personaSummary}>{persona.summary}</Text>
-      {persona.caveat ? <Text style={styles.personaCaveat}>{persona.caveat}</Text> : null}
+      <View style={styles.personaIntro}>
+        <Text style={styles.personaRank}>{slot.rank}위 · 리뷰 {slot.topicReviewCount ?? 0}건</Text>
+        <Text accessibilityRole="header" style={styles.personaTitle}>
+          {persona.label}
+        </Text>
+        <Text style={styles.personaSummary}>{persona.summary}</Text>
+        {persona.caveat ? <Text style={styles.personaCaveat}>{persona.caveat}</Text> : null}
+      </View>
 
       {source ? <PersonaImageBlock altText={persona.image.altText} source={source} /> : null}
 
@@ -198,12 +216,21 @@ function PersonaDetail({
 
             {block.evidencePreview.length > 0 ? (
               <View style={styles.evidence}>
-                {block.evidencePreview.map((review) => (
-                  <View key={review.reviewId} style={styles.quote}>
-                    <Text style={styles.quoteText}>“{review.excerpt}”</Text>
-                    <Text style={styles.quoteDate}>{formatDate(review.writtenAt)}</Text>
-                  </View>
-                ))}
+                {block.evidencePreview
+                  .filter(
+                    (review, index, reviews) =>
+                      reviews.findIndex(
+                        (candidate) =>
+                          candidate.reviewId === review.reviewId &&
+                          candidate.excerpt === review.excerpt,
+                      ) === index,
+                  )
+                  .map((review, index) => (
+                    <View key={`${review.reviewId}-${index}`} style={styles.quote}>
+                      <Text style={styles.quoteText}>“{review.excerpt}”</Text>
+                      <Text style={styles.quoteDate}>{formatDate(review.writtenAt)}</Text>
+                    </View>
+                  ))}
                 <Text style={styles.evidenceCount}>
                   이 관점에 연결된 근거 리뷰 {block.evidenceCount}건 가운데 대표 {block.evidencePreview.length}건이에요.
                 </Text>
@@ -370,6 +397,47 @@ const styles = StyleSheet.create({
   section: {
     gap: spacing[3],
   },
+  resultSummary: {
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.default,
+    borderRadius: radii.panel,
+    borderWidth: strokes.hairline,
+    gap: spacing[3],
+    padding: spacing[5],
+  },
+  resultSummaryHead: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  savedBadge: {
+    backgroundColor: colors.status.successSubtle,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+  },
+  savedBadgeText: {
+    ...typography.caption,
+    color: colors.status.success,
+  },
+  category: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  resultMetrics: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[1],
+  },
+  resultMetricStrong: {
+    ...typography.body1,
+    color: colors.text.brand,
+  },
+  resultMetric: {
+    ...typography.body7,
+    color: colors.text.secondary,
+  },
   sectionTitle: {
     ...typography.head5,
     color: colors.text.strong,
@@ -383,7 +451,7 @@ const styles = StyleSheet.create({
     padding: spacing[5],
   },
   storeName: {
-    ...typography.head4,
+    ...typography.head3,
     color: colors.text.strong,
   },
   metaLine: {
@@ -407,6 +475,11 @@ const styles = StyleSheet.create({
   sectionAside: {
     ...typography.caption,
     color: colors.text.secondary,
+  },
+  selectionHint: {
+    ...typography.body7,
+    color: colors.text.brand,
+    textAlign: 'center',
   },
   metaSource: {
     ...typography.body6,
@@ -446,6 +519,20 @@ const styles = StyleSheet.create({
   personaSummary: {
     ...typography.body4,
     color: colors.text.primary,
+  },
+  personaIntro: {
+    backgroundColor: colors.brand.tint,
+    borderRadius: radii.panel,
+    gap: spacing[2],
+    padding: spacing[5],
+  },
+  personaRank: {
+    ...typography.body6,
+    color: colors.text.brand,
+  },
+  personaTitle: {
+    ...typography.head4,
+    color: colors.text.strong,
   },
   personaCaveat: {
     ...typography.body7,

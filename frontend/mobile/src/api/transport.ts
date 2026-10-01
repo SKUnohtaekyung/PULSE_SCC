@@ -1,6 +1,5 @@
-import { apiBaseUrl, isFixtureMode } from '@/api/config';
+import { apiBaseUrl } from '@/api/config';
 import { NetworkError } from '@/api/errors';
-import { handleFixtureRequest } from '@/api/fixtures/server';
 
 export type ApiRequest = {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH';
@@ -14,8 +13,11 @@ export type ApiResponse = {
   body: unknown;
 };
 
-/** fixture 응답도 네트워크처럼 약간의 지연을 준다. 로딩 상태가 화면에서 보이도록. */
-const fixtureDelayMs = 350;
+export type ApiBinaryResponse = {
+  status: number;
+  data: Uint8Array | null;
+  body: unknown;
+};
 
 /**
  * 한 요청이 기다리는 최대 시간.
@@ -25,14 +27,8 @@ const fixtureDelayMs = 350;
  */
 const requestTimeoutMs = 15000;
 
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-async function fixtureTransport(request: ApiRequest): Promise<ApiResponse> {
-  await sleep(fixtureDelayMs);
-  return handleFixtureRequest(request);
-}
-
 async function httpTransport(request: ApiRequest): Promise<ApiResponse> {
+  if (!apiBaseUrl) throw new NetworkError();
   const headers: Record<string, string> = { Accept: 'application/json', ...request.headers };
   if (request.body !== undefined) headers['Content-Type'] = 'application/json';
 
@@ -65,6 +61,43 @@ async function httpTransport(request: ApiRequest): Promise<ApiResponse> {
   }
 }
 
-export const sendRequest: (request: ApiRequest) => Promise<ApiResponse> = isFixtureMode
-  ? fixtureTransport
-  : httpTransport;
+export const sendRequest: (request: ApiRequest) => Promise<ApiResponse> = httpTransport;
+
+/**
+ * 인증이 필요한 이미지처럼 JSON이 아닌 응답을 받는다. 실패 응답만 오류 봉투로 읽어
+ * ApiClient가 일반 API와 같은 토큰 갱신 규칙을 적용할 수 있게 한다.
+ */
+export async function sendBinaryRequest(request: ApiRequest): Promise<ApiBinaryResponse> {
+  if (!apiBaseUrl) throw new NetworkError();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(apiBaseUrl + request.path, {
+      method: request.method,
+      headers: { Accept: 'image/png', ...request.headers },
+      signal: controller.signal,
+    });
+  } catch {
+    throw new NetworkError();
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (response.ok) {
+    return {
+      status: response.status,
+      data: new Uint8Array(await response.arrayBuffer()),
+      body: null,
+    };
+  }
+
+  const raw = await response.text();
+  if (!raw) return { status: response.status, data: null, body: null };
+  try {
+    return { status: response.status, data: null, body: JSON.parse(raw) as unknown };
+  } catch {
+    return { status: response.status, data: null, body: null };
+  }
+}

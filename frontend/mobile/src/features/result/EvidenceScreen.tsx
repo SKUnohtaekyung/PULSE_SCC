@@ -14,7 +14,6 @@ import { Screen } from '@/components/ui/Screen';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
-import { FixtureBanner } from '@/features/dev/FixtureBanner';
 import { useSession } from '@/session/SessionProvider';
 
 // SC-005 근거 상세. 상태 정본은 SCREEN_STATES §6.3이다.
@@ -38,6 +37,15 @@ const formatDate = (value: string) => {
     date.getDate(),
   ).padStart(2, '0')}`;
 };
+
+const uniqueEvidence = (items: EvidenceItem[]) =>
+  items.filter(
+    (item, index, all) =>
+      all.findIndex(
+        (candidate) =>
+          candidate.reviewId === item.reviewId && candidate.excerpt === item.excerpt,
+      ) === index,
+  );
 
 export function EvidenceScreen({
   analysisId,
@@ -67,7 +75,7 @@ export function EvidenceScreen({
       try {
         const page = await getEvidence(client, analysisId, { personaId, perspective });
         if (cancelled) return;
-        setItems(page.items);
+        setItems(uniqueEvidence(page.items));
         setCursor(page.nextCursor);
         setPhase('ready');
       } catch (error) {
@@ -94,7 +102,7 @@ export function EvidenceScreen({
     try {
       const page = await getEvidence(client, analysisId, { personaId, perspective, cursor });
       // 이미 받은 목록은 유지하고 뒤에 붙인다(EVIDENCE-LOADING-MORE).
-      setItems((current) => [...current, ...page.items]);
+      setItems((current) => uniqueEvidence([...current, ...page.items]));
       setCursor(page.nextCursor);
       setErrorMessage(null);
     } catch (error) {
@@ -118,8 +126,6 @@ export function EvidenceScreen({
       <StatusBar style="dark" />
 
       <PageTitle title={`${title} 근거 리뷰`} />
-
-      {phase !== 'ready' ? <FixtureBanner /> : null}
 
       {phase === 'loading' ? <LoadingBlock message="근거 리뷰를 불러오고 있어요." /> : null}
 
@@ -169,7 +175,6 @@ export function EvidenceScreen({
           }
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <FixtureBanner />
               {personaLabel ? <Text style={styles.subject}>{personaLabel}</Text> : null}
               <Text style={styles.note}>
                 리뷰를 쓴 사람의 정보는 받지도, 보여주지도 않아요.
@@ -177,7 +182,7 @@ export function EvidenceScreen({
             </View>
           }
           data={items}
-          keyExtractor={(item) => item.reviewId}
+          keyExtractor={(item, index) => `${item.reviewId}-${index}`}
           onEndReached={() => void loadMore()}
           onEndReachedThreshold={0.4}
           renderItem={({ item }) => (

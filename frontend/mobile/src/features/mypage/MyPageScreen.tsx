@@ -26,7 +26,6 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ToggleRow } from '@/components/ui/ToggleRow';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
-import { FixtureBanner } from '@/features/dev/FixtureBanner';
 import { useSession } from '@/session/SessionProvider';
 
 // SC-012 마이페이지. 상태 정본은 SCREEN_STATES §8이다.
@@ -188,8 +187,6 @@ export function MyPageScreen() {
       header={<ScreenHeader brand badge="마이페이지" />}
     >
       <StatusBar style="dark" />
-
-      <FixtureBanner />
 
       {logoutError ? (
         <Notice alert title="로그아웃하지 못했어요" message={logoutError} tone="warning">

@@ -15,7 +15,6 @@ import { Notice } from '@/components/ui/Notice';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { spacing } from '@/design/tokens';
-import { FixtureBanner } from '@/features/dev/FixtureBanner';
 import { ResultView } from '@/features/result/ResultView';
 import { useSession } from '@/session/SessionProvider';
 
@@ -96,8 +95,6 @@ export function HomeScreen() {
       header={<ScreenHeader brand badge="저장된 결과" />}
     >
       <StatusBar style="dark" />
-
-      <FixtureBanner />
 
       {phase === 'loading' ? (
         <LoadingBlock message="저장된 분석 결과를 불러오고 있어요." reduceMotion={reduceMotion} />

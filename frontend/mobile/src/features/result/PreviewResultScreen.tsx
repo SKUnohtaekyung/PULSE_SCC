@@ -15,7 +15,6 @@ import { Notice } from '@/components/ui/Notice';
 import { Screen, usePagePadding } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
-import { FixtureBanner } from '@/features/dev/FixtureBanner';
 import { ResultView } from '@/features/result/ResultView';
 import { useSession } from '@/session/SessionProvider';
 
@@ -157,8 +156,6 @@ export function PreviewResultScreen({ jobId }: { jobId: string }) {
       header={<ScreenHeader label="새 분석 결과" badge="아직 저장하지 않음" />}
     >
       <StatusBar style="dark" />
-
-      <FixtureBanner />
 
       {phase === 'loading' ? <LoadingBlock message="새 분석 결과를 불러오고 있어요." /> : null}
 

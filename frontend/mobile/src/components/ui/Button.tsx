@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -24,6 +25,7 @@ export type ButtonProps = {
   disabled?: boolean;
   reduceMotion?: boolean;
   accessibilityHint?: string;
+  leadingIcon?: ReactNode;
 };
 
 export function Button({
@@ -35,6 +37,7 @@ export function Button({
   disabled = false,
   reduceMotion = false,
   accessibilityHint,
+  leadingIcon,
 }: ButtonProps) {
   const blocked = loading || disabled;
   const text = loading ? (loadingLabel ?? label) : label;
@@ -57,6 +60,7 @@ export function Button({
     >
       <View style={styles.inner}>
         {loading && !reduceMotion ? <ActivityIndicator color={spinnerColor} size="small" /> : null}
+        {!loading ? leadingIcon : null}
         <Text style={[styles.label, tone.text, disabled && styles.disabledLabel]}>{text}</Text>
       </View>
     </Pressable>

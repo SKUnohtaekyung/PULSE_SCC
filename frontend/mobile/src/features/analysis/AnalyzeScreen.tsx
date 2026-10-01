@@ -24,8 +24,12 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StepIndicator } from '@/components/ui/StepIndicator';
 import { TextField } from '@/components/ui/TextField';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
-import { progressLabel, readJobFailure, type JobFailure } from '@/features/analysis/jobOutcome';
-import { ScenarioPanel } from '@/features/dev/ScenarioPanel';
+import {
+  progressLabel,
+  progressPercent,
+  readJobFailure,
+  type JobFailure,
+} from '@/features/analysis/jobOutcome';
 import { useSession } from '@/session/SessionProvider';
 
 // SC-001 가게 정보 입력 + SC-003 분석 진행. 한 화면에서 이어 보여준다(Step 5 합성).
@@ -367,6 +371,22 @@ export function AnalyzeScreen() {
     });
   }
 
+  const visibleRows: ProgressRow[] =
+    phase === 'creating' && rows.length === 0
+      ? [{ key: 'creating', label: '분석 요청을 보내는 중', state: 'running' }]
+      : rows;
+  const highestConfirmedProgress = steps.reduce(
+    (highest, step) => Math.max(highest, progressPercent(step)),
+    phase === 'creating' ? 4 : 8,
+  );
+  const displayedProgress = phase === 'completing' ? 98 : highestConfirmedProgress;
+  const progressStatus =
+    phase === 'failed'
+      ? '분석 중단'
+      : phase === 'completing'
+        ? '결과 저장 중'
+        : '분석 진행 중';
+
   const runFailureAction = (current: JobFailure) => {
     if (current.kind === 'retryable' || current.kind === 'imageGenerationFailed') {
       void submit({ reuseKey: false });
@@ -379,6 +399,7 @@ export function AnalyzeScreen() {
 
   return (
     <Screen
+      compact
       footer={
         user?.hasSavedAnalysis ? (
           <BottomNavigation
@@ -392,18 +413,6 @@ export function AnalyzeScreen() {
       header={<ScreenHeader label="분석하기" />}
     >
       <StatusBar style="dark" />
-
-      <ScenarioPanel
-        onChange={() => {
-          resetToInput();
-          setErrors({});
-          setFormNotice(null);
-          setReturnedNotice(false);
-          idempotencyKey.current = null;
-          // 가상 서버가 저장본도 비우므로 앱의 저장 여부도 맞춘다.
-          setHasSavedAnalysis(false);
-        }}
-      />
 
       {phase === 'input' ? (
         <>
@@ -494,7 +503,7 @@ export function AnalyzeScreen() {
                 clearError('name');
               }}
               onSubmitEditing={confirmName}
-              placeholder="예: 영등원조쌈밥"
+              placeholder="예: 운산국밥"
               returnKeyType="next"
               value={name}
             />
@@ -544,11 +553,12 @@ export function AnalyzeScreen() {
         </View>
       )}
 
-      {rows.length > 0 ? (
+      {visibleRows.length > 0 ? (
         <ProgressList
-          hint={phase === 'progress' ? '단계가 바뀌면 아래에 이어서 보여드려요.' : undefined}
+          progress={displayedProgress}
+          progressStatus={progressStatus}
           reduceMotion={reduceMotion}
-          rows={rows}
+          rows={visibleRows}
         />
       ) : null}
 
@@ -615,8 +625,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border.default,
     borderRadius: radii.panel,
     borderWidth: strokes.hairline,
-    gap: spacing[5],
-    padding: spacing[5],
+    gap: spacing[4],
+    padding: spacing[4],
   },
   chipRow: {
     flexDirection: 'row',
@@ -656,7 +666,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.control,
     borderWidth: strokes.hairline,
     gap: spacing[2],
-    padding: spacing[4],
+    padding: spacing[3],
   },
   summaryRow: {
     alignItems: 'center',

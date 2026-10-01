@@ -26,6 +26,7 @@ export function Screen({
   header,
   footer,
   centered = false,
+  compact = false,
   scroll = true,
   verticalEdges = ['top'],
 }: {
@@ -34,6 +35,8 @@ export function Screen({
   footer?: ReactNode;
   /** 내용이 적은 화면을 세로 가운데 정렬한다(첫 저장 완료 화면 등). */
   centered?: boolean;
+  /** 입력·진행 화면처럼 연속된 요소가 많은 화면의 세로 간격을 한 단계 줄인다. */
+  compact?: boolean;
   /** 목록 화면처럼 자체 스크롤을 가진 내용이면 false로 둔다. */
   scroll?: boolean;
   /** 위·아래 SafeArea. 좌우는 컷아웃 때문에 항상 적용한다. */
@@ -47,6 +50,7 @@ export function Screen({
       <View
         style={[
           styles.body,
+          compact && styles.bodyCompact,
           centered && styles.bodyCentered,
           // 스크롤을 끄면 본문이 남은 높이를 모두 차지해야 한다.
           // 그래야 안에 넣은 목록(FlatList)이 스크롤 영역을 갖는다.
@@ -123,6 +127,10 @@ const styles = StyleSheet.create({
   bodyCentered: {
     paddingBottom: 0,
     paddingTop: 0,
+  },
+  bodyCompact: {
+    gap: spacing[3],
+    paddingTop: spacing[4],
   },
   bodyFill: {
     flex: 1,

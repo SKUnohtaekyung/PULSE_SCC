@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import type { PersonaImageSource } from '@/api/personaImages';
 import { GuestCharacter } from '@/components/icons/GuestCharacter';
+import { usePersonaImage } from '@/components/ui/usePersonaImage';
 import { colors, spacing, strokes, typography } from '@/design/tokens';
 
 // 순위 목록(TOP3)에 쓰는 동그란 손님 유형 그림.
@@ -31,9 +31,9 @@ export function PersonaAvatar({
   /** 자리표시 그림의 배경색을 고르는 값. 순위를 넣는다. */
   variant?: number;
 }) {
-  const [failed, setFailed] = useState(false);
   const diameter = diameters[size];
-  const showImage = source.kind === 'remote' && !failed;
+  const image = usePersonaImage(source);
+  const showImage = Boolean(image.uri) && !image.failed;
 
   return (
     <View
@@ -48,8 +48,7 @@ export function PersonaAvatar({
     >
       {showImage ? (
         <Image
-          onError={() => setFailed(true)}
-          source={source.source}
+          source={{ uri: image.uri ?? undefined }}
           style={{ width: diameter, height: diameter, borderRadius: diameter / 2 }}
         />
       ) : (

@@ -60,7 +60,25 @@ const progressLabels: Record<string, string> = {
   COMPLETED: '분석 완료',
 };
 
+const progressPercentages: Record<string, number> = {
+  QUEUED: 8,
+  RESOLVING_STORE: 18,
+  COLLECTING_REVIEWS: 36,
+  PREPROCESSING: 52,
+  ANALYZING: 68,
+  RETRIEVING_KNOWLEDGE: 74,
+  GENERATING_ADVICE: 82,
+  GENERATING_IMAGE: 90,
+  VALIDATING_RESULT: 96,
+  COMPLETED: 100,
+};
+
 /** 앱이 모르는 단계 값은 '분석 중'으로 표시한다(SCREEN_STATES §5). */
 export function progressLabel(step: string) {
   return progressLabels[step] ?? '분석 중';
+}
+
+/** 서버가 확인해 준 단계의 위치다. 경과 시간이나 완료 예상 시간을 뜻하지 않는다. */
+export function progressPercent(step: string) {
+  return progressPercentages[step] ?? 8;
 }
