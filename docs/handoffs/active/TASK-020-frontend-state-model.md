@@ -51,6 +51,7 @@
 
 ## Changed
 
+- (반응형·태블릿 크기, 2026-10-01) **TASK-024로 따로 진행했다** — 브랜치 `feat/TASK-024-responsive-tablet`(PR #38 head `8a34b96`에서 분기). 공용 골격 `Screen`·`ScreenHeader`·`BottomNavigation`과 홈·미리보기·마이페이지를 고쳤다. 변경·검증·남은 것의 정본은 [TASK-024-responsive-tablet.md](TASK-024-responsive-tablet.md), 배치 규칙은 DESIGN_SYSTEM §7.1. 이 문서의 Last Verified Commit은 TASK-020 브랜치 기준이라 바꾸지 않았다
 - (가입 약관 오류 표시, 2026-09-28) `components/ui/CheckRow.tsx`(`invalid` — 빨간 테두리만 따로, 읽기 이름에 `오류: 동의가 필요해요`, 읽기 이름은 늘 값을 줌(Android에 이전 이름이 남는 문제), `✓` 글자는 화면 읽기에서 뺌), `features/auth/SignupScreen.tsx`(체크하지 않은 약관 칸마다 `invalid`). PR #35부터 둘째 칸만 빨갛던 것. evidence `consent-*` 2장
 - (글자 크기 200% 확인, 2026-09-28) `features/result/ResultView.tsx`(`sectionHead` — 자리가 모자라면 `리뷰 수 순서`를 다음 줄로), `components/ui/PodiumTop3.tsx`(`podiumBlockHeight` — 세 단상에 `spacing[12] × (fontScale − 1)`을 똑같이 더해(두 줄 줄높이 합 46 × 배율보다 3위 단상 48 × 배율이 늘 큼) 3위 단상의 `보는 중` 잘림을 막음, 100%에서는 그대로). 둘 다 PR #35부터 있던 결함. evidence `font200-*` 11장
 - (마이페이지 저장 이미지, 2026-09-28) `features/mypage/MyPageScreen.tsx`(`StoredPersonaRow` — 동그란 그림 + 순위·유형 이름, 순위 순 정렬), `components/ui/PersonaAvatar.tsx`(`usePersonaImageRetry`·`PersonaImageError` — 홈 카드와 공유), `features/result/ResultView.tsx`(공유 도구로 교체), `components/ui/PersonaImageBlock.tsx` 삭제, 보드 `generate.mjs`·`svg/10`(MyPage-Images 화면 추가), `SCREEN_STATES` §8 `STORED-IMAGES-NORMAL`, `DESIGN_SYSTEM` §3.6, evidence `mypage-images-*` 2장. 독립 Reviewer PASS(차단 0·P3 3 — 주석, Unresolved 16 서술, 생성기의 안 쓰는 줄 → 반영)
@@ -132,6 +133,7 @@
 
 ## Verification
 
+- (2026-10-01, TASK-024) 태블릿 크기 Visual QA와 자동 검증 5개는 [TASK-024 인계](TASK-024-responsive-tablet.md) Verification에 있다. 이 TASK-020 브랜치의 코드는 그 작업으로 바뀌지 않았다
 - `SC-AUTH`, `SC-001`~`SC-012` 추적: PASS — 13/13
 - 저장소 Markdown 상대 링크: PASS — 문서 55개, 링크 150개, 깨진 링크 0개
 - `git diff --check`: PASS
@@ -214,7 +216,7 @@
 
 ## Next Action
 
-워크플로 0~12단계와 그 뒤 디자인 수정 3건이 끝났다(2026-09-28). 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15·16(platform 문서 2건), SCREEN_STATES §11의 리뷰 중복 계산 확인(role:feature), PR #38 리뷰 대응(리뷰어는 사용자가 요청, 병합도 사용자가 한다), 실제 백엔드 연결, Unresolved 1~6·8~12·14. TalkBack 실제 읽기(항목 이동 순서·소리) 확인은 사용자가 이번 작업에서 뺐다(2026-09-28, 다시 할 시점 미정). 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
+워크플로 0~12단계와 그 뒤 디자인 수정 3건이 끝났다(2026-09-28). 2026-10-01 반응형·태블릿 크기 작업은 [TASK-024](TASK-024-responsive-tablet.md)로 따로 진행 중이다. 그 밖에 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15·16(platform 문서 2건), SCREEN_STATES §11의 리뷰 중복 계산 확인(role:feature), PR #38 리뷰 대응(리뷰어는 사용자가 요청, 병합도 사용자가 한다), 실제 백엔드 연결, Unresolved 1~6·8~12·14. TalkBack 실제 읽기(항목 이동 순서·소리) 확인은 사용자가 이번 작업에서 뺐다(2026-09-28, 다시 할 시점 미정). 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
 
 (이전 기록) 발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
 
