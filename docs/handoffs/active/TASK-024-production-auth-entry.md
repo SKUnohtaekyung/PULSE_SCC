@@ -106,4 +106,4 @@ ui/TASK-024-production-auth-entry
 Android package ID와 Google OAuth 자격 증명을 확정한 뒤 Google 가입 E2E와 네이티브 development build를 검증한다.
 
 ## Last Verified Commit
-`8638de1` — 이 commit 기반의 미커밋 working tree에 대해 위 Verification이 유효하다
+`7a7dc46` — TASK-024 구현 커밋. 이 커밋 기준으로 위 Verification이 유효하다.
