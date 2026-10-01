@@ -49,4 +49,4 @@ fix/TASK-025-flyway-migration
 GitHub 인증을 복구한 뒤 이 브랜치의 PR을 만들고 `role:platform` 리뷰를 요청한다.
 
 ## Last Verified Commit
-미커밋 — 검증 완료 후 기록
+4374fc1 — 이 시점의 코드까지 위 Verification이 유효하다
