@@ -396,6 +396,7 @@ loading / empty / error / normal
 | 하단 내비게이션·미리보기 저장 바 | 띠는 화면 전체 폭, 항목·버튼은 640 안 가운데 | 같음 |
 
 - 판단은 `components/ui/Screen.tsx`의 `useExpandedLayout`·`useBodyMaxWidth` 한 곳에서 한다. 화면은 `Screen`·`ScreenHeader`에 `wide`를 함께 줘야 헤더와 본문 왼쪽 끝이 맞는다.
+- 1024 이상에서 본문은 960에서 더 넓어지지 않고 가운데에 남는다. 확인한 가장 큰 폭은 아이패드 프로 13 가로와 같은 1376dp, 갤럭시 탭 S10 Ultra 가로 1480dp(밀도 320 가정)다(2026-10-02). Figma 보드는 [figma/TASK-020](figma/TASK-020/README.md)의 보드 11이다.
 - 화면 방향은 고정하지 않았다(`app.json`에 `orientation` 없음, Expo Go에서 가로·세로 모두 표시). 실제 빌드에서의 기본값은 미확인이다.
 - 태블릿을 지원 범위에 넣을지는 아직 정하지 않았다(§13, PRD §13 Open Questions 6번). 이 절은 "넓은 화면에서 어색하지 않게" 하는 배치 규칙이지 지원 약속이 아니다. 근거 캡처는 [evidence/TASK-020 README](evidence/TASK-020/README.md)의 "태블릿 크기 화면 배치" 절이다.
 

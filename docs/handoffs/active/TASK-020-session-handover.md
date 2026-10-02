@@ -17,7 +17,7 @@
 | 손님 캐릭터 교체 | 끝남(2026-09-28). 독립 Reviewer PASS |
 | 결과 화면 선택 유형 요약 카드 | 끝남(2026-09-28). 1차 FAIL(대체 텍스트) → 2차 PASS |
 | 마이페이지 저장 이미지 | 끝남(2026-09-28). 독립 Reviewer PASS |
-| Figma 파일 | 사용자 보고로 지금 보드와 같다(2026-09-28, 기준 커밋 `25d1b61`의 `svg/`). MCP가 막혀 **사용자가 직접** 넣었다. 보드 10장 전체 → 5장 교체 → 보드 10 교체. 에이전트는 파일을 직접 보지 못했다 |
+| Figma 파일 | 사용자 보고로 지금 보드와 같다(2026-09-28, 기준 커밋 `25d1b61`의 `svg/`). MCP가 막혀 **사용자가 직접** 넣었다. 보드 10장 전체 → 5장 교체 → 보드 10 교체. 에이전트는 파일을 직접 보지 못했다. **보드 11(태블릿 크기, 2026-10-02 TASK-028)은 아직 Figma에 넣지 않았다.** 넣는 위치는 보드 README "2026-10-02 보드 11" |
 | 반응형·태블릿 크기 | **TASK-028로 따로 진행 중**(2026-10-01, 브랜치 `feat/TASK-028-responsive-tablet`). 구현·검증 끝, 독립 Reviewer 2차 PASS(2026-10-01). GitHub 반영 전. 정본은 [TASK-028-responsive-tablet.md](TASK-028-responsive-tablet.md) |
 | 통합 테스트 인계 문서 | 끝남. [frontend/mobile/INTEGRATION_GUIDE.md](../../../frontend/mobile/INTEGRATION_GUIDE.md) |
 | GitHub | PR #35는 2026-09-28 squash 병합됐다. 그 뒤 작업은 `feat/TASK-020-design-followup`으로 push했고 **PR #38**(https://github.com/SKUnohtaekyung/PULSE_SCC/pull/38)을 열었다(2026-09-28). 리뷰어 요청·병합은 사용자가 한다(아래 Git 상태) |
@@ -86,7 +86,7 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 - 가상 서버 상황은 분석하기 화면 위 `가상 서버 상황: … 바꾸기`로 고른다(`이미지 조회 실패`로 IMAGE-LOAD-ERROR 재현).
 - `adb`는 `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`. 한글 입력은 안 된다. 뒤로 가기(`keyevent 4`)는 앱을 닫을 수 있다. 입력 칸 좌표는 키보드가 뜨면 바뀌므로 `uiautomator dump`로 매번 다시 읽는다. 화면 아래 Expo 경고 알림(scheme 미설정)을 누르면 개발 경고 창이 열린다 — `Dismiss`로 닫는다.
 - Figma MCP: SCC 팀 포함 소속 팀이 모두 Starter라 호출 한도에 걸린다(2026-09-28). 넣을 일이 생기면 보드 README "Figma에 넣는 법"대로 사용자가 직접 넣는다. 바뀐 보드만 `git diff --stat 25d1b61 HEAD -- docs/design/figma/TASK-020/svg/`로 뽑아 안내한다(`25d1b61` = 사용자가 마지막으로 넣은 보드 상태. 옮기기 전 옛 번호 `6c63086`과 내용 같음). 새로 넣게 하면 이 기준 커밋도 갱신한다.
-- Figma 파일: https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — 페이지 `TASK-020 Vertical Slice (2026-09-28)`가 지금 보드, `… (2026-09-22)`는 옛 보드. 보드는 X=0에 01→10 세로 배치(좌표는 보드 README).
+- Figma 파일: https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — 페이지 `TASK-020 Vertical Slice (2026-09-28)`가 지금 보드, `… (2026-09-22)`는 옛 보드. 보드는 X=0에 01→10 세로 배치(좌표는 보드 README). 보드 11은 아직 넣지 않았다(넣으면 X=0, Y=15360).
 - 독립 리뷰는 `reviewer` 서브에이전트에게 맡긴다. 에뮬레이터·`npm install`·`generate.mjs`(svg/를 덮어씀)를 금지하고 판정과 근거만 받는다.
 
 ## Git 상태 (2026-09-28 마감)

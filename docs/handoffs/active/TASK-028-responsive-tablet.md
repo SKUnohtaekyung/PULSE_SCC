@@ -2,7 +2,7 @@
 
 ## Status
 
-구현·검증 완료. 독립 Reviewer 1차 PASS(차단 0, P2 1·P3 3) — 권고를 모두 반영하고 재검증했고, 반영분 2차 PASS(P3 1 — 인계 문서 문구, 반영) (2026-10-01). PR 없음 — 올릴지는 사용자가 정한다.
+구현·검증 완료. 독립 Reviewer 1차 PASS(차단 0, P2 1·P3 3) — 권고를 모두 반영하고 재검증했고, 반영분 2차 PASS(P3 1 — 인계 문서 문구, 반영) (2026-10-01). PR 없음 — 올릴지는 사용자가 정한다. 2026-10-02 사용자 요청으로 가장 큰 태블릿 크기 확인과 Figma 태블릿 보드(보드 11)를 더했다 — 이 추가분은 독립 리뷰 전. GitHub 반영은 PR #38 병합 뒤(사용자 결정 2026-10-02, 아래 Branch).
 
 ## Owner
 
@@ -14,6 +14,7 @@
 |---|---|---|
 | `frontend/mobile/src/components/ui/Screen.tsx`·`ScreenHeader.tsx`·`BottomNavigation.tsx` | `role:design-system` | 공용 골격·공용 컴포넌트 변경(리뷰 필수, AGENTS 5장 규칙 5) |
 | `docs/design/DESIGN_SYSTEM.md`(§7.1 신설, §13 한 줄)·`docs/design/evidence/TASK-020/**` | `role:design-system` | 배치 규칙과 근거 캡처 |
+| `docs/design/figma/TASK-020/**`(`generate.mjs`·`check.mjs`·`README.md`·`svg/11-final-tablet.svg`) | `role:design-system` | 태블릿 보드 11 추가와 검사기의 프레임 크기 판정 |
 
 ## Branch
 
@@ -29,6 +30,8 @@
 - 고치기 전 조사: 휴대폰 411dp·태블릿 세로 800dp·가로 1280dp × 전 화면. 어색한 곳은 가로 1280dp의 홈(본문이 절반만 씀)·하단 내비(항목이 양끝)·마이페이지 저장 이미지(세로 한 줄)
 - 설계 1~4 구현(사용자 확인 2026-10-01): 하단 내비 항목 640 안 가운데 / expanded에서 홈·미리보기 본문 960, 4관점 카드 2열 / expanded에서 마이페이지 저장 이미지 3칸 / 입력·진행·근거 목록은 1열 640 유지
 - 설계에 없던 것 하나: 새 결과 미리보기 저장 바의 문구·버튼도 640 안 가운데로 모았다(띠가 화면 전체 폭이라 가로에서 버튼이 1280dp로 늘어남). 조사 표에 없던 화면이라 보고에 밝힌다
+- 가장 큰 태블릿 크기 확인(2026-10-02 사용자 요청): 아이패드 프로 13 가로 1376dp·세로 1032dp, 갤럭시 탭 S10 Ultra 가로 1480dp·세로 924dp(밀도 320 가정). 모두 넘침 0, 본문 960 유지
+- Figma 태블릿 보드 `svg/11-final-tablet.svg`(2026-10-02 사용자 요청). 프레임 4개 — 가로 1280×800 홈 위쪽·관점 카드 2열·마이페이지 3칸, 세로 800×1280 홈. Figma에 넣는 것은 사용자가 한다
 
 ## Changed
 
@@ -40,7 +43,8 @@
 - `src/features/result/ResultView.tsx` — 본문 폭 `useBodyMaxWidth(true)`, `arrangePerspectiveCards`(expanded에서 2장씩 한 줄, 홀수면 빈칸)
 - `src/features/result/HomeScreen.tsx`·`PreviewResultScreen.tsx` — 결과가 준비됐을 때만 `wide`(불러오는 중·빈 상태·오류는 640, 리뷰 P2 반영), 저장 바 안쪽 `saveBarInner`(640)
 - `src/features/mypage/MyPageScreen.tsx` — expanded에서 `imageGrid` 3칸, 칸 안은 그림 위·이름 아래, 1~2장이면 빈칸으로 채움(리뷰 P3 반영)
-- 문서: `docs/design/DESIGN_SYSTEM.md` §7.1 신설·§13 한 줄, evidence README "태블릿 크기 화면 배치" 절과 캡처 `tablet-00`~`tablet-15` 16장, 이 문서, TASK-020 인계 두 문서의 연결 항목
+- 문서: `docs/design/DESIGN_SYSTEM.md` §7.1 신설·§13 한 줄, evidence README "태블릿 크기 화면 배치" 절과 캡처 `tablet-00`~`tablet-19` 20장, 이 문서, TASK-020 인계 두 문서의 연결 항목
+- 보드(2026-10-02): `docs/design/figma/TASK-020/generate.mjs`(`appHeader`·`podium`·`statsCard`·`bottomNav` 폭 옵션 — 기본값은 휴대폰이라 보드 01~10 변화 없음, 태블릿 화면 함수·`tabletsBoard`), `check.mjs`(프레임 크기를 `data-frame-w`·`h`에서 읽음), `README.md`("2026-10-02 보드 11" 절), `svg/11-final-tablet.svg` 신설
 
 ## Decisions
 
@@ -65,6 +69,8 @@
 | test | 없음 — 단위 테스트·E2E 미도입(2026-09-27 사용자 결정) | 미실행 |
 | Visual QA | AVD `Pixel_Tablet`(2560×1600, 320dpi)·Expo Go, `wm size`/`wm density`로 폭 흉내 | 고친 뒤 가로·세로 100%·200%, 휴대폰 100%·200% 흐름 모두 넘침 0. 경계 599/600/744/1023/1024 확인 — 2열은 1024부터 |
 | 리뷰 반영 뒤 | 위 자동 검증 5개 다시 실행(`0f2baca`와 같은 작업 트리) | 5개 모두 종료 0. Android: `유형 부족` 상황에서 홈 결과 960 유지, 마이페이지 2장 3등분 칸(`tablet-15`), 하단 `분석하기` 원 윗부분 y=1406·1390px 탭 모두 이동. 홈·미리보기의 불러오는 중·빈 상태·오류 모습은 재현할 가상 서버 상황이 없어 미확인(코드 조건만 확인) |
+| 가장 큰 크기(2026-10-02) | 같은 AVD `wm size` — 2752x2064·2960x1848 가로, 각 세로 | 1376dp·1480dp 가로 전체 흐름 각 19장 넘침 0, 1032dp 세로 2열·924dp 세로 1열 넘침 0. 1376·1480에서 글자 200%는 미실행 |
+| 보드(2026-10-02) | `generate.mjs` 실행 뒤 `git status --short docs/design/figma`, `check.mjs` | 보드 01~10 변화 없음(새 파일은 `svg/11-final-tablet.svg`뿐), `check.mjs` 종료 0 `이탈·겹침·가림·관통·도형 이탈 없음`. 태블릿 프레임 밖 x=1300 글자를 일부러 넣어 `이탈 118px` 검출 확인 뒤 되돌림 |
 
 ## Unresolved
 
@@ -74,7 +80,9 @@
    - 118줄 "태블릿 실기기 — 미확인, 지원 기기 범위 미정"은 여전히 맞지만 넓은 화면 배치 규칙(DESIGN_SYSTEM §7.1)을 가리키는 말이 없다
 3. `.claude/skills/visual-qa/SKILL.md` 28줄은 "기기 범위가 정해지기 전에는 compact 폰 기준으로 판정하고 넓은 화면은 미확인"이다. 범위가 아직 미정이라 틀린 말은 아니다. 범위가 정해지면 함께 고친다(`role:platform`)
 4. 실제 iOS·아이패드, 태블릿 실기기, development build의 화면 방향 기본값, 1024 이상에서 홈·미리보기의 불러오는 중·빈 상태·오류 화면 모습 — 미확인
-5. Figma 보드(`docs/design/figma/TASK-020`)에는 휴대폰 화면만 있다. 태블릿 보드는 만들지 않았다 — 사용자에게 물을 것
+5. ~~Figma 태블릿 보드 없음~~ — 2026-10-02 보드 11을 만들었다. 남은 것: Figma에 넣기(사용자, 위치 X=0·Y=15360), Figma에서의 모습과 Pretendard 칩 간격 미확인
+6. 갤럭시 탭 S10 Ultra의 실제 dp 폭 — 삼성 기본 밀도를 공식 자료로 확인하지 못해 320(1480dp)을 가정했다
+7. **팀원 브랜치 `ui/TASK-024-production-auth-entry`(2026-10-01, 아직 PR 없음)가 `frontend/mobile` 39개 파일을 바꿨고 그중 5개가 이 TASK와 겹친다**(`Screen.tsx`·`HomeScreen.tsx`·`PreviewResultScreen.tsx`·`MyPageScreen.tsx`·`ResultView.tsx`). 그 브랜치는 PR #38 이전 main에서 갈라졌고 가상 서버(fixture)·프로토타입을 지웠다. 병합 순서와 충돌 정리는 사용자와 팀원이 정한다
 
 ## Do Not Assume
 
@@ -85,10 +93,12 @@
 
 ## Next Action
 
-사용자에게 GitHub에 올릴지 묻는다(PR #38 병합 여부에 따라 브랜치를 옮긴다 — 위 Branch).
+2026-10-02 추가분(가장 큰 크기 확인·보드 11) 독립 리뷰. PASS 뒤에는 PR #38 병합을 기다린다(사용자 결정 2026-10-02 — 권장 방식). 병합되면 `origin/main`에서 새 브랜치를 만들어 이 TASK의 커밋만 cherry-pick하고, 옛 번호(TASK-024)가 든 커밋 메시지를 고친 뒤 PR을 연다. 그 전에 팀원 브랜치(Unresolved 7)와의 충돌 여부를 다시 본다.
 
 ## Last Verified Commit
 
-`0f2baca` (2026-10-01) — 리뷰 반영 코드 커밋. 자동 검증 5개와 위 "리뷰 반영 뒤" Android 확인을 이 커밋과 같은 작업 트리에서 했다(커밋 전 실행, 커밋은 그 변경을 그대로 담음). 그 뒤 커밋은 문서·캡처만 더한다.
+`667999d` (2026-10-02) — TASK 번호 변경 커밋. 앱 코드는 주석의 TASK 번호만 바뀌었고 `lint`·`typecheck` 종료 0. 가장 큰 크기 Android 확인(위 Verification "가장 큰 크기")은 이 커밋 위에서 했다. 그 뒤 커밋은 문서·보드만 바꾼다.
+
+이전 값: `0f2baca` (2026-10-01) — 리뷰 반영 코드 커밋. 자동 검증 5개와 위 "리뷰 반영 뒤" Android 확인을 이 커밋과 같은 작업 트리에서 했다(커밋 전 실행, 커밋은 그 변경을 그대로 담음). 그 뒤 커밋은 문서·캡처만 더한다.
 
 이전 값: `e584777` (2026-10-01) — 첫 구현 커밋. 자동 검증 5개와 전체 흐름 Android 확인.
