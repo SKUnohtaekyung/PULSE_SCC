@@ -95,12 +95,12 @@ const footer = (width, height) =>
 const PAD = spacing[4];
 
 // 상단 배경이 모두 흰색이라 글자도 하나뿐이다. 네이비 헤더가 있던 시절의 light 분기는 지웠다.
-const statusBar = () => {
+const statusBar = (frameW = PHONE_W) => {
   const ink = colors.text.primary;
   return (
     text(PAD, 4, '9:41', typography.body6, ink) +
-    rect(PHONE_W - 48, 10, 22, 11, { stroke: ink, r: 3 }) +
-    rect(PHONE_W - 46, 12, 16, 7, { fill: ink, r: 1.5 })
+    rect(frameW - 48, 10, 22, 11, { stroke: ink, r: 3 }) +
+    rect(frameW - 46, 12, 16, 7, { fill: ink, r: 1.5 })
   );
 };
 
@@ -203,21 +203,26 @@ const card = (x, y, w, h, body, { r = radii.panel } = {}) =>
 
 const HEADER_H = 88;
 
-const appHeader = ({ brand = false, label, badge } = {}) =>
-  group(
+// frameW: 띠(배경·경계선) 폭. colX·colW: 글자를 놓는 본문 기둥(앱 ScreenHeader의 maxWidth). pad: 기둥 안 좌우 여백.
+// 기본값은 휴대폰(기둥 = 화면 전체, 여백 16)이라 기존 보드는 그대로 나온다.
+const appHeader = ({ brand = false, label, badge, frameW = PHONE_W, colX = 0, colW = PHONE_W, pad = PAD } = {}) => {
+  const left = colX + pad;
+  const right = colX + colW - pad;
+  return group(
     'Header',
-    rect(0, 0, PHONE_W, HEADER_H, { fill: colors.background.surface }) +
-      line(0, HEADER_H, PHONE_W, HEADER_H, { stroke: colors.border.default }) +
-      (brand ? text(PAD, 44, 'PULSE', typography.body1, colors.brand.primary, { weight: 700 }) : '') +
-      (label ? text(PAD + (brand ? 72 : 0), 46, label, typography.body6, colors.text.strong) : '') +
+    rect(0, 0, frameW, HEADER_H, { fill: colors.background.surface }) +
+      line(0, HEADER_H, frameW, HEADER_H, { stroke: colors.border.default }) +
+      (brand ? text(left, 44, 'PULSE', typography.body1, colors.brand.primary, { weight: 700 }) : '') +
+      (label ? text(left + (brand ? 72 : 0), 46, label, typography.body6, colors.text.strong) : '') +
       (badge
-        ? rect(PHONE_W - PAD - (measure(badge, typography.body7.fontSize) + 24), 46, measure(badge, typography.body7.fontSize) + 24, 28, {
+        ? rect(right - (measure(badge, typography.body7.fontSize) + 24), 46, measure(badge, typography.body7.fontSize) + 24, 28, {
             fill: colors.background.emphasized,
             r: radii.pill,
           }) +
-          text(PHONE_W - PAD - 12, 49, badge, typography.body7, colors.text.secondary, { anchor: 'end' })
+          text(right - 12, 49, badge, typography.body7, colors.text.secondary, { anchor: 'end' })
         : ''),
   );
+};
 
 /** 본문 첫 줄의 큰 제목. 헤더가 얇아지면서 제목은 본문이 맡는다. */
 const pageTitle = (x, y, title, description) =>
@@ -295,20 +300,24 @@ const navIconAnalysis = (cx, cy, color) =>
     'M8.8 15.2v-2.4M12 15.2V8.8M15.2 15.2v-4',
   ]);
 
-const bottomNav = (active) => {
-  const y = PHONE_H - 72;
+// 띠는 화면 전체 폭(frameW), 항목 3개는 가운데 colW 안에 3등분해 놓는다(앱 BottomNavigation의 items, TASK-028).
+// 휴대폰 기본값(colW = 360)이면 항목 가운데가 60·180·300으로 전과 같다.
+const bottomNav = (active, { frameW = PHONE_W, frameH = PHONE_H, colW = PHONE_W } = {}) => {
+  const y = frameH - 72;
   const current = active === 'analysis';
+  const left = (frameW - colW) / 2;
+  const [homeX, analysisX, mypageX] = [1, 3, 5].map((k) => left + (colW * k) / 6);
   return group(
     `BottomNavigation/${active}`,
-    rect(0, y, PHONE_W, 72, { fill: colors.background.surface }) +
-      line(0, y, PHONE_W, y, { stroke: colors.border.default }) +
-      text(60, y + 42, '홈', typography.caption, active === 'home' ? colors.text.brand : colors.text.secondary, { anchor: 'middle' }) +
-      navIconHome(60, y + 22, active === 'home' ? colors.brand.primary : colors.text.secondary) +
-      circle(180, y + 10, 28, { fill: current ? colors.brand.primary : colors.action.primary, stroke: colors.background.surface, sw: 4 }) +
-      navIconAnalysis(180, y + 10, current ? colors.brand.onPrimary : colors.action.onPrimary) +
-      text(180, y + 46, '분석하기', typography.caption, colors.text.brand, { anchor: 'middle' }) +
-      navIconProfile(300, y + 22, active === 'mypage' ? colors.brand.primary : colors.text.secondary) +
-      text(300, y + 42, '마이페이지', typography.caption, active === 'mypage' ? colors.text.brand : colors.text.secondary, { anchor: 'middle' }),
+    rect(0, y, frameW, 72, { fill: colors.background.surface }) +
+      line(0, y, frameW, y, { stroke: colors.border.default }) +
+      text(homeX, y + 42, '홈', typography.caption, active === 'home' ? colors.text.brand : colors.text.secondary, { anchor: 'middle' }) +
+      navIconHome(homeX, y + 22, active === 'home' ? colors.brand.primary : colors.text.secondary) +
+      circle(analysisX, y + 10, 28, { fill: current ? colors.brand.primary : colors.action.primary, stroke: colors.background.surface, sw: 4 }) +
+      navIconAnalysis(analysisX, y + 10, current ? colors.brand.onPrimary : colors.action.onPrimary) +
+      text(analysisX, y + 46, '분석하기', typography.caption, colors.text.brand, { anchor: 'middle' }) +
+      navIconProfile(mypageX, y + 22, active === 'mypage' ? colors.brand.primary : colors.text.secondary) +
+      text(mypageX, y + 42, '마이페이지', typography.caption, active === 'mypage' ? colors.text.brand : colors.text.secondary, { anchor: 'middle' }),
   );
 };
 
@@ -427,11 +436,12 @@ const guestCharacter = (cx, cy, size, variant = 0) => {
  * 리뷰에 많이 나온 손님 TOP3. 1위를 가운데 가장 높게 두는 시상대다.
  * slots는 [1위, 2위, 3위] 순서로 받고 화면에는 2·1·3으로 배치한다.
  */
-const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3') => {
-  const x0 = PAD;
-  const w = PHONE_W - PAD * 2;
+// x0·w: 카드 위치와 폭(기본은 휴대폰). asideInline: 넓은 화면처럼 '리뷰 수 순서'를 제목 줄 오른쪽 끝에 둔다.
+const podium = (y, slots, title = '리뷰에 많이 나온 손님 TOP3', { x0 = PAD, w = PHONE_W - PAD * 2, asideInline = false } = {}) => {
   const H = 306;
-  let body = text(x0, y - 60, '리뷰 수 순서', typography.caption, colors.text.secondary);
+  let body = asideInline
+    ? text(x0 + w, y - 34, '리뷰 수 순서', typography.caption, colors.text.secondary, { anchor: 'end' })
+    : text(x0, y - 60, '리뷰 수 순서', typography.caption, colors.text.secondary);
   body += text(x0, y - 38, title, typography.head5, colors.text.strong);
   body += rect(x0, y, w, H, { fill: colors.background.surface, stroke: colors.border.default, r: radii.panel });
 
@@ -695,17 +705,18 @@ const statChips = (x, y, maxW) => {
   return { svg: svgText, bottom: cy + 24 };
 };
 
-const statsCard = (y, kind) => {
-  const x0 = PAD + 16;
+// x·w: 카드 위치와 폭. 기본은 휴대폰 본문(PAD, W).
+const statsCard = (y, kind, { x = PAD, w: cardW = W } = {}) => {
+  const x0 = x + 16;
   const x1 = x0 + 80;
-  const barW = W - 16 - 80 - 16;
+  const barW = cardW - 16 - 80 - 16;
   const errorH = kind === 'error' ? 72 : 0;
-  const chips = statChips(x0, y + 112 + errorH, W - 32);
+  const chips = statChips(x0, y + 112 + errorH, cardW - 32);
   const h = chips.bottom + 16 - y;
   const svgText = card(
-    PAD,
+    x,
     y,
-    W,
+    cardW,
     h,
     (kind === 'loading'
       ? circle(x0 + 32, y + 48, 32, { fill: colors.background.emphasized })
@@ -917,6 +928,186 @@ const screenMyPageImages = () => {
   body += outlineButton(PAD, y + cardH + 16, W, '로그아웃');
   body += bottomNav('mypage');
   return body;
+};
+
+// ---------- 태블릿 화면 (TASK-028) ----------
+// 배치 규칙 정본은 DESIGN_SYSTEM §7.1, 근거 캡처는 evidence/TASK-020 README "태블릿 크기 화면 배치".
+// 크기는 dp 그대로다. 가로 1280×800·세로 800×1280은 확인에 쓴 Pixel Tablet AVD와 같다.
+
+const TABLET_LONG = 1280;
+const TABLET_SHORT = 800;
+
+/** 휴대폰 phone()과 같은 틀. 검사기가 프레임 크기를 알도록 data-frame-w·h를 붙인다. */
+const tablet = (name, caption, w, h, content) =>
+  `<g id="${esc(uniqueId(`Screen/${name}`))}" data-frame-w="${w}" data-frame-h="${h}">` +
+  text(0, -40, caption, typography.body5, colors.text.strong) +
+  `<clipPath id="clip-${name}">${rect(0, 0, w, h, { r: radii.panel })}</clipPath>` +
+  `<g clip-path="url(#clip-${name})">` +
+  rect(0, 0, w, h, { fill: colors.background.canvas }) +
+  rect(0, 0, w, 32, { fill: colors.background.canvas }) +
+  content +
+  statusBar(w) +
+  '</g>' +
+  rect(0, 0, w, h, { stroke: colors.border.strong, r: radii.panel, sw: 2 }) +
+  '</g>';
+
+/** 본문 기둥. 앱 Screen의 maxWidth(640·960)와 좌우 여백(medium 24·expanded 32)을 옮긴다. */
+const column = (frameW, maxW, pad) => {
+  const colW = Math.min(frameW, maxW);
+  const colX = (frameW - colW) / 2;
+  return { colX, colW, pad, x: colX + pad, w: colW - pad * 2 };
+};
+
+// 앱 가상 서버의 1위 유형 4관점(화면 캡처와 같은 문구). 휴대폰 보드처럼 가상 데이터다.
+const perspectiveSamples = [
+  {
+    title: '먼저 볼 것',
+    why: '반복된 리뷰가 가장 많아 먼저 확인할 항목이에요.',
+    fact: '주말과 점심의 대기 언급이 반복돼요.',
+    quote: '“주말 점심에는 대기가 조금 길어요.”',
+    date: '2026.07.03',
+    count: '이 관점에 연결된 근거 리뷰 12건 가운데 대표 1건이에요.',
+    ai: '혼잡 시간 안내가 재방문 경험을 좌우할 가능성이 있어요.',
+  },
+  {
+    title: '잘하고 있는 점',
+    why: '손님이 좋게 본 경험이에요.',
+    fact: '맛이 여전하고 반찬이 정갈하다는 표현이 반복돼요.',
+    quote: '“몇 년 만에 다시 왔는데 여전히 맛있네요.”',
+    date: '2026.08.12',
+    count: '이 관점에 연결된 근거 리뷰 18건 가운데 대표 1건이에요.',
+    ai: '변함없는 맛이 재방문의 핵심 이유로 보입니다.',
+  },
+];
+
+const PERSPECTIVE_CARD_H = 390;
+
+/** 앱 ResultView의 관점 카드 한 장. 리뷰에서 확인 → 대표 근거 → 근거 수 → 전체 보기 → AI 해석 순서다. */
+const perspectiveCard = (x, y, w, item) => {
+  const inner = w - 40;
+  const factY = y + 81;
+  const quoteY = factY + 72 + 12;
+  const countY = quoteY + 42 + 8;
+  const linkY = countY + 18 + 12;
+  const aiY = linkY + 21 + 16;
+  return group(
+    `PerspectiveCard/${item.title}`,
+    card(
+      x,
+      y,
+      w,
+      PERSPECTIVE_CARD_H,
+      text(x + 20, y + 20, item.title, typography.body1, colors.text.primary) +
+        text(x + 20, y + 51, item.why, typography.caption, colors.text.secondary) +
+        rect(x + 20, factY, inner, 72, { fill: colors.background.subtle, stroke: colors.border.default, r: radii.control }) +
+        text(x + 34, factY + 14, '리뷰에서 확인', typography.body6, colors.text.brand) +
+        text(x + 34, factY + 38, item.fact, typography.body7, colors.text.primary) +
+        line(x + 20, quoteY, x + 20, quoteY + 42, { stroke: colors.border.strong, sw: strokes.focus }) +
+        text(x + 32, quoteY, item.quote, typography.body7, colors.text.primary) +
+        text(x + 32, quoteY + 23, item.date, typography.caption, colors.text.secondary) +
+        text(x + 20, countY, item.count, typography.caption, colors.text.secondary) +
+        text(x + 20, linkY, '근거 리뷰 전체 보기', typography.body6, colors.text.brand) +
+        rect(x + 20, aiY, inner, 88, { stroke: colors.border.default, r: radii.control, dash: '6 4' }) +
+        text(x + 34, aiY + 14, 'AI 해석', typography.body6, colors.text.brand) +
+        text(x + 34, aiY + 38, item.ai, typography.body7, colors.text.primary) +
+        text(x + 34, aiY + 62, '리뷰를 바탕으로 한 추론이라 사실과 다를 수 있어요.', typography.caption, colors.text.secondary),
+    ),
+  );
+};
+
+// 태블릿 시상대는 칸이 넓어 이름이 한 줄이다(앱 캡처 tablet-02·tablet-07). 휴대폰 fullPodium은 두 줄로 나눠 둔다.
+const tabletPodium = fullPodium.map((slot) => ({ ...slot, name: Array.isArray(slot.name) ? slot.name.join(' ') : slot.name }));
+
+const personaSummary = '예전부터 방문해 온 손님이 익숙한 맛과 정겨운 분위기를 이유로 다시 찾는 패턴이에요.';
+
+/** 홈 결과 위쪽. wide면 expanded 규칙(본문 960, 여백 32), 아니면 medium 규칙(본문 640, 여백 24). */
+const screenTabletHomeTop = (frameW, frameH, { wide }) => {
+  const col = wide ? column(frameW, 960, spacing[8]) : column(frameW, 640, spacing[6]);
+  const podiumY = HEADER_H + 116;
+  const sectionY = podiumY + 306 + 24;
+  // 넓은 기둥이면 요약 문장이 한 줄, 640 기둥이면 두 줄이다(앱 캡처와 같다).
+  const summaryLines = wide ? personaSummary : ['예전부터 방문해 온 손님이 익숙한 맛과 정겨운 분위기를', '이유로 다시 찾는 패턴이에요.'];
+  const summaryH = (Array.isArray(summaryLines) ? summaryLines.length : 1) * typography.body4.lineHeight;
+  let body =
+    appHeader({ brand: true, badge: '저장된 결과', frameW, colX: col.colX, colW: col.colW, pad: col.pad }) +
+    text(col.x, HEADER_H + 20, '영등원조쌈밥', typography.head3, colors.text.strong) +
+    podium(podiumY, tabletPodium, undefined, { x0: col.x, w: col.w, asideInline: true }) +
+    text(col.x, sectionY, '추억 재방문형', typography.head5, colors.text.strong) +
+    text(col.x, sectionY + 36, summaryLines, typography.body4, colors.text.primary);
+  if (!wide) body += statsCard(sectionY + 36 + summaryH + 12, 'normal', { x: col.x, w: col.w }).svg;
+  return body + bottomNav('home', { frameW, frameH, colW: 640 });
+};
+
+/** 홈 결과를 내려 본 화면 — expanded에서 4관점 카드가 2장씩 한 줄이다. 둘째 줄(불편한 점·기억하는 모습)은 그 아래에 같은 규칙으로 이어진다. */
+const screenTabletHomeCards = (frameW, frameH) => {
+  const col = column(frameW, 960, spacing[8]);
+  const top = 48;
+  const stats = statsCard(top + 76, 'normal', { x: col.x, w: col.w });
+  const rowY = stats.bottom + 12;
+  const gap = spacing[3];
+  const cardW = (col.w - gap) / 2;
+  const rowBottom = rowY + PERSPECTIVE_CARD_H;
+  if (rowBottom > frameH - 72 + 10 - 28 - 2) throw new Error('관점 카드가 하단 내비에 가린다');
+  return (
+    text(col.x, top, '추억 재방문형', typography.head5, colors.text.strong) +
+    text(col.x, top + 36, personaSummary, typography.body4, colors.text.primary) +
+    stats.svg +
+    perspectiveCard(col.x, rowY, cardW, perspectiveSamples[0]) +
+    perspectiveCard(col.x + cardW + gap, rowY, cardW, perspectiveSamples[1]) +
+    bottomNav('home', { frameW, frameH, colW: 640 })
+  );
+};
+
+/** 마이페이지 저장 이미지 — 본문은 640 그대로, expanded에서 이미지만 3칸(앱 MyPageScreen의 imageGrid). */
+const screenTabletMyPageImages = (frameW, frameH) => {
+  const col = column(frameW, 640, spacing[8]);
+  const y = HEADER_H + 20;
+  const rowTop = y + 86;
+  const cellGap = spacing[3];
+  const cellW = (col.w - 40 - cellGap * 2) / 3;
+  const rows = [
+    ['추억 재방문형', 0],
+    ['매운맛 조절형', 1],
+    ['혼밥 안심형', 2],
+  ];
+  const inner =
+    text(col.x + 20, y + 14, '저장된 결과의 손님 유형 이미지', typography.body6, colors.text.strong) +
+    text(col.x + 20, y + 42, ['예시 화면이라 그림 대신 자리표시를 보여 드려요.', '실제 서버에서는 AI가 만든 가상 이미지가 나와요.'], typography.caption, colors.text.secondary) +
+    rows
+      .map(([label, index]) => {
+        const cx = col.x + 20 + index * (cellW + cellGap) + cellW / 2;
+        return group(
+          `StoredPersonaCell/${label}`,
+          guestCharacter(cx, rowTop + 32, 64, index) +
+            text(cx, rowTop + 72, `${index + 1}위 손님`, typography.caption, colors.text.secondary, { anchor: 'middle' }) +
+            text(cx, rowTop + 92, label, typography.body6, colors.text.strong, { anchor: 'middle' }),
+        );
+      })
+      .join('') +
+    text(col.x + 20, rowTop + 125, '읽기 전용이에요. 새 결과로 바꾸면 이미지도 함께 바뀌어요.', typography.caption, colors.text.secondary);
+  const cardH = rowTop + 125 + 18 + 20 - y;
+  return (
+    appHeader({ brand: true, badge: '마이페이지', frameW, colX: col.colX, colW: col.colW, pad: col.pad }) +
+    card(col.x, y, col.w, cardH, inner) +
+    outlineButton(col.x, y + cardH + 16, col.w, '로그아웃') +
+    bottomNav('mypage', { frameW, frameH, colW: 640 })
+  );
+};
+
+/** 태블릿 프레임을 한 줄로 늘어놓는다. 프레임 크기가 서로 달라 위쪽을 맞춘다. */
+const tabletsBoard = (title, subtitle, screens) => {
+  const gap = 64;
+  const width = 64 * 2 + screens.reduce((sum, s) => sum + s.w, 0) + (screens.length - 1) * gap;
+  const height = 160 + 40 + Math.max(...screens.map((s) => s.h)) + 120;
+  let x = 64;
+  const frames = screens
+    .map((s) => {
+      const frame = `<g transform="translate(${x} 200)">${tablet(s.name, s.caption, s.w, s.h, s.body)}</g>`;
+      x += s.w + gap;
+      return frame;
+    })
+    .join('');
+  return svg(width, height, boardTitle(title, subtitle) + frames + footer(width, height));
 };
 
 // ---------- 보드 ----------
@@ -1179,6 +1370,16 @@ const boards = {
     },
     { name: 'Image-States', caption: '이미지 불러오는 중 · 실패', body: screenImageStates(), options: {} },
   ]),
+  '11-final-tablet.svg': tabletsBoard(
+    '11 · Final UI — 태블릿 크기 (넓은 화면 배치, TASK-028)',
+    'DESIGN_SYSTEM §7.1. 1024dp 이상: 홈 결과만 본문 960·관점 카드 2열, 마이페이지는 640에 저장 이미지 3칸. 하단 내비 항목은 늘 640 안. 1023dp 이하는 1열 640',
+    [
+      { name: 'Tablet-Landscape-Home', caption: '가로 1280×800 — 홈 위쪽(본문 960, 헤더도 같은 기둥)', w: TABLET_LONG, h: TABLET_SHORT, body: screenTabletHomeTop(TABLET_LONG, TABLET_SHORT, { wide: true }) },
+      { name: 'Tablet-Landscape-Cards', caption: '가로 — 내려 본 화면: 요약 카드는 한 줄 전체, 관점 카드 2열', w: TABLET_LONG, h: TABLET_SHORT, body: screenTabletHomeCards(TABLET_LONG, TABLET_SHORT) },
+      { name: 'Tablet-Landscape-MyPage', caption: '가로 — 마이페이지: 본문 640, 저장 이미지 3칸', w: TABLET_LONG, h: TABLET_SHORT, body: screenTabletMyPageImages(TABLET_LONG, TABLET_SHORT) },
+      { name: 'Tablet-Portrait-Home', caption: '세로 800×1280 — 1열 640(관점 카드는 아래로 한 장씩)', w: TABLET_SHORT, h: TABLET_LONG, body: screenTabletHomeTop(TABLET_SHORT, TABLET_LONG, { wide: false }) },
+    ],
+  ),
 };
 
 for (const [file, content] of Object.entries(boards)) {
