@@ -2,7 +2,7 @@
 
 ## Status
 
-구현·검증 완료. 독립 Reviewer 1차 PASS(차단 0, P2 1·P3 3) — 권고를 모두 반영하고 재검증했고, 반영분 2차 PASS(P3 1 — 인계 문서 문구, 반영) (2026-10-01). PR 없음 — 올릴지는 사용자가 정한다. 2026-10-02 사용자 요청으로 가장 큰 태블릿 크기 확인과 Figma 태블릿 보드(보드 11)를 더했다 — 이 추가분은 독립 리뷰 전. GitHub 반영은 PR #38 병합 뒤(사용자 결정 2026-10-02, 아래 Branch).
+구현·검증 완료. 독립 Reviewer 1차 PASS(차단 0, P2 1·P3 3) — 권고를 모두 반영하고 재검증했고, 반영분 2차 PASS(P3 1 — 인계 문서 문구, 반영) (2026-10-01). 2026-10-02 사용자 요청으로 가장 큰 태블릿 크기 확인과 Figma 태블릿 보드(보드 11)를 더했다 — 이 추가분도 독립 Reviewer PASS(P3 2 — 문서 줄바꿈·밀도 가정 표현, 반영). 2026-10-02 사용자 결정으로 #38 병합을 기다리지 않고 **PR #42**(기준 브랜치 `feat/TASK-020-design-followup`, 라벨 `type:feature`·`type:ui`·`role:feature` 조회 확인)를 열었다.
 
 ## Owner
 
@@ -18,7 +18,7 @@
 
 ## Branch
 
-`feat/TASK-028-responsive-tablet` — PR #38 head `8a34b96`에서 만들었다(2026-10-01). PR #38은 아직 병합 전이다. #38이 squash 병합되면 이 브랜치의 TASK-028 커밋만 `origin/main` 위 새 브랜치로 cherry-pick해서 PR을 연다(PR #35 → #38 때와 같은 방식, [TASK-020 인계](TASK-020-session-handover.md) "Git 상태").
+`feat/TASK-028-responsive-tablet` — PR #38 head `8a34b96`에서 만들었다(2026-10-01). 2026-10-02 push, **PR #42**(https://github.com/SKUnohtaekyung/PULSE_SCC/pull/42)를 #38 브랜치 `feat/TASK-020-design-followup` 위에 이어 붙여 열었다(사용자 결정). **#42를 #38보다 먼저 병합하지 않는다.** #38이 main에 squash 병합되면 `git fetch` 뒤 `origin/main`을 이 브랜치에 merge 커밋으로 합쳐(같은 내용이라 충돌은 적을 것으로 보지만 미확인) #42에 이 작업 변경만 남기고, 기준 브랜치가 main인지 확인한다. force push는 하지 않는다. 메시지 정리 전 기록은 로컬 `backup/TASK-028-before-msgfix`에 남겨 두었다(원격에 올리지 않음).
 
 ## Goal
 
@@ -93,7 +93,7 @@
 
 ## Next Action
 
-2026-10-02 추가분(가장 큰 크기 확인·보드 11) 독립 리뷰. PASS 뒤에는 PR #38 병합을 기다린다(사용자 결정 2026-10-02 — 권장 방식). 병합되면 `origin/main`에서 새 브랜치를 만들어 이 TASK의 커밋만 cherry-pick하고, 옛 번호(TASK-024)가 든 커밋 메시지를 고친 뒤 PR을 연다. 그 전에 팀원 브랜치(Unresolved 7)와의 충돌 여부를 다시 본다.
+PR #42 리뷰 대응(리뷰어 요청·병합은 사용자). #38이 병합되면 위 Branch대로 main을 merge해 #42를 정리한다. 팀원 브랜치(Unresolved 7)와의 병합 순서는 팀이 정한다. 보드 11은 사용자가 Figma에 넣는다(X=0, Y=15360).
 
 ## Last Verified Commit
 
