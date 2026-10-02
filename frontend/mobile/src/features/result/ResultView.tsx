@@ -247,7 +247,7 @@ function PersonaStatsCard({
   );
 }
 
-// 넓은 화면(expanded)에서는 관점 카드를 두 장씩 한 줄로 놓는다(DESIGN_SYSTEM §7, TASK-024).
+// 넓은 화면(expanded)에서는 관점 카드를 두 장씩 한 줄로 놓는다(DESIGN_SYSTEM §7, TASK-028).
 // 읽는 순서는 그대로다 — 줄 안에서 왼쪽→오른쪽, 줄은 위→아래라 4관점 순서가 바뀌지 않는다.
 // 홀수면 마지막 줄 오른쪽을 빈칸으로 채워 카드 폭을 다른 줄과 같게 둔다.
 function arrangePerspectiveCards(expanded: boolean, cards: (ReactElement | null)[]) {

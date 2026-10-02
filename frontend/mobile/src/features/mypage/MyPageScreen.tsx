@@ -269,7 +269,7 @@ export function MyPageScreen() {
           <View style={styles.images}>
             {/* 홈 시상대와 같은 고지 — 실제 이미지가 한 장이라도 있으면 AI 이미지라고, 없으면 자리표시라고 알린다. */}
             <PersonaAvatarNotice anyRemote={personaSources.some((source) => source.kind === 'remote')} />
-            {/* 넓은 화면(expanded)에서는 3칸으로 놓는다(DESIGN_SYSTEM §7, TASK-024). 순위 순서는 왼쪽→오른쪽이다. */}
+            {/* 넓은 화면(expanded)에서는 3칸으로 놓는다(DESIGN_SYSTEM §7, TASK-028). 순위 순서는 왼쪽→오른쪽이다. */}
             <View style={expanded ? styles.imageGrid : styles.images}>
               {personaImages.map(({ rank, persona }, index) => (
                 <StoredPersonaRow

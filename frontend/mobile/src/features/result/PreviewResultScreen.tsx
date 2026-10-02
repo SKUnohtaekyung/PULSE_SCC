@@ -135,7 +135,7 @@ export function PreviewResultScreen({ jobId }: { jobId: string }) {
               { paddingBottom: Math.max(insets.bottom, spacing[3]), paddingHorizontal: horizontalPadding },
             ]}
           >
-            {/* 띠는 화면 전체 폭, 안쪽 문구·버튼은 읽기 폭 안에 둔다. 태블릿 가로에서 버튼이 1280dp로 늘어나지 않게 한다(TASK-024). */}
+            {/* 띠는 화면 전체 폭, 안쪽 문구·버튼은 읽기 폭 안에 둔다. 태블릿 가로에서 버튼이 1280dp로 늘어나지 않게 한다(TASK-028). */}
             <View style={styles.saveBarInner}>
               {replaceError ? (
                 <Notice alert title="바꾸지 못했어요" message={replaceError} tone="error" />

@@ -11,7 +11,7 @@ import { colors, layout, radii, shadows, spacing, strokes, typography } from '@/
 // (2026-09-27 디자인 리뷰 #4. 그 전에는 View 도형을 겹쳐 그려 굵기가 제각각이었다).
 //
 // 띠(배경·경계선)는 화면 전체 폭, 항목 줄은 읽기 폭(readingMaxWidth) 안 가운데에 둔다.
-// 태블릿 가로(1280dp)에서 항목이 화면 양끝으로 흩어져 본문과 떨어져 보였다(TASK-024, DESIGN_SYSTEM §7).
+// 태블릿 가로(1280dp)에서 항목이 화면 양끝으로 흩어져 본문과 떨어져 보였다(TASK-028, DESIGN_SYSTEM §7).
 
 export type NavTarget = 'home' | 'analysis' | 'mypage';
 

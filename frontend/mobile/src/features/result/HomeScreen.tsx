@@ -81,7 +81,7 @@ export function HomeScreen() {
   };
 
   // 넓은 화면에서 960으로 넓히는 것은 결과를 보여 줄 때뿐이다. 불러오는 중·빈 상태·오류는 버튼과 안내 한 덩이라
-  // 640 그대로 둔다(DESIGN_SYSTEM §7.1 — 넓히지 않는 화면과 같은 기준, TASK-024 리뷰).
+  // 640 그대로 둔다(DESIGN_SYSTEM §7.1 — 넓히지 않는 화면과 같은 기준, TASK-028 리뷰).
   const wide = phase === 'ready' && result !== null;
 
   return (

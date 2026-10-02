@@ -1,4 +1,4 @@
-# TASK-024 — 태블릿 크기 화면 배치(반응형)
+# TASK-028 — 태블릿 크기 화면 배치(반응형)
 
 ## Status
 
@@ -17,7 +17,7 @@
 
 ## Branch
 
-`feat/TASK-024-responsive-tablet` — PR #38 head `8a34b96`에서 만들었다(2026-10-01). PR #38은 아직 병합 전이다. #38이 squash 병합되면 이 브랜치의 TASK-024 커밋만 `origin/main` 위 새 브랜치로 cherry-pick해서 PR을 연다(PR #35 → #38 때와 같은 방식, [TASK-020 인계](TASK-020-session-handover.md) "Git 상태").
+`feat/TASK-028-responsive-tablet` — PR #38 head `8a34b96`에서 만들었다(2026-10-01). PR #38은 아직 병합 전이다. #38이 squash 병합되면 이 브랜치의 TASK-028 커밋만 `origin/main` 위 새 브랜치로 cherry-pick해서 PR을 연다(PR #35 → #38 때와 같은 방식, [TASK-020 인계](TASK-020-session-handover.md) "Git 상태").
 
 ## Goal
 
@@ -46,6 +46,7 @@
 
 - 아이패드 = 같은 폭의 Android 화면으로 흉내(실제 iOS 지원 아님). 사용자 결정 2026-10-01
 - 새 TASK·새 브랜치로 진행(PR #38에 더하지 않음). 사용자 결정 2026-10-01
+- 2026-10-02 번호 변경: 처음 TASK-024로 만들었으나, 팀원 브랜치 `ui/TASK-024-production-auth-entry`(2026-10-01 원격)와 번호가 겹쳤다. GitHub에 올리기 전이라 다음 빈 번호 TASK-028로 바꿨다(TASK-025~027도 원격에서 쓰임, `git log --all`에 TASK-028 0건). 브랜치 `feat/TASK-024-responsive-tablet` → `feat/TASK-028-responsive-tablet`, 이 문서와 코드 주석·문서의 TASK-024 표기를 모두 바꿨다. 커밋 메시지의 옛 번호는 옮길 때 고친다
 - 새 토큰 없음. 열을 늘리는 기준은 `expanded`(1024) 하나. 600~1023(아이패드 미니~11인치 세로, 태블릿 세로 800)은 1열 640을 유지한다
 - 태블릿을 **지원 범위**에 넣을지는 정하지 않았다. 정본은 PRD §13 Open Questions 6번(`role:product`) — 직접 고치지 않고 PR 본문에 넘긴다. 배치 규칙은 DESIGN_SYSTEM §7.1에 "지원 약속이 아니다"라고 적었다
 - 화면 방향은 고정하지 않았다(`app.json`에 `orientation` 없음)
