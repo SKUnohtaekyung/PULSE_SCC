@@ -6,8 +6,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **Design Foundation 구현 — 토큰·Pretendard·접근성 기준 코드 반영. 화면 상태 모델 기준 재확인(2026-09-22)** |
-| 최종 수정 | 2026-09-22 |
+| 상태 | **Design Foundation 구현 — 토큰·Pretendard·접근성 기준 코드 반영. 화면 상태 모델 기준 재확인(2026-09-22). 팀 디자인 피드백 결정 4건 반영(2026-10-05) — 화면 구현은 아직 이 결정을 따르지 않는다** |
+| 최종 수정 | 2026-10-05 |
 | 소유 역할 | `role:design-system` |
 | 제품 요구사항 | [`../product/PRD.md`](../product/PRD.md) |
 | 상세 기능명세 | [`../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md`](../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
@@ -53,7 +53,7 @@ PULSE에서 사용한 `Modern Professional & Universal Clarity`를 SCC의 기본
 - **Professional** — 분석 결과를 장식보다 근거와 구조로 신뢰하게 한다.
 - **Clear** — 분석 용어 대신 외식업 점주가 바로 이해하는 문장을 쓴다.
 - **Focused** — 한 화면에는 하나의 핵심 행동 또는 하나의 판단 단위를 둔다.
-- **Evidence-first** — 화려한 페르소나보다 실제 리뷰 근거를 먼저 확인할 수 있게 한다.
+- **Evidence-first** — 화려한 페르소나보다 실제 리뷰 근거가 우선이다. 해석을 먼저 보여 주는 자리(4.1절)에서도 그 해석의 근거 리뷰를 바로 아래에서 확인할 수 있게 한다.
 - **Mobile-first** — 작은 화면에서도 가게 지정부터 결과 확인까지 막힘없이 완료하게 한다.
 
 ### 2.2 시각적 성격
@@ -62,7 +62,7 @@ PULSE에서 사용한 `Modern Professional & Universal Clarity`를 SCC의 기본
 - 오렌지는 **작고 결정적인 지점**에만 쓴다: 입력 포커스, 지금 하는 입력 단계, 저장 완료 표시, 하단 내비게이션 중앙 버튼. 넓은 버튼 배경에는 쓰지 않는다(2026-09-27 디자인 리뷰 #2·#7). 주요 행동 버튼은 딥 로얄 블루다.
 - 넓은 여백, 명확한 제목 계층, 둥근 카드로 복잡한 분석 결과를 짧은 판단 단위로 나눈다.
 - 상태색은 의미 전달에 사용하되 색상만으로 긍정·부정·오류를 표현하지 않는다.
-- AI 생성 이미지는 정보보다 앞에 나오지 않으며 실제 고객 사진처럼 보이게 사용하지 않는다.
+- AI 생성 이미지는 정보보다 앞에 나오지 않는다. 사진풍 인물로 만들되(2026-10-05 결정) 실제 고객 사진으로 오인하지 않게 생성 사실을 이미지 가까이에 항상 고지한다.
 
 ---
 
@@ -207,7 +207,7 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 - ImageGen으로 만드는 Step 4 시안은 UX 가설 탐색 자료다. 선택 전에는 앱의 제품 에셋으로 넣지 않는다.
 - 선택된 래스터 에셋만 `frontend/mobile/assets/images/`에 넣고, Android 밀도별 파일이 필요하면 React Native의 `@2x`·`@3x` 규칙을 따른다.
 - 아이콘과 로고는 이미지 생성으로 대체하지 않는다. 일관된 벡터·코드 자산을 사용하고 아이콘 버튼에는 접근 가능한 이름을 제공한다.
-- 페르소나 이미지는 실제 인물 사진처럼 오인시키지 않으며, 생성 사실·기능 중심 대체 텍스트·로딩·실패 대체 상태를 함께 제공한다.
+- 페르소나 이미지는 사진풍 상반신 인물과 단색 배경으로 만든다(2026-10-05 결정, [PRD](../product/PRD.md) §7 페르소나 취급 규칙 6). 실제 손님 사진으로 오인하지 않게 생성 사실을 이미지 가까이에 항상 고지하고, 기능 중심 대체 텍스트·로딩·실패 대체 상태를 함께 제공한다.
 - 이미지가 없어도 유형명, 관찰 특성, 근거 리뷰, 결과 한계를 이해할 수 있어야 한다.
 - 이미지 로딩·로드 실패·생성 실패(`IMAGE-LOADING`, `IMAGE-LOAD-ERROR`, `IMAGE-GENERATION-FAILED`)의 대체 표현은 생성 이미지가 아니라 코드로 그린다. 같은 크기의 `background.emphasized` 영역에 상태 문장을 두어 레이아웃이 흔들리지 않게 하고, 실패 대체 표현을 정상 이미지처럼 보이게 하지 않는다.
 - 에셋 폴더의 기록(README)에는 출처·버전·라이선스·해시와 함께 **사용처와 사용 금지 조건**을 적는다. 프로토타입 전용 에셋은 제품 화면에 쓰지 않는다는 사실을 금지 조건으로 적는다.
@@ -224,11 +224,13 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 사용자가 결과를 다음 순서로 이해하게 한다.
 
 1. TOP3 중 어떤 손님 사용 상황이 가장 많이 반복되는가
-2. 선택한 페르소나의 긍정·부정·인식·우선순위는 무엇인가
-3. 그 판단을 뒷받침하는 대표 리뷰는 무엇인가
-4. AI는 무엇을 해석했는가
+2. 선택한 페르소나의 긍정·부정·인식·우선순위 각각에서 AI는 무엇을 해석했는가
+3. 그 해석은 리뷰에서 확인한 어떤 사실에서 나왔는가
+4. 그 사실을 뒷받침하는 대표 리뷰는 무엇인가
 5. 어떤 행동을 검토할 수 있는가
 6. 어떤 리뷰를 언제 얼마나 분석했는가
+
+2~4번은 관점마다 `해석 → 사실 → 대표 리뷰` 순서로 되풀이한다. 2026-10-05에 해석을 앞으로 옮겼다. 그 전에는 `사실 → 대표 리뷰 → 해석` 순서였는데, 처음 읽는 사장님이 결론을 찾으려고 근거를 먼저 읽어야 했다. 이것은 **화면에서 읽는 순서**이고, 분석을 만드는 순서(리뷰가 출발점, PRD 설계 원칙 A)는 바뀌지 않는다.
 
 분석 수치는 2026-09-27 디자인 리뷰 #3으로 맨 아래로 내렸다. 그 전에는 1번이었다. 먼저 보여 줄 것은 손님 유형이고, 리뷰 수와 수집 시점은 결과를 다 읽은 뒤 신뢰도를 판단할 때 필요하다.
 
@@ -239,7 +241,7 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 | 레이어 | 표시 원칙 |
 |---|---|
 | 리뷰에서 확인된 것 | `리뷰에서 확인` 레이블, 근거 리뷰 진입점, 수집 메타데이터 제공 |
-| AI 해석 | `AI 해석` 레이블과 추론임을 알리는 문장 제공 |
+| AI 해석 | `AI 해석` 레이블과 추론임을 알리는 문장 제공. 관점의 첫머리에 둔다(2026-10-05 결정). 강조 방식(상자 대신 글자 위계를 쓸지)은 확정 필요 — 결과 화면 구현 전 |
 | 전문 지식 참고 | 자료명 또는 출처를 확인할 수 있는 진입점 제공 |
 | 제안 | 명령이나 보장이 아니라 `검토해 볼 행동`으로 표현 |
 
@@ -258,6 +260,7 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 - 페르소나는 실제 인물이 아니라 리뷰 패턴을 설명하는 가상 표현이다.
 - 인구통계가 확인되지 않았다면 나이·성별·직업을 단정하지 않는다.
 - AI 생성 이미지에는 생성 사실을 텍스트로 고지한다.
+- 사진풍 이미지에 보이는 나이대·성별은 리뷰에서 확인한 정보가 아니다. 유형 이름·설명·대체 텍스트에 옮겨 적지 않는다.
 - 이미지를 숨겨도 유형명·특징·근거 리뷰를 이해할 수 있어야 한다.
 - 대체 텍스트는 외모를 과도하게 묘사하지 않고 이미지의 기능을 설명한다.
 
@@ -308,14 +311,14 @@ loading / empty / error / normal
 | AnalysisProgress | 수집·분석 단계와 현재 상태 표시 | `frontend/mobile/src/components/ui/ProgressList.tsx` |
 | InsightSummary | 선택한 페르소나의 4개 관점 결과 요약 | `frontend/mobile/src/features/result/ResultView.tsx` |
 | EvidenceReviewList | 대표 근거 1~2개와 작성자 정보 없는 전체 근거 리뷰 표시 | 대표 근거는 `ResultView.tsx`, 전체 목록은 `frontend/mobile/src/features/result/EvidenceScreen.tsx`(cursor 방식) |
-| FactInterpretationBlock | `리뷰에서 확인`과 `AI 해석`을 별도 카드·배지·제목으로 구분 | `frontend/mobile/src/features/result/ResultView.tsx` |
+| FactInterpretationBlock | `리뷰에서 확인`과 `AI 해석`을 별도 영역·배지·제목으로 구분 | `frontend/mobile/src/features/result/ResultView.tsx` |
 | PersonaCard | 손님 유형, 관찰 특성, 근거와 한계 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
 | PersonaImage | AI 생성 이미지와 고지·대체 상태 표시 | `frontend/mobile/src/features/result/ResultView.tsx` (조회 실패 대체 포함) |
 | AdviceCard | 리뷰 사실·검토할 행동 기본 노출과 AI 해석·지식 펼쳐보기 | `frontend/mobile/src/features/result/ResultView.tsx` (지식 참고는 서버가 아직 빈 배열) |
 | DataLimitNotice | 리뷰 부족·편향·대표성 한계 안내 | `frontend/mobile/src/components/ui/Notice.tsx` + `ResultView.tsx` |
 | ResultMetadata | 플랫폼, 리뷰 수, 수집·분석 시점 표시 | `frontend/mobile/src/features/result/ResultView.tsx` |
 | AnalysisStorageState | 첫 결과 자동 저장과 새 결과 교체·기존 결과 유지 상태 표시 | 첫 저장은 `frontend/mobile/src/features/analysis/FirstSaveScreen.tsx`, 교체·유지는 `features/result/PreviewResultScreen.tsx`(확인 대화상자는 `components/ui/ConfirmDialog.tsx`) |
-| BottomNavigation | `홈 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 지금 그 화면에 있다는 사실을 알린다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | `frontend/mobile/src/components/ui/BottomNavigation.tsx` |
+| BottomNavigation | `분석 결과 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 지금 그 화면에 있다는 사실을 알린다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | `frontend/mobile/src/components/ui/BottomNavigation.tsx` |
 | PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 읽기 전용으로 표시하고 결과 교체 시 함께 교체 | `frontend/mobile/src/features/mypage/MyPageScreen.tsx` |
 | ErrorState | 오류 이유와 재시도 가능 행동 표시 | `frontend/mobile/src/components/ui/Notice.tsx` + 화면별 버튼 |
 
@@ -357,7 +360,7 @@ loading / empty / error / normal
 | 화면 | 디자인 적용 기준 |
 |---|---|
 | SC-AUTH 로그인 | Google과 서비스 자체 로그인 방식을 명확히 구분하고 인증 오류·진행·세션 복원 상태를 제공 |
-| SC-001 시작·가게 지정 | 가게 이름·업종·네이버 가게 URL의 필수 입력 3개를 같은 화면에서 차례로 펼치고, 답한 칸은 수정할 수 있게 접어 둔다. 주요 버튼은 단계마다 하나(`다음` 또는 `분석하기`)다([Step 5 합성](synthesis/TASK-020/README.md)). 서비스 설명은 입력을 밀어내지 않게 한다 |
+| SC-001 시작·가게 지정 | 가게 이름·업종·네이버 가게 URL의 필수 입력 3개를 한 화면에 모두 펼쳐 두고, 스크롤로 이어서 입력한다. 주요 버튼은 맨 아래 `분석하기` 하나다(2026-10-05 결정. 그 전에는 2026-09-22 [Step 5 합성](synthesis/TASK-020/README.md)의 차례로 펼치기였다). 서비스 설명은 입력을 밀어내지 않게 한다 |
 | SC-002 가게 확인 | 입력한 가게 이름·업종과 네이버 URL에서 확인한 매장 정보가 맞는지 짧게 확인한다. 작업 생성 전 가게 식별 API가 없어 보류 중이다([SCREEN_STATES §4.3](../product/requirements/SCREEN_STATES.md)) |
 | SC-003 분석 진행 | 입력 요약 아래에 서버가 보낸 단계를 도착 순서대로 쌓는 목록으로 표시하고, 실패는 목록 끝에 실패 결과 행을 붙여 원인·다음 행동을 보여주고 실패 단계는 표시하지 않는다([Step 5 합성](synthesis/TASK-020/README.md)). 확정되지 않은 퍼센트나 오지 않은 단계를 만들지 않는다. 화면을 닫아도 되는지는 진행 중 이탈 정책이 정해진 뒤 표시한다([SCREEN_STATES §11](../product/requirements/SCREEN_STATES.md)) |
 | SC-004 결과 요약 | 포디움에서 선택한 페르소나의 4개 관점을 동일한 정보 계층으로 제공하되 우선순위를 먼저 인지할 수 있게 한다 |
@@ -367,7 +370,7 @@ loading / empty / error / normal
 | SC-008 실행 제안 | 리뷰 사실과 검토할 행동을 먼저 보여주고 AI 해석·전문 지식은 펼쳐서 확인하게 한다 |
 | SC-009 오류·한계 | 원인, 현재 상태, 사용자가 할 수 있는 다음 행동을 함께 제공 |
 | SC-010 결과 저장 | 첫 결과 자동 저장은 별도 완료 화면으로 알린다. 새 결과 미리보기에는 교체·유지 선택을 하단에 고정하고, 교체만 확인 대화상자를 거친다([Step 5 합성](synthesis/TASK-020/README.md)) |
-| SC-011 홈 | 첫 분석 완료 후 저장된 분석 결과 1개와 포디움 기반 유형별 결과를 표시. 저장 결과가 없으면 가게 입력으로 이동 |
+| SC-011 홈(표시 이름 `분석 결과`, 2026-10-05 결정) | 첫 분석 완료 후 저장된 분석 결과 1개와 포디움 기반 유형별 결과를 표시. 저장 결과가 없으면 가게 입력으로 이동 |
 | SC-012 마이페이지 | 분석 완료·실패 인앱 알림, 알림 설정·서비스 정보, 로그아웃, 계정 탈퇴, 현재 저장 결과 이미지 최대 3개만 제공. 계정 탈퇴는 되돌릴 수 없는 행동이므로 action 색 대신 `destructive` 토큰(5.4절)을 쓰고 삭제 범위를 먼저 보여준 뒤 재확인한다 |
 
 ---
@@ -473,7 +476,7 @@ UI 변경은 `.claude/skills/visual-qa/SKILL.md` 절차를 읽고 실제 렌더�
 | 항목 | 결정 시점 |
 |---|---|
 | 최소 Android OS와 지원 기기 범위 | Visual QA 기준 작성 전 |
-| 페르소나 이미지 화풍·톤·구성 | FR-004 구현 전 |
+| 페르소나 이미지 배경색·구도 세부 규칙. 화풍은 2026-10-05에 사진풍 상반신 인물·단색 배경으로 정했다(§3.6). 지금 이미지 프롬프트의 구도·조명·배경 값은 잠정값이다 | 결과 화면 Visual QA 전 |
 | 사실·해석·지식·제안 카드 시안 | 결과 화면 구현 전 |
 | 긴 근거 리뷰의 접기·펼치기 방식 | SC-005 구현 전 |
 | ~~로딩 단계 표시 방식~~ | 2026-09-22 Step 5 합성으로 해소 — 받은 단계를 쌓는 진행 목록 |
