@@ -4,7 +4,7 @@
 // 5차 리뷰는 가림을 비율(70%)로 재면 글자 끝 몇 자가 가려져도 통과한다는 것과,
 // 선만 있는 도형(점선 원)이 글자를 가로지르는 경우를 보지 않는다는 것을 찾았다.
 //
-// 1. 프레임 이탈 — 글자가 휴대폰 화면의 좌우·아래로 나가는가 (화면 프레임 안 글자만)
+// 1. 프레임 이탈 — 글자가 화면 프레임의 좌우·아래로 나가는가 (화면 프레임 안 글자만. 프레임 크기는 data-frame-w·h, 없으면 휴대폰 360×800)
 // 2. 글자 겹침 — 같은 묶음 안에서 글자끼리 포개지는가
 // 3. 가림 — 나중에 그린 불투명 도형이 글자를 반 글자 넓이보다 많이 덮는가
 // 4. 테두리 관통 — 사각형·원의 테두리 선이 글자 상자를 가로지르는가
@@ -60,7 +60,12 @@ function parse(svg) {
         screen: top.screen,
         dialog: top.dialog || id.startsWith('Dialog/'),
       };
-      if (id.startsWith('Screen/')) next.screen = { name: id, dx: next.dx, dy: next.dy };
+      if (id.startsWith('Screen/')) {
+        // 프레임 크기는 그룹의 data-frame-w·h(태블릿 보드 11)에서 읽고, 없으면 휴대폰 크기다.
+        const fw = Number(/data-frame-w="([\d.]+)"/.exec(tag)?.[1] ?? PHONE_W);
+        const fh = Number(/data-frame-h="([\d.]+)"/.exec(tag)?.[1] ?? PHONE_H);
+        next.screen = { name: id, dx: next.dx, dy: next.dy, w: fw, h: fh };
+      }
       stack.push(next);
       continue;
     }
@@ -215,8 +220,8 @@ for (const file of readdirSync(svgDir).filter((f) => f.endsWith('.svg')).sort())
     if (t.top < t.screen.dy - 8) continue;
     const over = Math.max(
       t.screen.dx - t.left,
-      t.right - (t.screen.dx + PHONE_W),
-      t.bottom - (t.screen.dy + PHONE_H),
+      t.right - (t.screen.dx + t.screen.w),
+      t.bottom - (t.screen.dy + t.screen.h),
     );
     if (over > 2) {
       lines.push(`  이탈 ${Math.round(over)}px · ${t.screen.name} · "${t.value.slice(0, 32)}"`);
@@ -228,8 +233,8 @@ for (const file of readdirSync(svgDir).filter((f) => f.endsWith('.svg')).sort())
     if (!s.screen || !s.filled || s.kind !== 'rect') continue;
     const over = Math.max(
       s.screen.dx - s.left,
-      s.right - (s.screen.dx + PHONE_W),
-      s.bottom - (s.screen.dy + PHONE_H),
+      s.right - (s.screen.dx + s.screen.w),
+      s.bottom - (s.screen.dy + s.screen.h),
     );
     if (over > 0.5) lines.push(`  도형 이탈 ${Math.round(over * 10) / 10}px · ${s.screen.name} · 사각형 바닥 ${Math.round(s.bottom - s.screen.dy)}`);
   }

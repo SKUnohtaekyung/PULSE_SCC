@@ -28,6 +28,7 @@ import {
   progressLabel,
   progressPercent,
   readJobFailure,
+  statusUnavailableFailure,
   type JobFailure,
 } from '@/features/analysis/jobOutcome';
 import {
@@ -40,6 +41,7 @@ import { useSession } from '@/session/SessionProvider';
 // SC-001 가게 정보 입력 + SC-003 분석 진행. 한 화면에서 이어 보여준다(Step 5 합성).
 // 다루는 상태: STORE-INITIAL/EDITING/FIELD-ERROR/CREATING-JOB/UNSUPPORTED-URL/NOT-FOUND/JOB-ERROR/OFFLINE,
 // ANALYSIS-QUEUED/COLLECTING/(그 밖의 progressStep)/INSUFFICIENT/RETRYABLE-ERROR/FATAL-ERROR, SAVE-FIRST-*.
+// 상태 조회 자체가 실패한 경우(statusUnavailable)는 SC-003 표에 아직 없는 상태다(#34, 불변식 11 유추).
 
 type Phase = 'input' | 'creating' | 'progress' | 'failed' | 'completing';
 type FieldKey = 'name' | 'category' | 'url';
@@ -58,6 +60,7 @@ const inputTitles = [
 ];
 
 const failureActionLabel = (failure: JobFailure) => {
+  if (failure.kind === 'statusUnavailable') return '진행 상태 다시 확인';
   if (failure.kind === 'retryable' || failure.kind === 'imageGenerationFailed') return '다시 분석하기';
   if (failure.kind === 'insufficient') return '가게 정보 다시 입력';
   return '입력 화면으로';
@@ -400,10 +403,13 @@ export function AnalyzeScreen() {
           resetToInput();
           return;
         }
-        setFailure({
-          kind: 'retryable',
-          message: '진행 상태를 확인하지 못했어요. 다시 시도할 수 있어요.',
-        });
+        if (error instanceof ApiError && error.code !== null && error.status < 500) {
+          // 코드가 있는 조회 오류는 다시 조회해도 같은 답이 온다.
+          // 작업을 이어 볼 수 없으므로 입력 화면으로 보낸다. 새 작업은 사용자가 직접 요청한다.
+          setFailure({ kind: 'fatal', message: error.message });
+        } else {
+          setFailure(statusUnavailableFailure);
+        }
         setPhase('failed');
       } finally {
         inFlight = false;
@@ -419,6 +425,7 @@ export function AnalyzeScreen() {
   }, [category, client, jobId, name, phase, resolveCompletion, url, user]);
 
   const locked = phase !== 'input';
+  const statusUnknown = failure?.kind === 'statusUnavailable';
   const rows: ProgressRow[] = steps.map((step, index) => {
     const last = index === steps.length - 1;
     const running = last && (phase === 'progress' || phase === 'creating' || phase === 'completing');
@@ -427,14 +434,14 @@ export function AnalyzeScreen() {
       key: step + '-' + index,
       label: progressLabel(step),
       state: running ? 'running' : paused ? 'paused' : 'done',
-      note: paused ? '여기까지 진행했어요' : undefined,
+      note: paused ? (statusUnknown ? '여기까지 확인했어요' : '여기까지 진행했어요') : undefined,
     };
   });
 
   if (phase === 'failed' && failure) {
     rows.push({
       key: 'failure',
-      label: '분석을 마치지 못했어요',
+      label: statusUnknown ? '진행 상태를 확인하지 못했어요' : '분석을 마치지 못했어요',
       state: 'failed',
       note: failure.kind === 'insufficient'
         ? '분석에 필요한 리뷰가 50건보다 적어 결과를 만들지 못했어요.'
@@ -461,6 +468,12 @@ export function AnalyzeScreen() {
         : '분석 진행 중';
 
   const runFailureAction = (current: JobFailure) => {
+    if (current.kind === 'statusUnavailable') {
+      // 같은 jobId로 상태 조회를 다시 시작한다. 새 작업을 만들면 수집·분석 비용이 두 번 든다(#34).
+      setFailure(null);
+      setPhase('progress');
+      return;
+    }
     if (current.kind === 'retryable' || current.kind === 'imageGenerationFailed') {
       void submit({ reuseKey: false });
       return;
@@ -495,7 +508,13 @@ export function AnalyzeScreen() {
       ) : (
         <PageTitle
           description={[name, category].filter(Boolean).join(' · ')}
-          title={phase === 'failed' ? '분석을 마치지 못했어요' : '리뷰를 읽고 있어요'}
+          title={
+            phase !== 'failed'
+              ? '리뷰를 읽고 있어요'
+              : statusUnknown
+                ? '진행 상태를 확인하지 못했어요'
+                : '분석을 마치지 못했어요'
+          }
         />
       )}
 
@@ -668,6 +687,11 @@ export function AnalyzeScreen() {
 
       {phase === 'failed' && failure ? (
         <Button label={failureActionLabel(failure)} onPress={() => runFailureAction(failure)} />
+      ) : null}
+
+      {phase === 'failed' && failure?.kind === 'statusUnavailable' ? (
+        // 조회가 계속 실패해도 화면에 갇히지 않게 한다. 입력은 그대로 두고, 다시 요청하면 새 작업이 된다.
+        <Button label="입력 화면으로" onPress={resetToInput} variant="ghost" />
       ) : null}
 
       <Text style={[styles.footnote, largeText && styles.footnoteLarge]}>

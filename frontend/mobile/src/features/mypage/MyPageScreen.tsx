@@ -14,15 +14,20 @@ import {
 } from '@/api/endpoints';
 import { resolveErrorMessage } from '@/api/errorMessage';
 import { ApiError, SessionExpiredError } from '@/api/errors';
-import { personaImageSource } from '@/api/personaImages';
+import { personaImageSource, type PersonaImageSource } from '@/api/personaImages';
 import type { AnalysisResult, NotificationItem } from '@/api/types';
 import { BottomNavigation } from '@/components/ui/BottomNavigation';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingBlock } from '@/components/ui/LoadingBlock';
 import { Notice } from '@/components/ui/Notice';
-import { PersonaImageBlock } from '@/components/ui/PersonaImageBlock';
-import { Screen } from '@/components/ui/Screen';
+import {
+  PersonaAvatar,
+  PersonaAvatarNotice,
+  PersonaImageError,
+  usePersonaImageRetry,
+} from '@/components/ui/PersonaAvatar';
+import { Screen, useExpandedLayout } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ToggleRow } from '@/components/ui/ToggleRow';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -48,6 +53,7 @@ const formatDateTime = (value: string) => {
 export function MyPageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const expanded = useExpandedLayout();
   const { client, user, signOut } = useSession();
 
   const [notifications, setNotifications] = useState<SectionState<NotificationItem[]>>({
@@ -169,10 +175,13 @@ export function MyPageScreen() {
     await signOut();
   };
 
+  // 순위를 함께 들고 간다. 자리표시 그림은 시상대와 같은 순위 자리의 손님이어야 한다.
   const personaImages =
     savedResult.data?.podium
       .filter((slot) => slot.status === 'FILLED' && slot.persona)
-      .map((slot) => slot.persona!) ?? [];
+      .sort((a, b) => a.rank - b.rank)
+      .map((slot) => ({ rank: slot.rank, persona: slot.persona! })) ?? [];
+  const personaSources = personaImages.map(({ persona }) => personaImageSource(client, persona.image));
 
   return (
     <Screen
@@ -255,20 +264,27 @@ export function MyPageScreen() {
           <Notice alert title="저장된 결과를 불러오지 못했어요" message={savedResult.message} tone="error" />
         ) : personaImages.length > 0 ? (
           <View style={styles.images}>
-            <Text style={styles.empty}>
-              손님 유형 이미지는 리뷰 패턴을 설명하려고 AI가 만드는 그림이에요. 실제 손님 사진이 아니에요.
-            </Text>
-            {personaImages.map((persona) => (
-              <View key={persona.id} style={styles.imageItem}>
-                <PersonaImageBlock
+            {/* 홈 시상대와 같은 고지 — 실제 이미지가 한 장이라도 있으면 AI 이미지라고, 없으면 자리표시라고 알린다. */}
+            <PersonaAvatarNotice anyRemote={personaSources.some((source) => source.kind === 'remote')} />
+            {/* 넓은 화면(expanded)에서는 3칸으로 놓는다(DESIGN_SYSTEM §7, TASK-028). 순위 순서는 왼쪽→오른쪽이다. */}
+            <View style={expanded ? styles.imageGrid : styles.images}>
+              {personaImages.map(({ rank, persona }, index) => (
+                <StoredPersonaRow
                   altText={persona.image.altText}
-                  showNotice={false}
-                  size="small"
-                  source={personaImageSource(client, persona.image)}
+                  inGrid={expanded}
+                  key={persona.id}
+                  label={persona.label}
+                  rank={rank}
+                  source={personaSources[index]}
                 />
-                <Text style={styles.imageLabel}>{persona.label}</Text>
-              </View>
-            ))}
+              ))}
+              {/* 부분 결과(1~2장)여도 칸 폭을 3등분으로 유지한다. 홈 관점 카드의 홀수 빈칸과 같은 규칙. */}
+              {expanded
+                ? Array.from({ length: Math.max(0, 3 - personaImages.length) }, (_, index) => (
+                    <View key={`empty-${index}`} style={styles.imageCell} />
+                  ))
+                : null}
+            </View>
             <Text style={styles.empty}>
               읽기 전용이에요. 새 결과로 바꾸면 이미지도 함께 바뀌어요.
             </Text>
@@ -334,6 +350,48 @@ export function MyPageScreen() {
   );
 }
 
+// 저장된 결과의 손님 유형 한 줄(STORED-IMAGES-NORMAL). 홈과 같은 그림·같은 실패 규칙을 쓴다(SCREEN_STATES §6.4).
+function StoredPersonaRow({
+  rank,
+  label,
+  altText,
+  source,
+  inGrid = false,
+}: {
+  rank: number;
+  label: string;
+  altText: string;
+  source: PersonaImageSource;
+  /** 3칸 격자 안이면 그림 위·이름 아래로 세운다. 칸 폭이 좁아 가로 배치는 이름이 줄바꿈된다. */
+  inGrid?: boolean;
+}) {
+  const image = usePersonaImageRetry(source);
+  return (
+    <View style={[styles.imageItem, inGrid && styles.imageCell]}>
+      <View
+        accessible
+        // 그림과 이름을 한 번에 읽는다. 묶으면 그림 라벨이 가려지므로 서버 대체 텍스트를 함께 붙인다.
+        accessibilityLabel={`${altText}. ${rank}위 ${label}`}
+        style={inGrid ? styles.imageColumn : styles.imageRow}
+      >
+        <PersonaAvatar
+          altText={altText}
+          key={image.attempt}
+          onLoadError={image.onLoadError}
+          size="compact"
+          source={source}
+          variant={rank - 1}
+        />
+        <View style={[styles.imageText, inGrid && styles.imageTextCentered]}>
+          <Text style={[styles.imageRank, inGrid && styles.textCentered]}>{rank}위 손님</Text>
+          <Text style={[styles.imageLabel, inGrid && styles.textCentered]}>{label}</Text>
+        </View>
+      </View>
+      {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.background.surface,
@@ -368,8 +426,41 @@ const styles = StyleSheet.create({
   images: {
     gap: spacing[3],
   },
+  imageGrid: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+  },
+  imageCell: {
+    flex: 1,
+    flexBasis: 0,
+  },
+  imageColumn: {
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  imageTextCentered: {
+    flex: 0,
+    alignItems: 'center',
+  },
+  textCentered: {
+    textAlign: 'center',
+  },
   imageItem: {
     gap: spacing[2],
+  },
+  imageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[4],
+  },
+  imageText: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  imageRank: {
+    ...typography.caption,
+    color: colors.text.secondary,
   },
   logoutActions: {
     gap: spacing[2],
