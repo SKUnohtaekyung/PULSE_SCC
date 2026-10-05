@@ -20,9 +20,10 @@ SYSTEM_PROMPT = """당신은 음식점 공개 리뷰를 근거로 손님 사용 
 각 토픽마다 POSITIVE, NEGATIVE, PERCEPTION,
 PRIORITY 관점을 정확히 하나씩 작성하세요. 모든 사실과 제안은 evidence의 review_index로
 실제 리뷰에 연결되어야 합니다. 매출 상승이나 확정적인 효과를 보장하지 마세요.
-image_prompt는 그 토픽의 식사 장면을 사람이 등장하는 따뜻한 에디토리얼 일러스트로 작성하세요.
+image_prompt는 그 손님 유형을 대표하는 가상 인물 한 명의 상반신 인물 사진으로 작성하세요.
 사람은 특정 인물을 재현하지 않는 일반적인 모습으로 묘사하고, 나이·성별·직업을 지정하지 마세요.
-얼굴 생김새보다 무엇을 하고 있는지(덜어 담기, 함께 나눠 먹기, 메뉴판 살펴보기)를 적으세요.
+얼굴 생김새보다 표정과 분위기, 옷차림을 적으세요. 손동작, 손에 든 물건, 배경과 장소는
+적지 마세요.
 review_index 를 제외한 모든 글(label, summary, caveat, review_fact, ai_interpretation,
 suggested_action, image_alt_text, limitations)은 가게 사장님이 그대로 읽는 문장입니다.
 쉬운 우리말로 쓰세요. 리뷰 번호, 번호 목록, "몇 번 리뷰", "[12]" 같은 번호 표기, 번호 범위,
@@ -99,17 +100,19 @@ class OpenAiReviewAnalyzer:
         response = self.client.images.generate(
             model=self.image_model,
             prompt=(
-                # 페르소나 이미지이므로 사람이 등장해야 상황이 읽힌다. 다만 실제 손님을
-                # 묘사하는 것이 아니므로 특정 인물로 식별되지 않아야 하고, 나이·성별·직업을
-                # 단정하지 않는다(기능명세 IMAGE-001 비식별 가상 이미지).
-                "Square mobile app illustration in a warm editorial vector style, "
-                "identical style across every image. "
-                "Show one or two stylised people in the dining scene, drawn simply with "
-                "soft rounded shapes and minimal facial detail, seen from a slight distance "
-                "or three-quarter angle. "
-                "They must not resemble any identifiable person and must not signal a "
-                "specific age, gender, or occupation. "
-                "No text, letters, numbers, logos, or photorealism. " + prompt
+                # 사진풍 상반신 인물과 단색 배경으로 만든다(PRD §7 페르소나 취급 규칙 6,
+                # 2026-10-05 결정). 실제 손님을 묘사하는 것이 아니므로 특정 인물로 식별되지
+                # 않아야 한다(기능명세 IMAGE-004). 아래 구도·조명·배경 값은 잠정값이다.
+                # 배경색·구도 세부 규칙은 참고 이미지를 받은 뒤 정한다(PRD §13-9).
+                "Square photorealistic chest-up portrait of one fictional person, "
+                "like a profile picture, identical framing and lighting across every image. "
+                "The person is centred, facing the camera with a natural friendly expression, "
+                "soft even studio lighting. "
+                "Plain single-colour light background with no scenery, props behind the "
+                "person, gradients, or patterns. "
+                "The person is entirely fictional and must not resemble any real or "
+                "identifiable person. "
+                "No text, letters, numbers, logos, or watermarks. " + prompt
             ),
             size="1024x1024",
             quality="low",
