@@ -209,11 +209,12 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 - 아이콘과 로고는 이미지 생성으로 대체하지 않는다. 일관된 벡터·코드 자산을 사용하고 아이콘 버튼에는 접근 가능한 이름을 제공한다.
 - 페르소나 이미지는 실제 인물 사진처럼 오인시키지 않으며, 생성 사실·기능 중심 대체 텍스트·로딩·실패 대체 상태를 함께 제공한다.
 - 이미지가 없어도 유형명, 관찰 특성, 근거 리뷰, 결과 한계를 이해할 수 있어야 한다.
-- 이미지 로딩·로드 실패·생성 실패(`IMAGE-LOADING`, `IMAGE-LOAD-ERROR`, `IMAGE-GENERATION-FAILED`)의 대체 표현은 생성 이미지가 아니라 코드로 그린다. 같은 크기의 `background.emphasized` 영역에 상태 문장을 두어 레이아웃이 흔들리지 않게 하고, 실패 대체 표현을 정상 이미지처럼 보이게 하지 않는다.
+- 이미지 로딩·로드 실패·생성 실패(`IMAGE-LOADING`, `IMAGE-LOAD-ERROR`, `IMAGE-GENERATION-FAILED`)의 대체 표현은 생성 이미지가 아니라 코드로 그린다. 같은 크기의 `background.emphasized` 영역에 상태 문장을 두어 레이아웃이 흔들리지 않게 하고, 실패 대체 표현을 정상 이미지처럼 보이게 하지 않는다. 결과 화면의 선택 유형 요약 카드(2026-09-28)는 그림이 작아 영역 안에 문장을 넣지 않는다 — 로딩은 같은 크기의 회색 원, 실패는 자리표시 캐릭터 + 카드 안 원인 문장·다시 불러오기로 표현한다([SCREEN_STATES §6.4](../product/requirements/SCREEN_STATES.md)). 마이페이지 저장 이미지도 같은 날 같은 방식(동그란 그림 + 순위·유형 이름 한 줄)으로 바꿨다. 두 화면은 `components/ui/PersonaAvatar`의 `usePersonaImageRetry`·`PersonaImageError`를 함께 쓰고, 큰 칸을 그리던 `PersonaImageBlock`은 쓰는 곳이 없어 지웠다.
 - 에셋 폴더의 기록(README)에는 출처·버전·라이선스·해시와 함께 **사용처와 사용 금지 조건**을 적는다. 프로토타입 전용 에셋은 제품 화면에 쓰지 않는다는 사실을 금지 조건으로 적는다.
 - 아이콘은 `react-native-svg`로 그린다. 제품 공용 아이콘은 `frontend/mobile/src/components/icons/**`에 두고, 24×24 격자에 굵기 2, 둥근 끝·둥근 모서리를 공유한다. 색은 토큰으로 맞추고 아이콘 버튼에는 접근 가능한 이름을 준다.
   2026-09-22 Step 7에는 `View` 도형으로 그리기로 했으나, 도형을 겹치는 방식은 아이콘마다 굵기와 모서리가 달라져 급조한 인상을 줬다. 2026-09-27 디자인 리뷰 #4에서 이 결정을 뒤집었다.
 - 아이콘 이외의 장식 그림(손님 유형 자리표시 캐릭터)도 같은 디렉터리에 두고 `colors.illustration` 토큰만 쓴다. 이 색은 장식 전용이라 본문·상태색과 섞지 않으며, 유형을 색으로 구분하지 않는다.
+  2026-09-28 사용자 선택으로 자리표시 캐릭터를 **서로 다른 세 사람**(안경 쓴 짧은 머리, 올림머리에 귀걸이, 모자에 후드)으로 바꿨다. 순위 자리마다 모습이 정해지고 유형과 짝짓지 않는다. 이목구비는 점·짧은 선으로만 둔다. 도형은 `components/icons/guestCharacterShapes.ts` 한 곳에 두고 앱과 Figma 보드 생성기가 함께 읽는다. 옷은 자기 배경과, 눈·눈썹은 얼굴색과 3:1 이상이어야 한다(`verify:tokens`).
 
 ---
 
@@ -291,7 +292,7 @@ default / hover / focus / active / disabled / loading / error
 loading / empty / error / normal
 ```
 
-로딩 자리표시는 `background.emphasized` 영역과 무엇을 불러오는지 알리는 문장으로 만든다. 자리표시가 실제 결과 수치나 이미지처럼 보이게 하지 않고, 모션 감소 설정에서는 반복 반짝임을 끈다.
+로딩 자리표시는 `background.emphasized` 영역과 무엇을 불러오는지 알리는 문장으로 만든다(예외: 결과 화면 요약 카드의 작은 그림은 문장 없는 회색 원 — §3.6). 자리표시가 실제 결과 수치나 이미지처럼 보이게 하지 않고, 모션 감소 설정에서는 반복 반짝임을 끈다.
 
 정상 결과의 TOP3 페르소나 이미지 3개는 P0 완료 조건이다. 유형 부족 결과에서는 실제 도출된 모든 페르소나 이미지가 있어야 완료 상태로 표현한다.
 
@@ -302,7 +303,7 @@ loading / empty / error / normal
 | 컴포넌트 | 책임 | 경로 |
 |---|---|---|
 | AuthMethodSelector | Google 로그인과 서비스 자체 로그인 진입 선택 | 미구현 — Google 로그인은 앱 식별자·OAuth 설정이 정해진 뒤(§13) |
-| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·전화번호 입력과 오류·제출 상태 | `frontend/mobile/src/features/auth/LoginScreen.tsx`·`SignupScreen.tsx` (입력 한 칸은 `components/ui/TextField.tsx`, 동의는 `components/ui/CheckRow.tsx`) |
+| CredentialForm | 로그인은 이메일·비밀번호, 자체 계정 가입은 이메일·비밀번호·비밀번호 확인·전화번호 입력과 오류·제출 상태 | `frontend/mobile/src/features/auth/LoginScreen.tsx`·`SignupScreen.tsx` (입력 한 칸은 `components/ui/TextField.tsx`, 동의는 `components/ui/CheckRow.tsx`) |
 | StoreInput | 가게 이름·업종·네이버 가게 URL 입력과 검증 안내 | `frontend/mobile/src/features/analysis/AnalyzeScreen.tsx` |
 | StoreConfirmation | 입력값과 URL에서 확인한 매장 정보 대조 | 미구현 — API 없음(SCREEN_STATES §4.3) |
 | AnalysisProgress | 수집·분석 단계와 현재 상태 표시 | `frontend/mobile/src/components/ui/ProgressList.tsx` |
@@ -363,7 +364,7 @@ loading / empty / error / normal
 | SC-004 결과 요약 | 포디움에서 선택한 페르소나의 4개 관점을 동일한 정보 계층으로 제공하되 우선순위를 먼저 인지할 수 있게 한다 |
 | SC-005 근거 상세 | 닉네임·프로필 없이 리뷰 본문과 필요한 메타데이터만 제공 |
 | SC-006 손님 유형 | **TOP3 시상대를 화면 맨 위에** 두고(2026-09-27 디자인 리뷰 #3) 유형이 있으면 최초 1위를 선택한다. 1위를 가운데 가장 높게 두어 순위를 배치로도 알린다. 분석 메타정보는 결과를 다 읽은 뒤 신뢰도를 판단하는 자리라 맨 아래에 둔다. 이미지보다 유형명·관찰 특성·근거·한계가 우선이며 유형 부족 시 빈 슬롯과 이유를 표시한다. 유형이 0개면 선택 콘텐츠를 표시하지 않는다 |
-| SC-007 페르소나 이미지 | AI 생성 고지와 대체 텍스트를 제공하고, 정상 결과는 3개, 유형 부족 결과는 도출된 모든 이미지가 준비되기 전까지 완료 상태로 표시하지 않음 |
+| SC-007 페르소나 이미지 | 결과 화면에서는 시상대와 선택 유형 요약 카드의 동그란 그림으로 보여 주고(2026-09-28, 큰 이미지 칸 대신), AI 생성 고지와 대체 텍스트를 제공하고, 정상 결과는 3개, 유형 부족 결과는 도출된 모든 이미지가 준비되기 전까지 완료 상태로 표시하지 않음 |
 | SC-008 실행 제안 | 리뷰 사실과 검토할 행동을 먼저 보여주고 AI 해석·전문 지식은 펼쳐서 확인하게 한다 |
 | SC-009 오류·한계 | 원인, 현재 상태, 사용자가 할 수 있는 다음 행동을 함께 제공 |
 | SC-010 결과 저장 | 첫 결과 자동 저장은 별도 완료 화면으로 알린다. 새 결과 미리보기에는 교체·유지 선택을 하단에 고정하고, 교체만 확인 대화상자를 거친다([Step 5 합성](synthesis/TASK-020/README.md)) |

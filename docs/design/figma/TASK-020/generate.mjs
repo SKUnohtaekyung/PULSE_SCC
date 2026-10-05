@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { colors, radii, spacing, strokes, typography } from '../../../../frontend/mobile/src/design/tokens/foundation.ts';
+import { guestCharacterShapes } from '../../../../frontend/mobile/src/components/icons/guestCharacterShapes.ts';
 import { PHONE_H, PHONE_W, measure } from './shared.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -395,10 +396,20 @@ const analysisInfo = (y, { date = '2026.09.18', collected = 84, valid = 59 } = {
 };
 
 // slots: [{ kind: 'filled'|'empty', key, name, selected, reason }]
-/** 앱의 `components/icons/GuestCharacter.tsx`와 같은 64×64 그림. 중심과 지름을 받아 그린다. */
+/** 앱의 `components/icons/GuestCharacter.tsx`와 같은 64×64 그림. 도형은 앱과 같은 `guestCharacterShapes.ts`에서 읽는다. */
 let guestClipCount = 0;
+const guestShape = (shape) => {
+  const paint =
+    ` fill="${shape.fill ?? 'none'}"` +
+    (shape.fillOpacity !== undefined ? ` fill-opacity="${shape.fillOpacity}"` : '') +
+    (shape.opacity !== undefined ? ` opacity="${shape.opacity}"` : '') +
+    (shape.stroke ? ` stroke="${shape.stroke}" stroke-width="${shape.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"` : '');
+  if (shape.type === 'circle') return `<circle cx="${shape.cx}" cy="${shape.cy}" r="${shape.r}"${paint}/>`;
+  if (shape.type === 'ellipse') return `<ellipse cx="${shape.cx}" cy="${shape.cy}" rx="${shape.rx}" ry="${shape.ry}"${paint}/>`;
+  return `<path d="${shape.d}"${paint}/>`;
+};
 const guestCharacter = (cx, cy, size, variant = 0) => {
-  const bg = colors.illustration.backgrounds[Math.abs(variant) % colors.illustration.backgrounds.length];
+  const { background, shapes } = guestCharacterShapes(variant, colors.illustration);
   const k = size / 64;
   // 앱처럼 원으로 자른다. 어깨 아래 모서리가 원 밖으로 나가지 않는다. id는 보드 안에서 겹치지 않게 센다.
   const clipId = 'guest-clip-' + ++guestClipCount;
@@ -406,14 +417,8 @@ const guestCharacter = (cx, cy, size, variant = 0) => {
     `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${k})">` +
     `<clipPath id="${clipId}"><circle cx="32" cy="32" r="32"/></clipPath>` +
     `<g clip-path="url(#${clipId})">` +
-    `<circle cx="32" cy="32" r="32" fill="${bg}"/>` +
-    `<path d="M12 64c0-11 9-19 20-19s20 8 20 19H12Z" fill="${colors.brand.primary}"/>` +
-    `<rect x="27" y="38" width="10" height="8" rx="3" fill="${colors.illustration.skinShade}"/>` +
-    `<circle cx="32" cy="28" r="13" fill="${colors.illustration.skin}"/>` +
-    `<path d="M19 27a13 13 0 0 1 26 0c0-4-4-5-7-6-3-1-5-3-9-2s-6 3-7 5-3 2-3 3Z" fill="${colors.text.strong}"/>` +
-    `<circle cx="27" cy="28" r="1.7" fill="${colors.text.strong}"/>` +
-    `<circle cx="37" cy="28" r="1.7" fill="${colors.text.strong}"/>` +
-    `<path d="M28.5 33.5a4.5 4.5 0 0 0 7 0" fill="none" stroke="${colors.text.strong}" stroke-width="1.6" stroke-linecap="round"/>` +
+    `<circle cx="32" cy="32" r="32" fill="${background}"/>` +
+    shapes.map(guestShape).join('') +
     '</g></g>'
   );
 };
@@ -661,29 +666,79 @@ const leaveDialog = () =>
       quietButton(44, 454, PHONE_W - 88, '계속 보기'),
   );
 
-const screenImageStates = () =>
-  resultHeader() +
-  ['loading', 'error']
-    .map((kind, index) => {
-      const y = 96 + index * 230;
-      return card(
-        PAD,
-        y,
-        W,
-        210,
-        rect(PAD + 20, y + 20, 120, 120, { fill: colors.background.emphasized, r: radii.control }) +
-          (kind === 'loading'
-            ? text(PAD + 80, y + 70, ['이미지를', '불러오는 중'], typography.caption, colors.text.secondary, { anchor: 'middle' })
-            : text(PAD + 80, y + 40, '!', typography.body5, colors.status.warningText, { anchor: 'middle' }) +
-              text(PAD + 80, y + 64, ['이미지를 불러오지', '못했어요'], typography.caption, colors.text.secondary, { anchor: 'middle' }) +
-              text(PAD + 80, y + 110, '다시 불러오기', typography.body6, colors.text.brand, { anchor: 'middle' })) +
-          text(PAD + 156, y + 30, '1위 손님 유형', typography.caption, colors.text.brand) +
-          text(PAD + 156, y + 50, '추억 재방문형', typography.head5, colors.text.strong) +
-          text(PAD + 156, y + 84, ['변함없는 맛을', '다시 찾는 방문'], typography.body7, colors.text.secondary),
+/**
+ * 선택한 유형 요약 카드(앱 `ResultView`의 `PersonaStatsCard`, 2026-09-28 F안).
+ * 왼쪽 그림 · 순위 · 리뷰 수 · 분석한 리뷰 대비 비율 막대 · 관점별 근거 수 칩. 수치는 가상 데이터(1위 24건 / 67건)다.
+ */
+const statChips = (x, y, maxW) => {
+  const items = [['먼저 볼 것', '12건'], ['잘하고 있는 점', '18건'], ['손님이 불편해한 점', '11건'], ['손님이 기억하는 모습', '9건']];
+  let cx = x;
+  let cy = y;
+  const svgText = items
+    .map(([label, count]) => {
+      const w = measure(label + ' ', typography.caption.fontSize) + measure(count, typography.caption.fontSize) + 24;
+      if (cx + w > x + maxW) {
+        cx = x;
+        cy += 30;
+      }
+      const chip = group(
+        `StatChip/${label}`,
+        rect(cx, cy, w, 24, { fill: colors.background.subtle, stroke: colors.border.default, r: 12 }) +
+          text(cx + 12, cy + 3, label, typography.caption, colors.text.secondary) +
+          text(cx + 12 + measure(label + ' ', typography.caption.fontSize), cy + 3, count, typography.caption, colors.text.brand, { weight: 600 }),
       );
+      cx += w + 8;
+      return chip;
     })
-    .join('') +
-  bottomNav('home');
+    .join('');
+  // 칩이 몇 줄로 접혔는지에 따라 카드 높이가 달라진다. 마지막 줄 바닥을 함께 돌려준다.
+  return { svg: svgText, bottom: cy + 24 };
+};
+
+const statsCard = (y, kind) => {
+  const x0 = PAD + 16;
+  const x1 = x0 + 80;
+  const barW = W - 16 - 80 - 16;
+  const errorH = kind === 'error' ? 72 : 0;
+  const chips = statChips(x0, y + 112 + errorH, W - 32);
+  const h = chips.bottom + 16 - y;
+  const svgText = card(
+    PAD,
+    y,
+    W,
+    h,
+    (kind === 'loading'
+      ? circle(x0 + 32, y + 48, 32, { fill: colors.background.emphasized })
+      : guestCharacter(x0 + 32, y + 48, 64, 0)) +
+      text(x1, y + 18, '1위 손님', typography.caption, colors.text.secondary) +
+      text(x1, y + 36, '리뷰 24건', typography.body1, colors.text.strong) +
+      rect(x1, y + 66, barW, 8, { fill: colors.background.emphasized, r: 4 }) +
+      rect(x1, y + 66, Math.round((barW * 36) / 100), 8, { fill: colors.brand.primary, r: 4 }) +
+      text(x1, y + 80, '분석한 리뷰 67건 중 36%', typography.caption, colors.text.secondary) +
+      (kind === 'error'
+        ? text(x0, y + 112, ['이미지를 불러오지 못했어요.', '손님 유형 내용은 그대로 볼 수 있어요.'], typography.caption, colors.text.secondary) +
+          text(x0, y + 152, '이미지 다시 불러오기', typography.body6, colors.text.brand)
+        : '') +
+      chips.svg,
+  );
+  return { svg: svgText, bottom: y + h };
+};
+
+const screenImageStates = () => {
+  const loading = statsCard(122, 'loading');
+  const errorTop = loading.bottom + 16;
+  const error = statsCard(errorTop + 22, 'error');
+  // 두 번째 카드 바닥이 가운데 분석하기 버튼 위쪽 끝(708)보다 위에 와야 한다.
+  if (error.bottom > PHONE_H - 72 + 10 - 28 - 2) throw new Error('이미지 상태 카드가 하단 내비에 가린다');
+  return (
+    resultHeader() +
+    text(PAD, 100, '불러오는 중 — 자리만 회색 원으로 유지', typography.caption, colors.text.secondary) +
+    loading.svg +
+    text(PAD, errorTop, '불러오지 못함 — 캐릭터로 바꾸고 다시 불러오기', typography.caption, colors.text.secondary) +
+    error.svg +
+    bottomNav('home')
+  );
+};
 
 // ---------- 인증·로딩·빈 상태 화면 (2026-09-27 추가) ----------
 // SCREEN_STATES §3(앱 시작·인증)과 §6·§8의 로딩·빈 상태를 옮긴 것이다.
@@ -744,15 +799,18 @@ const screenSignup = ({ outdated = false } = {}) => {
   body += pageTitle(PAD, y, '이메일로 가입해요');
   y += 56;
   if (outdated) {
-    body += errorNotice(PAD, y, W, '약관이 바뀌었어요', ['새 약관을 다시 받아왔어요. 내용을 확인하고', '다시 동의해 주세요. 비밀번호는 안전을 위해', '지웠으니 다시 입력해 주세요.'], { tone: 'warning' });
+    body += errorNotice(PAD, y, W, '약관이 바뀌었어요', ['새 약관을 다시 받아왔어요. 내용을 확인하고', '다시 동의해 주세요. 비밀번호는 안전을 위해', '지웠으니 확인 칸까지 다시 입력해 주세요.'], { tone: 'warning' });
     y += 128; // 안내 높이 112 + 16
   }
   const inner =
     field(PAD + 20, y + 20, W - 40, '이메일', 'owner@example.com') +
     field(PAD + 20, y + 120, W - 40, '비밀번호', '8자 이상', { placeholder: true }) +
-    field(PAD + 20, y + 220, W - 40, '전화번호', '010-1234-5678', { placeholder: true });
-  body += card(PAD, y, W, 320, inner);
-  y += 336;
+    field(PAD + 20, y + 220, W - 40, '비밀번호 확인', '', { placeholder: true }) +
+    field(PAD + 20, y + 320, W - 40, '전화번호', '010-1234-5678', { placeholder: true });
+  body += card(PAD, y, W, 420, inner);
+  y += 436;
+  // 안내가 붙으면 약관 동의·가입하기는 첫 화면 아래로 밀린다. 앱은 스크롤하므로 보드는 첫 화면만 그린다.
+  if (y + 28 + 72 + 52 > PHONE_H) return body; // 제목 28 + 동의 두 줄 72 + 버튼 52
   body += text(PAD, y, '약관 동의', typography.body6, colors.text.strong);
   y += 28;
   [['이용약관 (v2026-09-01)'], ['개인정보 처리방침 (v2026-09-01)']].forEach(([label], index) => {
@@ -824,10 +882,39 @@ const screenMyPage = () => {
       rect(PAD + W - 76, y + 56, 52, 30, { fill: colors.brand.primary, r: radii.pill }) +
       circle(PAD + W - 38, y + 71, 12, { fill: colors.background.surface }),
   );
-  y += 124;
-  body += card(PAD, y, W, 132, text(PAD + 20, y + 14, '저장된 결과의 손님 유형 이미지', typography.body6, colors.text.strong) + [0, 1, 2].map((index) => guestCharacter(PAD + 52 + index * 84, y + 78, 64, index)).join(''));
-  y += 148;
-  body += outlineButton(PAD, y, W, '로그아웃');
+  // 저장 이미지 카드와 로그아웃은 스크롤 아래에 있다. 앱 캡처처럼 따로 그린다(screenMyPageImages).
+  body += bottomNav('mypage');
+  return body;
+};
+
+/** 마이페이지 스크롤 아래 — 저장된 결과의 손님 유형 이미지(앱 `MyPageScreen`의 StoredPersonaRow, 2026-09-28). */
+const screenMyPageImages = () => {
+  let body = appHeader({ brand: true, badge: '마이페이지' });
+  const y = HEADER_H + 20;
+  const rows = [
+    ['추억 재방문형', 0],
+    ['매운맛 조절형', 1],
+    ['혼밥 안심형', 2],
+  ];
+  const rowTop = y + 86;
+  const inner =
+    text(PAD + 20, y + 14, '저장된 결과의 손님 유형 이미지', typography.body6, colors.text.strong) +
+    text(PAD + 20, y + 42, ['예시 화면이라 그림 대신 자리표시를 보여 드려요.', '실제 서버에서는 AI가 만든 가상 이미지가 나와요.'], typography.caption, colors.text.secondary) +
+    rows
+      .map(([label, index]) => {
+        const ry = rowTop + index * 80;
+        return group(
+          `StoredPersonaRow/${label}`,
+          guestCharacter(PAD + 20 + 32, ry + 32, 64, index) +
+            text(PAD + 100, ry + 12, `${index + 1}위 손님`, typography.caption, colors.text.secondary) +
+            text(PAD + 100, ry + 32, label, typography.body6, colors.text.strong),
+        );
+      })
+      .join('') +
+    text(PAD + 20, rowTop + 240, ['읽기 전용이에요. 새 결과로 바꾸면', '이미지도 함께 바뀌어요.'], typography.caption, colors.text.secondary);
+  const cardH = rowTop + 240 + 36 + 20 - y;
+  body += card(PAD, y, W, cardH, inner);
+  body += outlineButton(PAD, y + cardH + 16, W, '로그아웃');
   body += bottomNav('mypage');
   return body;
 };
@@ -1066,7 +1153,7 @@ const boards = {
     { name: 'Auth-Error', caption: '로그인 실패 (AUTH-ERROR)', body: screenLogin({ error: true }), options: {} },
     { name: 'Signup-LegalLoading', caption: '약관 조회 중 (AUTH-LEGAL-LOADING)', body: screenSignupLegalLoading(), options: {} },
     { name: 'Signup-Editing', caption: '가입 입력 (AUTH-SIGNUP-EDITING)', body: screenSignup(), options: {} },
-    { name: 'Signup-ConsentOutdated', caption: '약관 변경 (AUTH-CONSENT-OUTDATED)', body: screenSignup({ outdated: true }), options: {} },
+    { name: 'Signup-ConsentOutdated', caption: '약관 변경 (AUTH-CONSENT-OUTDATED) — 동의·가입하기는 스크롤 아래', body: screenSignup({ outdated: true }), options: {} },
   ]),
   '10-final-loading-empty.svg': phonesBoard('10 · Final UI — 로딩·빈 상태·마이페이지', 'SCREEN_STATES §6·§8. 결과를 불러오는 중과 보여 줄 것이 없을 때, 그리고 마이페이지·근거 목록', [
     { name: 'Home-Loading', caption: '홈 조회 중 (HOME-LOADING)', body: screenHomeLoading(), options: {} },
@@ -1074,9 +1161,10 @@ const boards = {
     { name: 'Result-Error', caption: '결과 조회 실패 (RESULT-ERROR)', body: screenResultError(), options: {} },
     { name: 'Evidence-LoadingMore', caption: '근거 목록 — 더 불러오는 중', body: screenEvidence(), options: {} },
     { name: 'Evidence-End', caption: '근거 목록 끝 (EVIDENCE-END)', body: screenEvidence({ end: true }), options: {} },
-    { name: 'MyPage', caption: '마이페이지 (MYPAGE-NORMAL)', body: screenMyPage(), options: {} },
+    { name: 'MyPage', caption: '마이페이지 위쪽 (MYPAGE-NORMAL)', body: screenMyPage(), options: {} },
+    { name: 'MyPage-Images', caption: '스크롤 아래 — 저장 이미지 (STORED-IMAGES-NORMAL)', body: screenMyPageImages(), options: {} },
   ]),
-  '08-final-result-states.svg': phonesBoard('08 · Final UI — 결과 상태', '빈 칸은 점선. 이미지 로딩(IMAGE-LOADING)은 채운 회색 영역과 문장, 조회 실패(IMAGE-LOAD-ERROR)는 같은 영역에 주의 아이콘·문장·다시 불러오기', [
+  '08-final-result-states.svg': phonesBoard('08 · Final UI — 결과 상태', '빈 칸은 점선. 선택 유형 요약 카드의 이미지 로딩(IMAGE-LOADING)은 회색 원, 조회 실패(IMAGE-LOAD-ERROR)는 캐릭터 + 문장 + 다시 불러오기', [
     {
       name: 'Result-Partial',
       caption: '유형 2개만 찾음',
