@@ -2,7 +2,7 @@
 
 ## Status
 
-Step 5 합성안([synthesis/TASK-020](../../synthesis/TASK-020/README.md))을 팀 Figma에 옮기기 위한 SVG 보드 10장이다. 2026-09-22에 Step 5 합성 범위로 8장을 만들었고, 2026-09-27에 인증·로딩·빈 상태 보드 2장을 더하면서 화면 보드를 새 디자인으로 다시 뽑았다. [발표 자료](../../../presentation/README.md)와 같은 방식으로 SVG를 만들어 Figma에 넣는다(2026-09-22 사용자 선택).
+Step 5 합성안([synthesis/TASK-020](../../synthesis/TASK-020/README.md))을 팀 Figma에 옮기기 위한 SVG 보드 11장이다(보드 11 태블릿 크기는 2026-10-02 TASK-028에서 추가, 아래 "2026-10-02 보드 11"). 2026-09-22에 Step 5 합성 범위로 8장을 만들었고, 2026-09-27에 인증·로딩·빈 상태 보드 2장을 더하면서 화면 보드를 새 디자인으로 다시 뽑았다. [발표 자료](../../../presentation/README.md)와 같은 방식으로 SVG를 만들어 Figma에 넣는다(2026-09-22 사용자 선택).
 
 **2026-09-22 import:** https://www.figma.com/design/lIEsVWuCpKr2SzvYeu2EzZ — `lawyland` 팀의 내 드래프트, 파일 `PULSE TASK-020 Vertical Slice`, 페이지 `TASK-020 Vertical Slice`. 팀 공용 파일로 옮기는 것은 사용자가 정한다.
 
@@ -29,7 +29,7 @@ docs/design/figma/TASK-020/
 ├─ generate.mjs    svg/를 만드는 스크립트 (토큰을 foundation.ts에서 읽는다)
 ├─ shared.mjs     생성기와 검사기가 같이 쓰는 화면 크기·글자 폭 근사
 ├─ check.mjs      보드의 이탈·겹침·가림·관통·도형 이탈 검사
-└─ svg/            Figma에 넣을 보드 10장
+└─ svg/            Figma에 넣을 보드 11장
 ```
 
 | 파일 | 내용 | preview.html Step 6 항목 |
@@ -44,6 +44,7 @@ docs/design/figma/TASK-020/
 | `08-final-result-states.svg` | 유형 부족·유형 0개·이미지 로딩·조회 실패 | Final UI |
 | `09-final-auth.svg` | 앱 시작·세션 복원·시작 실패·로그인 3종·가입 3종 | Final UI (2026-09-27 추가) |
 | `10-final-loading-empty.svg` | 홈 조회 중·저장본 없음·결과 조회 실패·근거 목록 2종·마이페이지 | Final UI (2026-09-27 추가) |
+| `11-final-tablet.svg` | 태블릿 크기 — 가로 1280×800 홈 위쪽·관점 카드 2열·마이페이지 3칸, 세로 800×1280 홈 | Final UI (2026-10-02 추가, TASK-028) |
 
 보드에 없는 상태:
 
@@ -53,7 +54,7 @@ docs/design/figma/TASK-020/
 
 이 목록은 SCREEN_STATES의 상태를 전수 대조한 것이 아니라 위 네 가지만 확인한 결과다.
 
-휴대폰 화면은 360×800 기준이다. 페르소나 이미지는 파일 크기를 줄이려고 240px로 축소해 넣었다(원본은 `frontend/mobile/assets/images/personas/prototype/`).
+휴대폰 화면은 360×800 기준이다. 태블릿 화면(보드 11)은 가로 1280×800·세로 800×1280이다. 페르소나 이미지는 파일 크기를 줄이려고 240px로 축소해 넣었다(원본은 `frontend/mobile/assets/images/personas/prototype/`).
 
 ## 2026-09-27 갱신 — 발표 시안과 디자인 리뷰 반영
 
@@ -103,6 +104,25 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
 
 `frontend/mobile/node_modules`가 있어야 한다(이미지 축소에 `jimp-compact`를 쓴다). 설치는 `npm --prefix frontend/mobile install`.
 
+## 2026-10-02 보드 11 — 태블릿 크기 (TASK-028)
+
+앱의 넓은 화면 배치([DESIGN_SYSTEM §7.1](../../DESIGN_SYSTEM.md))를 그린 보드다. 근거 캡처는 [evidence/TASK-020 README](../../evidence/TASK-020/README.md) "태블릿 크기 화면 배치" 절이다.
+
+| 프레임 | 크기 | 담은 것 |
+|---|---|---|
+| `Tablet-Landscape-Home` | 1280×800 | 홈 위쪽. 헤더·본문이 같은 960 기둥(좌우 여백 32), `리뷰 수 순서`는 제목 줄 오른쪽 끝 |
+| `Tablet-Landscape-Cards` | 1280×800 | 내려 본 화면. 요약 카드는 한 줄 전체, 관점 카드 `먼저 볼 것`·`잘하고 있는 점` 2열. 둘째 줄(불편한 점·기억하는 모습)은 프레임 밖 — 같은 규칙 |
+| `Tablet-Landscape-MyPage` | 1280×800 | 마이페이지 저장 이미지. 본문 640, 이미지만 3칸 |
+| `Tablet-Portrait-Home` | 800×1280 | 세로 홈. 1열 640(좌우 여백 24), 요약 카드까지 |
+
+- 네 프레임 모두 하단 내비 띠는 화면 전체 폭, 항목 3개는 가운데 640 안에 3등분이다.
+- 크기는 dp 그대로다(확인에 쓴 Pixel Tablet AVD). 더 큰 화면(아이패드 프로 13 가로 1376, 갤럭시 탭 S10 Ultra 가로 1480 가정)에서도 본문은 960에서 더 넓어지지 않고 가운데에 남는다 — 보드에는 그리지 않았고 캡처 `tablet-16`·`tablet-17`이 근거다.
+- 생성기 변경: `appHeader`·`podium`·`statsCard`·`bottomNav`에 폭 옵션을 더했다. 기본값은 휴대폰 값이라 보드 01~10은 다시 뽑아도 한 글자도 바뀌지 않는다(`git status`로 확인). 태블릿 시상대 이름은 앱처럼 한 줄이다.
+- 검사기 변경: 화면 프레임 크기를 그룹의 `data-frame-w`·`data-frame-h`에서 읽는다(없으면 360×800). 프레임 밖 x=1300에 글자를 일부러 넣어 `이탈 118px`로 잡히는 것을 확인한 뒤 되돌렸다.
+- 미확인: Figma에 넣은 모습(아직 넣지 않음), 실제 Pretendard로 그렸을 때의 칩 글자 간격 — 이 PC의 Edge 렌더링에는 Pretendard가 적용되지 않아 칩의 `12건`이 떨어져 보였다.
+
+**Figma에 넣을 때:** 이번에는 `svg/11-final-tablet.svg` 한 장만 넣는다(보드 01~10은 바뀌지 않았다). 위 "Figma에 넣는 법"대로 Pretendard 설치·Figma 재시작을 먼저 확인한다. 기존 배치를 이으면 X=0, Y=15360이다(보드 10의 Y 13840 + 높이 1120 + 간격 400, SVG `height`에서 계산한 값).
+
 ## Import 결과 (2026-09-28)
 
 사용자가 Figma 데스크톱 앱에서 직접 넣었다. 아래는 **사용자 보고**이고, Figma MCP가 막혀 에이전트가 파일을 열어 보거나 스크린샷을 찍지는 못했다.
@@ -150,7 +170,7 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/design/figma/TASK-020/c
   |---|---|
   | 검사 | 내용 | 대상 |
   |---|---|---|
-  | 이탈 | 글자가 휴대폰 화면의 좌·우·아래로 나가는가 | 화면 프레임 안 글자 |
+  | 이탈 | 글자가 화면 프레임(휴대폰 360×800, 보드 11은 프레임의 `data-frame-w`·`h`)의 좌·우·아래로 나가는가 | 화면 프레임 안 글자 |
   | 겹침 | 같은 묶음 안에서 글자끼리 포개지는가 | 모든 글자 |
   | 가림 | 나중에 그린 불투명 사각형·원이 글자를 **반 글자 넓이보다 많이** 덮는가. 원은 원 모양 그대로, 테두리가 있으면 선 두께 절반만큼 바깥까지 잰다 | 모든 글자 |
   | 관통 | 사각형·원의 테두리 선(점선 포함)이 글자 상자를 가로지르는가. 그린 순서와 무관 | 모든 글자 |
