@@ -101,6 +101,17 @@ const contrastChecks = [
   ['삭제 텍스트 / 삭제 버튼', colors.destructive.onPrimary, colors.destructive.primary, accessibility.contrast.normalText],
   ['삭제 링크 / 카드', colors.destructive.text, colors.background.surface, accessibility.contrast.normalText],
   ['삭제 링크 / 화면 배경', colors.destructive.text, colors.background.canvas, accessibility.contrast.normalText],
+  ...Object.entries(colors.perspective).flatMap(([name, tone]) => [
+    [`관점 이름(${name}) / 카드`, tone.text, colors.background.surface, accessibility.contrast.normalText],
+    [`관점 아이콘(${name}) / 연한 바탕`, tone.accent, tone.tint, accessibility.contrast.nonText],
+    [`관점 강조선(${name}) / 카드`, tone.accent, colors.background.surface, accessibility.contrast.nonText],
+  ]),
+  ...Object.entries(colors.rank).map(([name, tone]) => [
+    `순위 숫자(${name}) / 순위 단상`,
+    tone.on,
+    tone.background,
+    accessibility.contrast.normalText,
+  ]),
 ];
 
 // 원래 값이 특정 배경에서 기준에 못 미친다는 사실을 고정해 둔다. 값을 바꾸면 규칙(DESIGN_SYSTEM §3.3)도 다시 본다.

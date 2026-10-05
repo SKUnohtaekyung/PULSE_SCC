@@ -1,5 +1,12 @@
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import type { ReactNode, RefObject } from 'react';
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, spacing } from '@/design/tokens';
@@ -43,6 +50,9 @@ export function Screen({
   scroll = true,
   verticalEdges = ['top'],
   wide = false,
+  scrollRef,
+  onScroll,
+  onBodyLayout,
 }: {
   children: ReactNode;
   header?: ReactNode;
@@ -57,6 +67,11 @@ export function Screen({
   verticalEdges?: ('top' | 'bottom')[];
   /** 넓은 화면에서 열을 늘리는 화면이면 true. expanded에서만 본문을 contentMaxWidth까지 넓힌다. */
   wide?: boolean;
+  /** 화면이 스크롤 위치를 직접 옮겨야 할 때 준다(결과 화면의 순위 바로가기). */
+  scrollRef?: RefObject<ScrollView | null>;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  /** 본문이 스크롤 내용 안에서 시작하는 높이(헤더 높이). 본문 안의 위치를 스크롤 위치로 바꿀 때 쓴다. */
+  onBodyLayout?: (y: number) => void;
 }) {
   const horizontalPadding = usePagePadding();
   const bodyMaxWidth = useBodyMaxWidth(wide);
@@ -65,6 +80,7 @@ export function Screen({
     <>
       {header}
       <View
+        onLayout={onBodyLayout ? (event) => onBodyLayout(event.nativeEvent.layout.y) : undefined}
         style={[
           styles.body,
           compact && styles.bodyCompact,
@@ -95,6 +111,9 @@ export function Screen({
               centered && styles.contentCentered,
             ]}
             keyboardShouldPersistTaps="handled"
+            onScroll={onScroll}
+            ref={scrollRef}
+            scrollEventThrottle={onScroll ? 64 : undefined}
             showsVerticalScrollIndicator={false}
           >
             {body}

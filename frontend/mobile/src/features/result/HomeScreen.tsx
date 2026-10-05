@@ -15,7 +15,7 @@ import { Notice } from '@/components/ui/Notice';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { spacing } from '@/design/tokens';
-import { ResultView } from '@/features/result/ResultView';
+import { ResultJumpBar, ResultView, useResultNavigation } from '@/features/result/ResultView';
 import { useSession } from '@/session/SessionProvider';
 
 // SC-011 홈. HOME-LOADING → RESULT-SAVED-CONTEXT + (RESULT-NORMAL | PARTIAL | NO-PERSONA),
@@ -82,20 +82,28 @@ export function HomeScreen() {
   // 넓은 화면에서 960으로 넓히는 것은 결과를 보여 줄 때뿐이다. 불러오는 중·빈 상태·오류는 버튼과 안내 한 덩이라
   // 640 그대로 둔다(DESIGN_SYSTEM §7.1 — 넓히지 않는 화면과 같은 기준, TASK-028 리뷰).
   const wide = phase === 'ready' && result !== null;
+  const navigation = useResultNavigation(result);
 
   return (
     <Screen
       footer={
         phase === 'empty' ? null : (
           // 저장 결과가 없으면 홈과 하단 내비게이션을 표시하지 않는다(SCREEN_STATES 공통 불변식 4).
-          <BottomNavigation
-            active="home"
-            bottomInset={insets.bottom}
-            onAnalyze={() => router.navigate('/analyze')}
-            onMyPage={() => router.navigate('/mypage')}
-          />
+          <>
+            {/* 시상대가 화면 위로 사라진 뒤에만 나타난다. 다른 순위로 한 번에 넘어가게 한다. */}
+            {wide ? <ResultJumpBar navigation={navigation} /> : null}
+            <BottomNavigation
+              active="home"
+              bottomInset={insets.bottom}
+              onAnalyze={() => router.navigate('/analyze')}
+              onMyPage={() => router.navigate('/mypage')}
+            />
+          </>
         )
       }
+      onBodyLayout={navigation.onBodyLayout}
+      onScroll={navigation.onScroll}
+      scrollRef={navigation.scrollRef}
       header={<ScreenHeader brand badge="저장된 결과" wide={wide} />}
       wide={wide}
     >
@@ -137,6 +145,7 @@ export function HomeScreen() {
                 },
               })
             }
+            navigation={navigation}
             result={result}
           />
         </>

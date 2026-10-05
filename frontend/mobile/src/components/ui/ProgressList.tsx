@@ -35,6 +35,11 @@ export function ProgressList({
   const safeProgress = Math.max(0, Math.min(100, progress));
   const [animatedProgress] = useState(() => new Animated.Value(safeProgress));
   const failed = rows.some((row) => row.state === 'failed');
+  const running = rows.some((row) => row.state === 'running');
+  // 채워진 구간 안에서만 빛이 지나간다. 막대 길이는 서버가 확인해 준 단계에서만 바뀌므로
+  // 진행을 흉내 내지 않고 '지금도 일하는 중'이라는 것만 알린다(DESIGN_SYSTEM §9, 2026-10-05 팀 디자인 피드백 #11).
+  const [sweep] = useState(() => new Animated.Value(0));
+  const sweeping = running && !failed && !reduceMotion;
 
   useEffect(() => {
     if (reduceMotion) {
@@ -51,6 +56,25 @@ export function ProgressList({
     return () => animation.stop();
   }, [animatedProgress, reduceMotion, safeProgress]);
 
+  useEffect(() => {
+    if (!sweeping) {
+      sweep.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.timing(sweep, {
+        duration: sweepDurationMs,
+        easing: Easing.inOut(Easing.quad),
+        toValue: 1,
+        useNativeDriver: false,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [sweep, sweeping]);
+
+  const sweepLeft = sweep.interpolate({ inputRange: [0, 1], outputRange: ['-40%', '100%'] });
+
   const progressWidth = animatedProgress.interpolate({
     inputRange: [0, 100],
     outputRange: ['0%', '100%'],
@@ -63,7 +87,6 @@ export function ProgressList({
           <Text style={[styles.progressValue, failed && styles.progressValueFailed]}>{safeProgress}%</Text>
           <Text style={styles.progressStatus}>{progressStatus}</Text>
         </View>
-        <Text style={styles.progressBasis}>서버 단계 기준</Text>
       </View>
       <View
         accessibilityLabel={`분석 진행률 ${safeProgress}%`}
@@ -78,6 +101,7 @@ export function ProgressList({
             { width: progressWidth },
           ]}
         >
+          {sweeping ? <Animated.View style={[styles.progressSweep, { left: sweepLeft }]} /> : null}
           <View style={[styles.progressKnob, failed && styles.progressKnobFailed]} />
         </Animated.View>
       </View>
@@ -133,6 +157,7 @@ export function ProgressList({
 }
 
 const markerSize = 20;
+const sweepDurationMs = 1600;
 
 const styles = StyleSheet.create({
   card: {
@@ -164,10 +189,6 @@ const styles = StyleSheet.create({
     ...typography.body6,
     color: colors.text.primary,
   },
-  progressBasis: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
   progressTrack: {
     backgroundColor: colors.background.emphasized,
     borderRadius: radii.pill,
@@ -181,6 +202,15 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     minWidth: spacing[3],
+    overflow: 'hidden',
+  },
+  progressSweep: {
+    backgroundColor: colors.brand.onPrimary,
+    bottom: 0,
+    opacity: 0.25,
+    position: 'absolute',
+    top: 0,
+    width: '40%',
   },
   progressFillFailed: {
     backgroundColor: colors.status.errorText,

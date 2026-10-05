@@ -21,7 +21,6 @@ import { PageTitle } from '@/components/ui/PageTitle';
 import { ProgressList, type ProgressRow } from '@/components/ui/ProgressList';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { StepIndicator } from '@/components/ui/StepIndicator';
 import { TextField } from '@/components/ui/TextField';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 import {
@@ -36,28 +35,24 @@ import {
   readPendingAnalysis,
   writePendingAnalysis,
 } from '@/features/analysis/pendingAnalysisStorage';
+import { WaitingTips } from '@/features/analysis/WaitingTips';
 import { useSession } from '@/session/SessionProvider';
 
 // SC-001 가게 정보 입력 + SC-003 분석 진행. 한 화면에서 이어 보여준다(Step 5 합성).
+// 입력 세 칸은 한 화면에 모두 펼쳐 두고 스크롤로 이어 입력한다(DESIGN_SYSTEM §6 SC-001, 2026-10-05 결정).
 // 다루는 상태: STORE-INITIAL/EDITING/FIELD-ERROR/CREATING-JOB/UNSUPPORTED-URL/NOT-FOUND/JOB-ERROR/OFFLINE,
 // ANALYSIS-QUEUED/COLLECTING/(그 밖의 progressStep)/INSUFFICIENT/RETRYABLE-ERROR/FATAL-ERROR, SAVE-FIRST-*.
 // 상태 조회 자체가 실패한 경우(statusUnavailable)는 SC-003 표에 아직 없는 상태다(#34, 불변식 11 유추).
 
 type Phase = 'input' | 'creating' | 'progress' | 'failed' | 'completing';
 type FieldKey = 'name' | 'category' | 'url';
-type InputStep = 0 | 1 | 2;
 
 const categories = ['한식', '중식', '일식', '양식', '카페/디저트', '주점', '기타'] as const;
 
 const pollIntervalMs = 1200;
 
-// 입력은 한 화면에서 차례로 펼친다. 지금 어느 단계인지 위에서 알리고, 제목이 지금 할 일을 말한다.
-const inputSteps = ['가게 이름', '업종', '네이버 가게 주소'];
-const inputTitles = [
-  '가게 이름을 알려 주세요',
-  '어떤 업종인가요?',
-  '네이버 가게 주소를 붙여 넣어 주세요',
-];
+// 네이버 가게 주소를 어디서 복사하는지. 주소 칸 바로 아래에 작게 둔다(2026-10-05 팀 디자인 피드백 #17).
+const urlGuideSteps = ['네이버 지도에서 내 가게를 찾아요', '공유를 눌러요', '링크 복사를 누르고 여기에 붙여 넣어요'];
 
 const failureActionLabel = (failure: JobFailure) => {
   if (failure.kind === 'statusUnavailable') return '진행 상태 다시 확인';
@@ -81,8 +76,10 @@ export function AnalyzeScreen() {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [url, setUrl] = useState('');
-  const [activeStep, setActiveStep] = useState<InputStep>(0);
-  const [reachedStep, setReachedStep] = useState<InputStep>(0);
+  /** 저장된 결과의 가게 정보를 미리 채웠는가. 채운 뒤 사용자가 고치면 false로 돌린다. */
+  const [prefilled, setPrefilled] = useState(false);
+  /** 사용자가 입력을 시작했거나 진행 중이던 분석을 되살렸으면 true. 그 뒤에는 미리 채우지 않는다. */
+  const inputTouched = useRef(false);
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [formNotice, setFormNotice] = useState<{ title: string; message: string } | null>(null);
   const [offline, setOffline] = useState(false);
@@ -120,8 +117,8 @@ export function AnalyzeScreen() {
       setName(pending.storeName);
       setCategory(pending.category);
       setUrl(pending.naverPlaceUrl);
-      setActiveStep(2);
-      setReachedStep(2);
+      inputTouched.current = true;
+      setPrefilled(false);
       setJobId(pending.jobId);
       const restoredSteps = pending.progressSteps.length > 0 ? pending.progressSteps : ['QUEUED'];
       stepsRef.current = restoredSteps;
@@ -136,42 +133,43 @@ export function AnalyzeScreen() {
     };
   }, [user]);
 
-  const nextIncomplete = (nextName = name, nextCategory = category): InputStep =>
-    !nextName.trim() ? 0 : !nextCategory ? 1 : 2;
+  // 다시 분석하는 사용자가 같은 가게 정보를 또 입력하지 않게, 저장된 결과의 가게 정보를 미리 채운다
+  // (2026-10-05 팀 디자인 피드백 #8). 불러오지 못해도 빈 칸으로 시작하면 되므로 오류를 띄우지 않는다.
+  useEffect(() => {
+    if (!user?.hasSavedAnalysis) return;
+    let cancelled = false;
+    void getSavedAnalysis(client)
+      .then((saved) => {
+        if (cancelled || inputTouched.current) return;
+        // 업종이 지금 목록에 없으면 그대로 다시 분석할 수 없다. 그때는 채우기만 하고 '그대로 분석' 안내는 하지 않는다.
+        const knownCategory = (categories as readonly string[]).includes(saved.store.category);
+        setName(saved.store.name);
+        if (knownCategory) setCategory(saved.store.category);
+        setUrl(saved.store.naverPlaceUrl);
+        setPrefilled(knownCategory);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [client, user?.hasSavedAnalysis]);
 
-  const openStep = (step: InputStep) => {
-    setActiveStep(step);
-    setReachedStep((reached) => (step > reached ? step : reached));
+  const markEdited = () => {
+    inputTouched.current = true;
+    setPrefilled(false);
   };
 
   const clearError = (key: FieldKey) =>
     setErrors((current) => (current[key] ? { ...current, [key]: undefined } : current));
 
-  const confirmName = () => {
-    if (!name.trim()) {
-      setErrors((current) => ({ ...current, name: '가게 이름을 입력해 주세요.' }));
-      return;
-    }
-    setErrors((current) => ({ ...current, name: undefined }));
-    openStep(nextIncomplete());
-  };
-
-  const chooseCategory = (item: string) => {
-    setCategory(item);
-    setErrors((current) => ({ ...current, category: undefined }));
-    openStep(nextIncomplete(name, item));
-  };
-
   const validate = () => {
     const next: Partial<Record<FieldKey, string>> = {};
     if (!name.trim()) next.name = '가게 이름을 입력해 주세요.';
     if (!category) next.category = '업종을 하나 골라 주세요.';
-    if (!url.trim()) next.url = '네이버 가게 URL을 입력해 주세요.';
+    if (!url.trim()) next.url = '네이버 가게 주소를 붙여 넣어 주세요.';
     else if (!isNaverPlaceUrl(url))
       next.url = '네이버 가게 주소만 분석할 수 있어요. naver.me 또는 naver.com 주소를 넣어 주세요.';
     setErrors(next);
-    if (next.name) setActiveStep(0);
-    else if (next.category) setActiveStep(1);
     return Object.keys(next).length === 0;
   };
 
@@ -191,7 +189,6 @@ export function AnalyzeScreen() {
           ...current,
           url: '지원하는 네이버 가게 주소를 입력해 주세요. naver.me 또는 naver.com 주소만 분석할 수 있어요.',
         }));
-        setActiveStep(2);
         return;
       case 'INVALID_INPUT':
       case 'INVALID_REQUEST':
@@ -341,7 +338,7 @@ export function AnalyzeScreen() {
           if (next.kind === 'storeNotFound') {
             setErrors({
               name: '가게를 찾지 못했어요. 가게 이름을 확인해 주세요.',
-              url: '가게를 찾지 못했어요. 네이버 가게 URL을 확인해 주세요.',
+              url: '가게를 찾지 못했어요. 네이버 가게 주소를 확인해 주세요.',
             });
             setReturnedNotice(true);
             idempotencyKey.current = null;
@@ -352,7 +349,6 @@ export function AnalyzeScreen() {
             setErrors({
               url: '지원하는 네이버 가게 주소를 입력해 주세요. naver.me 또는 naver.com 주소만 분석할 수 있어요.',
             });
-            setActiveStep(2);
             setReturnedNotice(true);
             idempotencyKey.current = null;
             resetToInput();
@@ -501,10 +497,10 @@ export function AnalyzeScreen() {
       <StatusBar style="dark" />
 
       {phase === 'input' ? (
-        <>
-          <StepIndicator activeIndex={activeStep} steps={inputSteps} />
-          <PageTitle title={inputTitles[activeStep] ?? inputTitles[0]} />
-        </>
+        <PageTitle
+          description="세 가지만 알려 주시면 네이버 리뷰를 읽고 정리해 드려요."
+          title="가게 정보를 알려 주세요"
+        />
       ) : (
         <PageTitle
           description={[name, category].filter(Boolean).join(' · ')}
@@ -525,7 +521,7 @@ export function AnalyzeScreen() {
       {resumed && phase === 'progress' ? (
         <Notice
           title="진행 중이던 분석을 이어서 확인하고 있어요"
-          message="서버에서 마지막으로 확인된 단계부터 결과가 나올 때까지 계속 확인해요."
+          message="마지막으로 확인한 단계부터 결과가 나올 때까지 계속 확인해요."
         />
       ) : null}
 
@@ -593,64 +589,73 @@ export function AnalyzeScreen() {
         </View>
       ) : (
         <View style={styles.formCard}>
-          {activeStep === 0 || errors.name ? (
-            <TextField
-              error={errors.name}
-              label="가게 이름"
-              onChangeText={(value) => {
-                setName(value);
-                clearError('name');
-              }}
-              onSubmitEditing={confirmName}
-              placeholder="예: 운산국밥"
-              returnKeyType="next"
-              value={name}
+          {prefilled ? (
+            <Notice
+              title="지난번 가게 정보를 불러왔어요"
+              message="그대로 다시 분석하면 지금 올라와 있는 리뷰로 새 결과를 만들어요. 다른 가게라면 고쳐 주세요."
             />
-          ) : (
-            <DoneRow label="가게 이름" onEdit={() => setActiveStep(0)} value={name} />
-          )}
-
-          {reachedStep >= 1 ? (
-            activeStep === 1 || errors.category ? (
-              <Field error={errors.category} label="업종">
-                <View accessibilityLabel="업종" accessibilityRole="radiogroup" style={styles.chipRow}>
-                  {categories.map((item) => (
-                    <Chip
-                      key={item}
-                      label={item}
-                      onPress={() => chooseCategory(item)}
-                      radio
-                      selected={category === item}
-                    />
-                  ))}
-                </View>
-              </Field>
-            ) : (
-              <DoneRow label="업종" onEdit={() => setActiveStep(1)} value={category} />
-            )
           ) : null}
 
-          {reachedStep >= 2 ? (
-            activeStep === 2 || errors.url ? (
-              <TextField
-                autoCapitalize="none"
-                autoCorrect={false}
-                error={errors.url}
-                inputMode="url"
-                label="네이버 가게 URL"
-                onChangeText={(value) => {
-                  setUrl(value);
-                  clearError('url');
-                }}
-                placeholder="naver.me 또는 naver.com 주소"
-                value={url}
-              />
-            ) : (
-              <DoneRow label="네이버 가게 URL" onEdit={() => setActiveStep(2)} value={url} />
-            )
-          ) : null}
+          <TextField
+            error={errors.name}
+            label="가게 이름"
+            onChangeText={(value) => {
+              setName(value);
+              markEdited();
+              clearError('name');
+            }}
+            placeholder="예: 운산국밥"
+            value={name}
+          />
+
+          <Field error={errors.category} label="업종">
+            <View accessibilityLabel="업종" accessibilityRole="radiogroup" style={styles.chipRow}>
+              {categories.map((item) => (
+                <Chip
+                  key={item}
+                  label={item}
+                  onPress={() => {
+                    setCategory(item);
+                    markEdited();
+                    clearError('category');
+                  }}
+                  radio
+                  selected={category === item}
+                />
+              ))}
+            </View>
+          </Field>
+
+          <TextField
+            autoCapitalize="none"
+            autoCorrect={false}
+            error={errors.url}
+            inputMode="url"
+            label="네이버 가게 주소"
+            onChangeText={(value) => {
+              setUrl(value);
+              markEdited();
+              clearError('url');
+            }}
+            placeholder="naver.me 또는 naver.com 주소"
+            value={url}
+          />
+
+          <View style={styles.urlGuide}>
+            <Text style={styles.urlGuideTitle}>주소는 이렇게 복사해요</Text>
+            {urlGuideSteps.map((step, index) => (
+              <View key={step} style={styles.urlGuideRow}>
+                <Text style={styles.urlGuideNumber}>{index + 1}</Text>
+                <Text style={styles.urlGuideText}>{step}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       )}
+
+      {phase === 'creating' || phase === 'progress' || phase === 'completing' ? (
+        <WaitingTips reduceMotion={reduceMotion} />
+      ) : null}
 
       {visibleRows.length > 0 ? (
         <ProgressList
@@ -661,13 +666,15 @@ export function AnalyzeScreen() {
         />
       ) : null}
 
-      {phase === 'input' && activeStep === 0 ? (
-        <Button label="다음" onPress={confirmName} variant="primary" />
-      ) : null}
-
-      {phase === 'input' && activeStep === 2 ? (
+      {phase === 'input' ? (
         <Button
-          label={offline || returnedNotice || formNotice ? '다시 분석하기' : '분석하기'}
+          label={
+            offline || returnedNotice || formNotice
+              ? '다시 분석하기'
+              : prefilled
+                ? '최신 리뷰로 다시 분석하기'
+                : '분석하기'
+          }
           onPress={() => {
             if (!validate()) return;
             void submit({ reuseKey: offline });
@@ -701,28 +708,6 @@ export function AnalyzeScreen() {
   );
 }
 
-function DoneRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
-  return (
-    <View style={styles.doneRow}>
-      <View style={styles.doneCopy}>
-        <Text style={styles.doneLabel}>{label}</Text>
-        <Text numberOfLines={1} style={styles.doneValue}>
-          {value}
-        </Text>
-      </View>
-      <Pressable
-        accessibilityLabel={`${label} 수정`}
-        accessibilityRole="button"
-        hitSlop={spacing[2]}
-        onPress={onEdit}
-        style={({ pressed }) => [styles.doneEdit, pressed && styles.pressed]}
-      >
-        <Text style={styles.doneEditText}>수정</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   formCard: {
     backgroundColor: colors.background.surface,
@@ -737,32 +722,28 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing[2],
   },
-  doneRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing[3],
-    minHeight: layout.touchTargetMin,
-  },
-  doneCopy: {
-    flex: 1,
+  urlGuide: {
+    backgroundColor: colors.background.subtle,
+    borderRadius: radii.control,
     gap: spacing[1],
+    padding: spacing[3],
   },
-  doneLabel: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
-  doneValue: {
-    ...typography.body4,
+  urlGuideTitle: {
+    ...typography.body6,
     color: colors.text.primary,
   },
-  doneEdit: {
-    minHeight: layout.touchTargetMin,
-    justifyContent: 'center',
-    paddingHorizontal: spacing[2],
+  urlGuideRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
   },
-  doneEditText: {
-    ...typography.body6,
+  urlGuideNumber: {
+    ...typography.body5,
     color: colors.text.brand,
+  },
+  urlGuideText: {
+    ...typography.body7,
+    color: colors.text.secondary,
+    flex: 1,
   },
   summaryCard: {
     backgroundColor: colors.background.surface,

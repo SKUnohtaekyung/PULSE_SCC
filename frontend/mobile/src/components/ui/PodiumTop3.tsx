@@ -28,6 +28,16 @@ function podiumBlockHeight(rank: number, fontScale: number) {
   return blockHeights[rank] + spacing[12] * Math.max(0, fontScale - 1);
 }
 
+/**
+ * 순위가 높을수록 단상이 진하다(2026-10-05 팀 디자인 피드백 #14). 색만으로 순위를 알리지 않는다 —
+ * 숫자와 단상 높이가 같은 뜻을 전한다. 지금 보는 유형은 `보는 중` 글자와 그림 테두리로 알린다.
+ */
+function rankTone(rank: number) {
+  if (rank === 1) return colors.rank.first;
+  if (rank === 2) return colors.rank.second;
+  return colors.rank.third;
+}
+
 export function PodiumTop3({
   podium,
   selectedRank,
@@ -90,12 +100,13 @@ export function PodiumTop3({
             <View
               style={[
                 styles.block,
-                selected ? styles.blockSelected : styles.blockPlain,
-                { height: podiumBlockHeight(rank, fontScale) },
+                { backgroundColor: rankTone(rank).background, height: podiumBlockHeight(rank, fontScale) },
               ]}
             >
-              <Text style={selected ? styles.blockRankSelected : styles.blockRank}>{rank}</Text>
-              {selected ? <Text style={styles.blockState}>보는 중</Text> : null}
+              <Text style={[styles.blockRank, { color: rankTone(rank).on }]}>{rank}</Text>
+              {selected ? (
+                <Text style={[styles.blockState, { color: rankTone(rank).on }]}>보는 중</Text>
+              ) : null}
             </View>
           </Pressable>
         );
@@ -134,12 +145,6 @@ const styles = StyleSheet.create({
     marginTop: spacing[1],
     paddingHorizontal: spacing[1],
   },
-  blockPlain: {
-    backgroundColor: colors.background.emphasized,
-  },
-  blockSelected: {
-    backgroundColor: colors.brand.primary,
-  },
   blockEmpty: {
     backgroundColor: colors.background.subtle,
     borderColor: colors.border.default,
@@ -148,11 +153,6 @@ const styles = StyleSheet.create({
   },
   blockRank: {
     ...typography.head5,
-    color: colors.text.brand,
-  },
-  blockRankSelected: {
-    ...typography.head5,
-    color: colors.brand.onPrimary,
   },
   blockRankEmpty: {
     ...typography.head5,
@@ -160,7 +160,6 @@ const styles = StyleSheet.create({
   },
   blockState: {
     ...typography.caption,
-    color: colors.brand.onPrimary,
   },
   emptyAvatar: {
     width: spacing[20],

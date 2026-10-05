@@ -4,9 +4,10 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { PersonaImageSource } from '@/api/personaImages';
 import { GuestCharacter } from '@/components/icons/GuestCharacter';
 import { usePersonaImage } from '@/components/ui/usePersonaImage';
-import { colors, layout, spacing, strokes, typography } from '@/design/tokens';
+import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
-// 순위 목록(TOP3)·선택한 유형 요약 카드·마이페이지 저장 이미지에 쓰는 동그란 손님 유형 그림.
+// 순위 목록(TOP3)·선택한 유형 요약 카드에 쓰는 동그란 손님 유형 그림.
+// 마이페이지 저장 이미지 격자는 같은 그림을 정사각 타일(tile)로 그린다.
 // 실제 서버에 연결되면 AI가 만든 이미지를 원형으로 보여 주고, 그 전에는 코드로 그린 자리표시를 쓴다.
 // 프로토타입 에셋을 제품 화면에 쓰지 않는다(DESIGN_SYSTEM §3.6). 생성 사실 고지는 목록이 한 번만 한다.
 
@@ -26,6 +27,7 @@ export function PersonaAvatar({
   selected = false,
   variant = 0,
   onLoadError,
+  tile = false,
 }: {
   source: PersonaImageSource;
   /** 기능 중심 대체 텍스트. 이미지가 없을 때도 같은 뜻이 전달돼야 한다. */
@@ -36,8 +38,12 @@ export function PersonaAvatar({
   variant?: number;
   /** 원격 이미지를 받지 못했을 때 알린다. 다시 불러오기를 둘 화면만 쓴다 — 다시 받으려면 부모가 key를 바꿔 새로 그린다. */
   onLoadError?: () => void;
+  /** 원 대신 부모 칸을 꽉 채우는 정사각형으로 그린다. 마이페이지 저장 이미지 격자가 쓴다. size는 무시한다. */
+  tile?: boolean;
 }) {
-  const diameter = diameters[size];
+  // 타일은 칸 폭을 재서 자리표시 그림의 크기로 쓴다. 재기 전에는 compact 크기로 그린다.
+  const [tileWidth, setTileWidth] = useState<number>(diameters.compact);
+  const diameter = tile ? tileWidth : diameters[size];
   const image = usePersonaImage(source);
   const showImage = Boolean(image.uri) && !image.failed;
   const remoteFailed = source.kind === 'remote' && image.failed;
@@ -54,16 +60,17 @@ export function PersonaAvatar({
       accessible
       accessibilityLabel={altText}
       accessibilityRole="image"
+      onLayout={tile ? (event) => setTileWidth(event.nativeEvent.layout.width) : undefined}
       style={[
         styles.frame,
-        { width: diameter, height: diameter, borderRadius: diameter / 2 },
+        tile ? styles.tile : { width: diameter, height: diameter, borderRadius: diameter / 2 },
         showImage && styles.clip,
       ]}
     >
       {showImage ? (
         <Image
           source={{ uri: image.uri ?? undefined }}
-          style={{ width: diameter, height: diameter, borderRadius: diameter / 2 }}
+          style={tile ? styles.tileImage : { width: diameter, height: diameter, borderRadius: diameter / 2 }}
         />
       ) : (
         // 내려받을 이미지가 없을 때의 자리표시. 이름과 리뷰 수가 누구인지 말하므로 그림은 중립으로 둔다.
@@ -127,7 +134,7 @@ export function PersonaAvatarNotice({ anyRemote }: { anyRemote: boolean }) {
     <Text style={styles.notice}>
       {anyRemote
         ? '그림은 AI로 만든 가상 이미지예요. 실제 손님이 아니에요.'
-        : '예시 화면이라 그림 대신 자리표시를 보여 드려요. 실제 서버에서는 AI가 만든 가상 이미지가 나와요.'}
+        : '지금은 그림을 불러오지 못해 자리표시를 보여 드려요. 원래는 AI가 만든 가상 이미지가 나와요.'}
     </Text>
   );
 }
@@ -142,6 +149,15 @@ const styles = StyleSheet.create({
   // Android에서 테두리 없는 둥근 클리핑이 SVG를 통째로 지워 선택되지 않은 순위의 그림이 사라졌다.
   clip: {
     overflow: 'hidden',
+  },
+  tile: {
+    aspectRatio: 1,
+    borderRadius: radii.control,
+    width: '100%',
+  },
+  tileImage: {
+    height: '100%',
+    width: '100%',
   },
   selectedRing: {
     position: 'absolute',

@@ -82,8 +82,8 @@ export function EvidenceScreen({
         if (cancelled || error instanceof SessionExpiredError) return;
         setErrorMessage(
           resolveErrorMessage(error, {
-            fallback: '근거 리뷰를 불러오지 못했어요.',
-            offline: '인터넷에 연결되지 않아 근거 리뷰를 불러오지 못했어요.',
+            fallback: '실제 리뷰를 불러오지 못했어요.',
+            offline: '인터넷에 연결되지 않아 실제 리뷰를 불러오지 못했어요.',
           }),
         );
         setPhase('error');
@@ -116,22 +116,22 @@ export function EvidenceScreen({
     }
   }, [analysisId, client, cursor, loadingMore, perspective, personaId]);
 
-  const title = perspectiveLabels[perspective] ?? '근거 리뷰';
+  const title = perspectiveLabels[perspective] ?? '실제 리뷰';
 
   return (
     <Screen
-      header={<ScreenHeader brand label="근거 리뷰" />}
+      header={<ScreenHeader brand label="실제 리뷰" />}
       scroll={phase !== 'ready'}
     >
       <StatusBar style="dark" />
 
-      <PageTitle title={`${title} 근거 리뷰`} />
+      <PageTitle title={`${title} 실제 리뷰`} />
 
-      {phase === 'loading' ? <LoadingBlock message="근거 리뷰를 불러오고 있어요." /> : null}
+      {phase === 'loading' ? <LoadingBlock message="실제 리뷰를 불러오고 있어요." /> : null}
 
       {phase === 'error' && errorMessage ? (
         <View style={styles.block}>
-          <Notice alert title="근거 리뷰를 불러오지 못했어요" message={errorMessage} tone="error" />
+          <Notice alert title="실제 리뷰를 불러오지 못했어요" message={errorMessage} tone="error" />
           <Button
             label="다시 불러오기"
             onPress={() => {
@@ -150,7 +150,7 @@ export function EvidenceScreen({
           ListEmptyComponent={
             <Notice
               alert
-              title="연결된 근거 리뷰가 없어요"
+              title="연결된 실제 리뷰가 없어요"
               message="근거 없이 만들어진 결과는 정상 결과로 볼 수 없어요. 결과를 다시 불러와 주세요."
               tone="error"
             />
@@ -168,7 +168,7 @@ export function EvidenceScreen({
               ) : cursor ? (
                 <Button label="더 보기" onPress={() => void loadMore()} variant="ghost" />
               ) : items.length > 0 ? (
-                <Text style={styles.end}>근거 리뷰를 모두 확인했어요.</Text>
+                <Text style={styles.end}>실제 리뷰를 모두 확인했어요.</Text>
               ) : null}
               <Button label="결과로 돌아가기" onPress={() => router.back()} variant="ghost" />
             </View>

@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -27,10 +27,10 @@ import {
   PersonaImageError,
   usePersonaImageRetry,
 } from '@/components/ui/PersonaAvatar';
-import { Screen, useExpandedLayout } from '@/components/ui/Screen';
+import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ToggleRow } from '@/components/ui/ToggleRow';
-import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
+import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 import { useSession } from '@/session/SessionProvider';
 
 // SC-012 마이페이지. 상태 정본은 SCREEN_STATES §8이다.
@@ -53,7 +53,8 @@ const formatDateTime = (value: string) => {
 export function MyPageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const expanded = useExpandedLayout();
+  /** 크게 보고 있는 저장 이미지의 순서. 닫혀 있으면 null. */
+  const [viewing, setViewing] = useState<number | null>(null);
   const { client, user, signOut } = useSession();
 
   const [notifications, setNotifications] = useState<SectionState<NotificationItem[]>>({
@@ -266,24 +267,22 @@ export function MyPageScreen() {
           <View style={styles.images}>
             {/* 홈 시상대와 같은 고지 — 실제 이미지가 한 장이라도 있으면 AI 이미지라고, 없으면 자리표시라고 알린다. */}
             <PersonaAvatarNotice anyRemote={personaSources.some((source) => source.kind === 'remote')} />
-            {/* 넓은 화면(expanded)에서는 3칸으로 놓는다(DESIGN_SYSTEM §7, TASK-028). 순위 순서는 왼쪽→오른쪽이다. */}
-            <View style={expanded ? styles.imageGrid : styles.images}>
+            {/* 사진 피드처럼 정사각 3칸으로 놓는다(2026-10-05 팀 디자인 피드백 #3). 순위 순서는 왼쪽→오른쪽이다. */}
+            <View style={styles.imageGrid}>
               {personaImages.map(({ rank, persona }, index) => (
-                <StoredPersonaRow
+                <StoredPersonaTile
                   altText={persona.image.altText}
-                  inGrid={expanded}
                   key={persona.id}
                   label={persona.label}
+                  onOpen={() => setViewing(index)}
                   rank={rank}
                   source={personaSources[index]}
                 />
               ))}
-              {/* 부분 결과(1~2장)여도 칸 폭을 3등분으로 유지한다. 홈 관점 카드의 홀수 빈칸과 같은 규칙. */}
-              {expanded
-                ? Array.from({ length: Math.max(0, 3 - personaImages.length) }, (_, index) => (
-                    <View key={`empty-${index}`} style={styles.imageCell} />
-                  ))
-                : null}
+              {/* 부분 결과(1~2장)여도 칸 폭을 3등분으로 유지한다. */}
+              {Array.from({ length: Math.max(0, 3 - personaImages.length) }, (_, index) => (
+                <View key={`empty-${index}`} style={styles.imageCell} />
+              ))}
             </View>
             <Text style={styles.empty}>
               읽기 전용이에요. 새 결과로 바꾸면 이미지도 함께 바뀌어요.
@@ -330,6 +329,16 @@ export function MyPageScreen() {
         </Text>
       </View>
 
+      {viewing !== null && personaImages[viewing] ? (
+        <StoredPersonaViewer
+          altText={personaImages[viewing].persona.image.altText}
+          label={personaImages[viewing].persona.label}
+          onClose={() => setViewing(null)}
+          rank={personaImages[viewing].rank}
+          source={personaSources[viewing]}
+        />
+      ) : null}
+
       <ConfirmDialog
         actions={[
           {
@@ -350,45 +359,91 @@ export function MyPageScreen() {
   );
 }
 
-// 저장된 결과의 손님 유형 한 줄(STORED-IMAGES-NORMAL). 홈과 같은 그림·같은 실패 규칙을 쓴다(SCREEN_STATES §6.4).
-function StoredPersonaRow({
+// 저장된 결과의 손님 유형 한 칸(STORED-IMAGES-NORMAL). 결과 화면과 같은 그림·같은 실패 규칙을 쓴다(SCREEN_STATES §6.4).
+function StoredPersonaTile({
   rank,
   label,
   altText,
   source,
-  inGrid = false,
+  onOpen,
 }: {
   rank: number;
   label: string;
   altText: string;
   source: PersonaImageSource;
-  /** 3칸 격자 안이면 그림 위·이름 아래로 세운다. 칸 폭이 좁아 가로 배치는 이름이 줄바꿈된다. */
-  inGrid?: boolean;
+  onOpen: () => void;
 }) {
   const image = usePersonaImageRetry(source);
   return (
-    <View style={[styles.imageItem, inGrid && styles.imageCell]}>
-      <View
-        accessible
+    <View style={styles.imageCell}>
+      <Pressable
         // 그림과 이름을 한 번에 읽는다. 묶으면 그림 라벨이 가려지므로 서버 대체 텍스트를 함께 붙인다.
-        accessibilityLabel={`${altText}. ${rank}위 ${label}`}
-        style={inGrid ? styles.imageColumn : styles.imageRow}
+        accessibilityLabel={`${altText}. ${rank}위 ${label}. 크게 보기`}
+        accessibilityRole="button"
+        onPress={onOpen}
+        style={({ pressed }) => [styles.imageColumn, pressed && styles.pressed]}
       >
         <PersonaAvatar
           altText={altText}
           key={image.attempt}
           onLoadError={image.onLoadError}
-          size="compact"
           source={source}
+          tile
           variant={rank - 1}
         />
-        <View style={[styles.imageText, inGrid && styles.imageTextCentered]}>
-          <Text style={[styles.imageRank, inGrid && styles.textCentered]}>{rank}위 손님</Text>
-          <Text style={[styles.imageLabel, inGrid && styles.textCentered]}>{label}</Text>
+        <View style={styles.imageText}>
+          <Text style={styles.imageRank}>{rank}위 손님</Text>
+          <Text numberOfLines={2} style={styles.imageLabel}>
+            {label}
+          </Text>
         </View>
-      </View>
+      </Pressable>
       {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
     </View>
+  );
+}
+
+// 저장 이미지 크게 보기. 읽기 전용이고, AI가 만든 가상 이미지라는 사실을 그림 바로 아래에서 다시 알린다.
+function StoredPersonaViewer({
+  rank,
+  label,
+  altText,
+  source,
+  onClose,
+}: {
+  rank: number;
+  label: string;
+  altText: string;
+  source: PersonaImageSource;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      animationType="fade"
+      navigationBarTranslucent
+      onRequestClose={onClose}
+      statusBarTranslucent
+      transparent
+      visible
+    >
+      {/* 배경과 본문 래퍼는 접근성 초점을 갖지 않는다(ConfirmDialog와 같은 규칙). */}
+      <Pressable accessible={false} onPress={onClose} style={styles.viewerBackdrop}>
+        <Pressable accessible={false} onPress={() => undefined} style={styles.viewer}>
+          {/* 가로 화면이나 큰 글자에서 닫기 버튼이 화면 밖으로 밀리지 않게 안에서 스크롤한다. */}
+          <ScrollView contentContainerStyle={styles.viewerContent} showsVerticalScrollIndicator={false}>
+            <PersonaAvatar altText={altText} source={source} tile variant={rank - 1} />
+            <View style={styles.imageText}>
+              <Text style={styles.imageRank}>{rank}위 손님</Text>
+              <Text accessibilityRole="header" style={styles.viewerLabel}>
+                {label}
+              </Text>
+              <PersonaAvatarNotice anyRemote={source.kind === 'remote'} />
+            </View>
+            <Button label="닫기" onPress={onClose} variant="ghost" />
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -429,34 +484,43 @@ const styles = StyleSheet.create({
   imageGrid: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing[3],
+    gap: spacing[2],
   },
   imageCell: {
     flex: 1,
     flexBasis: 0,
+    gap: spacing[2],
   },
   imageColumn: {
-    alignItems: 'center',
     gap: spacing[2],
-  },
-  imageTextCentered: {
-    flex: 0,
-    alignItems: 'center',
-  },
-  textCentered: {
-    textAlign: 'center',
-  },
-  imageItem: {
-    gap: spacing[2],
-  },
-  imageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[4],
   },
   imageText: {
-    flex: 1,
     gap: spacing[1],
+  },
+  viewerBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: colors.brand.strongOverlay,
+    justifyContent: 'center',
+    padding: spacing[5],
+  },
+  viewer: {
+    width: '100%',
+    maxHeight: '100%',
+    maxWidth: layout.readingMaxWidth,
+    backgroundColor: colors.background.surface,
+    borderRadius: radii.panel,
+    padding: spacing[4],
+  },
+  viewerContent: {
+    gap: spacing[3],
+  },
+  viewerLabel: {
+    ...typography.head5,
+    color: colors.text.strong,
+  },
+  pressed: {
+    opacity: 0.9,
   },
   imageRank: {
     ...typography.caption,
