@@ -18,12 +18,19 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(
+                                "/api/v1/legal-documents",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/google",
                                 "/api/v1/auth/refresh")
                         .permitAll()
-                        .requestMatchers("/api/v1/auth/logout", "/api/v1/auth/session")
+                        .requestMatchers(
+                                "/api/v1/auth/logout",
+                                "/api/v1/auth/session",
+                                "/api/v1/analysis-jobs/**",
+                                "/api/v1/analyses/**",
+                                "/api/v1/persona-images/**",
+                                "/api/v1/me/**")
                         .authenticated()
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)));

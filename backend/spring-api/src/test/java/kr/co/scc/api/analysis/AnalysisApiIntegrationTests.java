@@ -1,0 +1,676 @@
+package kr.co.scc.api.analysis;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerAdvice;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerAnalysis;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerEvidence;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerImage;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerInsight;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerPersona;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerReview;
+import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
+import kr.co.scc.api.analysis.application.AnalysisException;
+import kr.co.scc.api.analysis.domain.JobOwnershipLostException;
+import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
+import kr.co.scc.api.analysis.infrastructure.AnalysisRepository.ClaimedJob;
+import kr.co.scc.api.analysis.infrastructure.AnalysisServiceProperties;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+@SpringBootTest(properties = "scc.legal.registration-enabled=true")
+@AutoConfigureMockMvc
+@Testcontainers(disabledWithoutDocker = true)
+class AnalysisApiIntegrationTests {
+
+    @Container
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-alpine3.23");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("scc.analysis-service.image-storage-path",
+                () -> System.getProperty("java.io.tmpdir") + "/scc-integration-images-" + UUID.randomUUID());
+    }
+
+    @Autowired MockMvc mockMvc;
+    @Autowired JdbcClient jdbc;
+    @Autowired ObjectMapper objectMapper;
+    @Autowired PasswordEncoder passwordEncoder;
+    @Autowired AnalysisRepository repository;
+    @Autowired AnalysisServiceProperties properties;
+    @Autowired TransactionTemplate transactions;
+    @MockitoBean AnalysisGateway gateway;
+
+    private UUID userId;
+    private UUID sessionId;
+
+    @BeforeEach
+    void user() {
+        userId = UUID.randomUUID();
+        sessionId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO users (id, login_email, credential_hash, phone_number, status) VALUES (:id, :email, :hash, '01012345678', 'ACTIVE')")
+                .param("id", userId).param("email", userId + "@scc.test")
+                .param("hash", passwordEncoder.encode("password1234")).update();
+        jdbc.sql("INSERT INTO user_identities (id, user_id, provider, provider_subject) VALUES (:id, :userId, 'LOCAL', :subject)")
+                .param("id", UUID.randomUUID()).param("userId", userId).param("subject", userId.toString()).update();
+        jdbc.sql("INSERT INTO notification_settings (user_id) VALUES (:userId)").param("userId", userId).update();
+        // 탈퇴는 DB 세션이 살아 있어야 한다(ADR-010). JWT 의 sid 와 같은 세션을 만들어 둔다.
+        jdbc.sql("""
+                        INSERT INTO auth_sessions (id, user_id, refresh_token_hash, expires_at)
+                        VALUES (:id, :userId, :hash, CURRENT_TIMESTAMP + INTERVAL '1 day')
+                        """)
+                .param("id", sessionId).param("userId", userId)
+                .param("hash", sessionId.toString().replace("-", "")).update();
+        when(gateway.analyze(any())).thenReturn(workerResponse());
+    }
+
+    @Test
+    void controllerServiceAndRepositoryCompleteAnAnalysisAndExposeNotification() throws Exception {
+        String body = mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType("application/json")
+                        .content("""
+                                {"storeName":"통합 테스트 식당","category":"한식",\
+                                "naverPlaceUrl":"https://map.naver.com/p/entry/place/1234567890"}
+                                """))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("QUEUED"))
+                .andReturn().getResponse().getContentAsString();
+        UUID jobId = UUID.fromString(objectMapper.readTree(body).get("jobId").stringValue());
+
+        JsonNode statusBody = awaitCompleted(jobId);
+        assertThat(statusBody.get("status").stringValue()).isEqualTo("COMPLETED");
+
+        String resultBody = mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", jobId).with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.store.name").value("통합 테스트 식당"))
+                .andExpect(jsonPath("$.podium[0].status").value("FILLED"))
+                .andExpect(jsonPath("$.podium[1].status").value("EMPTY"))
+                .andExpect(jsonPath("$.podium[1].reason.message").value("리뷰 수가 적어서 손님 유형이 도출되지 않았습니다."))
+                .andExpect(jsonPath("$.metadata.reviewsWithoutWrittenDateCount").value(1))
+                .andReturn().getResponse().getContentAsString();
+        JsonNode result = objectMapper.readTree(resultBody);
+        UUID analysisId = UUID.fromString(result.get("analysisId").stringValue());
+        UUID personaId = UUID.fromString(result.at("/podium/0/persona/id").stringValue());
+        mockMvc.perform(get("/api/v1/analyses/{analysisId}/evidence", analysisId)
+                        .with(userJwt())
+                        .queryParam("personaId", personaId.toString())
+                        .queryParam("perspective", "POSITIVE")
+                        .queryParam("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].excerpt").value("맛있고 빨라요"))
+                .andExpect(jsonPath("$.items[0].platform").value("NAVER"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+        // 첫 결과는 자동 저장된다. 저장본 조회도 같은 결과 문서를 돌려준다.
+        mockMvc.perform(get("/api/v1/me/saved-analysis").with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysisId").value(analysisId.toString()))
+                .andExpect(jsonPath("$.metadata.reviewsWithoutWrittenDateCount").value(1));
+        mockMvc.perform(get("/api/v1/me/notifications").with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("ANALYSIS_COMPLETED"));
+        assertThat(jdbc.sql("SELECT count(*) FROM analyses WHERE user_id = :userId")
+                .param("userId", userId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void evidenceRejectsAnInvalidCursorAndAnotherUsersPersona() throws Exception {
+        String body = mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType("application/json")
+                        .content("""
+                                {"storeName":"통합 테스트 식당","category":"한식",\
+                                "naverPlaceUrl":"https://map.naver.com/p/entry/place/1234567890"}
+                                """))
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        UUID jobId = UUID.fromString(objectMapper.readTree(body).get("jobId").stringValue());
+        JsonNode completed = awaitCompleted(jobId);
+        UUID analysisId = UUID.fromString(completed.get("analysisId").stringValue());
+        String resultBody = mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", jobId)
+                        .with(userJwt()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        UUID personaId = UUID.fromString(
+                objectMapper.readTree(resultBody).at("/podium/0/persona/id").stringValue());
+
+        mockMvc.perform(get("/api/v1/analyses/{analysisId}/evidence", analysisId)
+                        .with(userJwt())
+                        .queryParam("personaId", personaId.toString())
+                        .queryParam("perspective", "POSITIVE")
+                        .queryParam("cursor", "not-a-cursor"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_EVIDENCE_CURSOR"));
+
+        mockMvc.perform(get("/api/v1/analyses/{analysisId}/evidence", analysisId)
+                        .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString())))
+                        .queryParam("personaId", personaId.toString())
+                        .queryParam("perspective", "POSITIVE"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_NOT_FOUND"));
+    }
+
+    @Test
+    void jobThatExhaustsRetriesThroughALostLeaseStillNotifiesTheOwner() throws Exception {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '임대 만료 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        // 워커가 죽어 임대가 만료된 채 시도 횟수를 모두 쓴 작업이다.
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'RUNNING', 'ANALYZING', 3,
+                            CURRENT_TIMESTAMP - INTERVAL '5 minutes', CURRENT_TIMESTAMP - INTERVAL '1 minute')
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        // 스케줄된 폴링이 먼저 처리했을 수 있으므로 반환값이 아니라 결과 상태로 확인한다.
+        repository.failExhaustedJobs(3);
+
+        // 원인 코드는 DB 에 남고, 앱에는 재시도 소진으로 알리며 바로 다시 시도하지 못하게 한다.
+        assertThat(jdbc.sql("SELECT status || ':' || error_code FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo("FAILED:ANALYSIS_TIMEOUT");
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.retryable").value(false))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_RETRY_EXHAUSTED"))
+                .andExpect(jsonPath("$.error.message").value("여러 번 시도했지만 분석을 완료하지 못했습니다. 잠시 뒤에 가게 정보에서 다시 요청해 주세요."));
+        mockMvc.perform(get("/api/v1/me/notifications").with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("ANALYSIS_FAILED"))
+                .andExpect(jsonPath("$[0].message").value("여러 번 시도했지만 리뷰 분석을 완료하지 못했습니다. 잠시 뒤에 다시 요청해 주세요."));
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id")
+                .param("id", jobId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void failureAfterTheLastRetryKeepsItsCauseButBlocksAnImmediateRetry() throws Exception {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '재시도 소진 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'RUNNING', 'ANALYZING', 3,
+                            CURRENT_TIMESTAMP - INTERVAL '1 minute', CURRENT_TIMESTAMP + INTERVAL '1 minute')
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        // 분석 도중 난 재시도 가능한 실패가 세 번째 시도에서도 났을 때다.
+        repository.markRetryExhausted(new ClaimedJob(jobId, 3), "REVIEW_COLLECTION_BLOCKED", 3);
+
+        assertThat(jdbc.sql("SELECT error_code FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo("REVIEW_COLLECTION_BLOCKED");
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.retryable").value(false))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_RETRY_EXHAUSTED"))
+                .andExpect(jsonPath("$.error.message").value("여러 번 시도했지만 분석을 완료하지 못했습니다. 잠시 뒤에 가게 정보에서 다시 요청해 주세요."));
+        mockMvc.perform(get("/api/v1/me/notifications").with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].message").value("여러 번 시도했지만 리뷰 분석을 완료하지 못했습니다. 잠시 뒤에 다시 요청해 주세요."));
+    }
+
+    @Test
+    void aJobWithAttemptsLeftIsNotClosedAsExhausted() {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '경합 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        // 임대가 끝나 다른 워커가 다시 가져간 작업. 원래 워커의 다시 넣기가 실패해도 시도 횟수가 남아 있다.
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'RUNNING', 'ANALYZING', 2,
+                            CURRENT_TIMESTAMP - INTERVAL '1 minute', CURRENT_TIMESTAMP + INTERVAL '1 minute')
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        repository.markRetryExhausted(new ClaimedJob(jobId, 2), "REVIEW_COLLECTION_BLOCKED", 3);
+
+        assertThat(jdbc.sql("SELECT status FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo("RUNNING");
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id")
+                .param("id", jobId).query(Long.class).single()).isZero();
+    }
+
+    @Test
+    void aFailedJobStoredAsRetryableBeforeTheRuleIsNotOfferedAnImmediateRetry() throws Exception {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '이전 실패 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        // 규칙 이전의 임대 만료 실패 행 모양이다.
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, message_code, error_code, retryable, attempt_count,
+                            started_at, completed_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'FAILED', 'FAILED', 'ANALYSIS_FAILED',
+                            'ANALYSIS_TIMEOUT', true, 3, CURRENT_TIMESTAMP - INTERVAL '5 minutes', CURRENT_TIMESTAMP)
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.retryable").value(false));
+    }
+
+    @Test
+    void lostLeaseFailureRespectsADisabledNotificationSetting() {
+        jdbc.sql("UPDATE notification_settings SET analysis_result_enabled = false WHERE user_id = :userId")
+                .param("userId", userId).update();
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '알림 끈 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', 'RUNNING', 'ANALYZING', 3,
+                            CURRENT_TIMESTAMP - INTERVAL '5 minutes', CURRENT_TIMESTAMP - INTERVAL '1 minute')
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString()).update();
+
+        repository.failExhaustedJobs(3);
+
+        assertThat(jdbc.sql("SELECT status FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo("FAILED");
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id")
+                .param("id", jobId).query(Long.class).single()).isZero();
+    }
+
+    @Test
+    void aFailedJobDoesNotGetAResultSavedAfterItsLeaseIsLost() {
+        // 임대가 끝나 실패로 마감된 작업. 원래 워커가 뒤늦게 결과를 저장하려는 상황이다.
+        UUID jobId = insertJob("FAILED", 3);
+        var context = repository.findContext(jobId).orElseThrow();
+
+        assertThatThrownBy(() -> transactions.executeWithoutResult(
+                status -> repository.saveCompleted(new ClaimedJob(jobId, 3), context, workerResponse())))
+                .isInstanceOf(JobOwnershipLostException.class);
+
+        assertNothingSavedFor(jobId, "FAILED");
+    }
+
+    @Test
+    void aSaveThatRollsBackRemovesTheImageFilesItWrote() throws Exception {
+        UUID jobId = insertJob("RUNNING", 1);
+        var context = repository.findContext(jobId).orElseThrow();
+        WorkerResponse valid = workerResponse();
+        WorkerPersona first = valid.analysis().personas().getFirst();
+        WorkerPersona second = new WorkerPersona(2, 40, "둘째 손님", "요약", "실제 개인이 아닙니다", "prompt",
+                "AI 생성 이미지", first.insights(), first.advice());
+        // 2위 페르소나 이미지가 없어 1위 이미지를 파일로 쓴 뒤 저장이 실패한다.
+        WorkerResponse missingImage = new WorkerResponse(valid.jobId(), 50, 50, false, valid.collectedAt(),
+                valid.analyzedAt(), valid.reviews(), new WorkerAnalysis(List.of(first, second), List.of()),
+                valid.images(), valid.modelVersions(), valid.schemaVersion());
+        long filesBefore = imageFileCount();
+
+        assertThatThrownBy(() -> transactions.executeWithoutResult(
+                status -> repository.saveCompleted(new ClaimedJob(jobId, 1), context, missingImage)))
+                .hasMessageContaining("Missing persona image");
+
+        assertNothingSavedFor(jobId, "RUNNING");
+        assertThat(imageFileCount()).isEqualTo(filesBefore);
+    }
+
+    @Test
+    void aStaleWorkerCannotChangeANewerAttempt() {
+        UUID jobId = insertJob("RUNNING", 2);
+        ClaimedJob stale = new ClaimedJob(jobId, 1);
+        var context = repository.findContext(jobId).orElseThrow();
+
+        repository.markFailed(stale, "REVIEW_COLLECTION_BLOCKED");
+        assertThat(repository.requeueForRetry(stale, 3)).isFalse();
+        assertThat(repository.markRetryExhausted(stale, "REVIEW_COLLECTION_BLOCKED", 3)).isFalse();
+        assertThatThrownBy(() -> transactions.executeWithoutResult(
+                status -> repository.saveCompleted(stale, context, workerResponse())))
+                .isInstanceOf(JobOwnershipLostException.class);
+
+        assertNothingSavedFor(jobId, "RUNNING");
+        assertThat(jdbc.sql("SELECT attempt_count FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId)
+                .query(Integer.class)
+                .single()).isEqualTo(2);
+    }
+
+    @Test
+    void accountDeletionRemovesUserOwnedData() throws Exception {
+        // 완료된 분석(리뷰·페르소나·근거·이미지·저장본·알림)이 있는 사용자로 삭제 순서를 확인한다.
+        UUID jobId = createJob("탈퇴 테스트 식당");
+        awaitCompleted(jobId);
+        long imagesBefore = imageFileCount();
+        assertThat(imagesBefore).isPositive();
+
+        mockMvc.perform(delete("/api/v1/me/account")
+                        .with(userJwt()).contentType("application/json")
+                        .content("{\"password\":\"password1234\"}"))
+                .andExpect(status().isNoContent());
+        assertThat(jdbc.sql("SELECT count(*) FROM users WHERE id = :userId")
+                .param("userId", userId).query(Long.class).single()).isZero();
+        for (String table : List.of("notification_settings", "analyses", "analysis_jobs", "saved_analyses",
+                "notifications", "auth_sessions")) {
+            assertThat(jdbc.sql("SELECT count(*) FROM " + table + " WHERE user_id = :userId")
+                    .param("userId", userId).query(Long.class).single()).as(table).isZero();
+        }
+        assertThat(imageFileCount()).isLessThan(imagesBefore);
+    }
+
+    @Test
+    void tooFewReviewsReportsTheCurrentCountAndTheThreshold() throws Exception {
+        when(gateway.analyze(any())).thenThrow(new AnalysisException(
+                org.springframework.http.HttpStatus.valueOf(422), "INSUFFICIENT_VALID_REVIEWS",
+                "유효 리뷰가 49건으로 분석 기준 50건보다 적습니다.", false, 49));
+        UUID jobId = createJob("리뷰 부족 식당");
+
+        JsonNode failed = awaitStatus(jobId, "FAILED");
+
+        assertThat(failed.at("/error/code").stringValue()).isEqualTo("INSUFFICIENT_VALID_REVIEWS");
+        assertThat(failed.at("/error/validReviewCount").asInt()).isEqualTo(49);
+        assertThat(failed.at("/error/minimumValidReviewCount").asInt()).isEqualTo(50);
+        assertThat(failed.at("/error/message").stringValue()).isEqualTo("분석 가능한 리뷰가 49건으로 기준 50건보다 적습니다.");
+        assertThat(failed.get("retryable").asBoolean()).isFalse();
+    }
+
+    @Test
+    void otherFailuresDoNotCarryAReviewCount() throws Exception {
+        when(gateway.analyze(any())).thenThrow(new AnalysisException(
+                org.springframework.http.HttpStatus.valueOf(422), "STORE_NOT_FOUND", "가게를 찾지 못했습니다.", false));
+        UUID jobId = createJob("없는 식당");
+
+        JsonNode failed = awaitStatus(jobId, "FAILED");
+
+        assertThat(failed.at("/error/code").stringValue()).isEqualTo("STORE_NOT_FOUND");
+        assertThat(failed.get("error").has("validReviewCount")).isFalse();
+        assertThat(failed.get("error").has("minimumValidReviewCount")).isFalse();
+    }
+
+    @Test
+    void theSameIdempotencyKeySentTwiceAtOnceCreatesOneJob() throws Exception {
+        String key = UUID.randomUUID().toString();
+        String body = "{\"storeName\":\"동시 요청 식당\",\"category\":\"한식\","
+                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}";
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            List<java.util.concurrent.Future<org.springframework.mock.web.MockHttpServletResponse>> results =
+                    new java.util.ArrayList<>();
+            for (int i = 0; i < 2; i++) {
+                results.add(pool.submit(() -> {
+                    start.await();
+                    return mockMvc.perform(post("/api/v1/analysis-jobs")
+                                    .with(userJwt())
+                                    .header("Idempotency-Key", key)
+                                    .contentType("application/json")
+                                    .content(body))
+                            .andReturn().getResponse();
+                }));
+            }
+            start.countDown();
+            java.util.Set<String> jobIds = new java.util.HashSet<>();
+            for (var result : results) {
+                var response = result.get(20, java.util.concurrent.TimeUnit.SECONDS);
+                assertThat(response.getStatus()).isEqualTo(202);
+                jobIds.add(objectMapper.readTree(response.getContentAsString()).get("jobId").stringValue());
+            }
+            assertThat(jobIds).hasSize(1);
+        } finally {
+            pool.shutdownNow();
+        }
+        assertThat(jdbc.sql("SELECT count(*) FROM analysis_jobs WHERE user_id = :userId AND idempotency_key = :key")
+                .param("userId", userId).param("key", key).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void anOverlongIdempotencyKeyIsARequestError() throws Exception {
+        mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", "k".repeat(256))
+                        .contentType("application/json")
+                        .content("{\"storeName\":\"식당\",\"category\":\"한식\","
+                                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void aUserWithoutANotificationSettingRowStillGetsAFailureNotification() throws Exception {
+        // 이 기능 전에 가입해 설정 행이 없는 사용자. 기본값은 켜짐이다.
+        jdbc.sql("DELETE FROM notification_settings WHERE user_id = :userId").param("userId", userId).update();
+        when(gateway.analyze(any())).thenThrow(new AnalysisException(
+                org.springframework.http.HttpStatus.valueOf(422), "STORE_NOT_FOUND", "가게를 찾지 못했습니다.", false));
+        UUID jobId = createJob("설정 없는 식당");
+
+        awaitStatus(jobId, "FAILED");
+
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id AND type = 'ANALYSIS_FAILED'")
+                .param("id", jobId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    void anotherUserCannotReachThisUsersJobResultImageOrSavedAnalysis() throws Exception {
+        UUID jobId = createJob("남의 식당");
+        awaitCompleted(jobId);
+        JsonNode result = objectMapper.readTree(mockMvc.perform(
+                        get("/api/v1/analysis-jobs/{jobId}/result", jobId).with(userJwt()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        UUID analysisId = UUID.fromString(result.get("analysisId").stringValue());
+        UUID imageId = UUID.fromString(result.at("/podium/0/persona/image/id").stringValue());
+        var otherUser = jwt().jwt(token -> token.subject(UUID.randomUUID().toString())
+                .claim("sid", UUID.randomUUID().toString()).claim("email", "other@scc.test"));
+
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(otherUser))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", jobId).with(otherUser))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/persona-images/{imageId}", imageId).with(otherUser))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/v1/me/saved-analysis/{analysisId}", analysisId).with(otherUser))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void newEndpointsRequireAuthentication() throws Exception {
+        UUID id = UUID.randomUUID();
+        mockMvc.perform(post("/api/v1/analysis-jobs").contentType("application/json").content("{}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/analysis-jobs/{id}", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/analysis-jobs/{id}/result", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/analyses/{id}/evidence", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/persona-images/{id}", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/me/saved-analysis")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/me/notifications")).andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/v1/me/account")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/legal-documents")).andExpect(status().isOk());
+    }
+
+    @Test
+    void requestFormatErrorsUseTheCommonErrorContract() throws Exception {
+        mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType("application/json")
+                        .content("{\"storeName\":\"\",\"category\":\"한식\","
+                                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("storeName"))
+                .andExpect(jsonPath("$.error.traceId").exists())
+                .andExpect(jsonPath("$.error.fields").doesNotExist())
+                .andExpect(jsonPath("$.error.timestamp").doesNotExist());
+        mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .contentType("application/json")
+                        .content("{\"storeName\":\"식당\",\"category\":\"한식\","
+                                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("Idempotency-Key"));
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", "not-a-uuid").with(userJwt()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fieldErrors[0].field").value("jobId"));
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}/result", UUID.randomUUID()).with(userJwt()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_NOT_FOUND"))
+                .andExpect(jsonPath("$.error.traceId").exists())
+                .andExpect(jsonPath("$.error.fieldErrors").doesNotExist());
+    }
+
+    @Test
+    void aRevokedSessionCannotDeleteTheAccount() throws Exception {
+        jdbc.sql("UPDATE auth_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE id = :id")
+                .param("id", sessionId).update();
+
+        mockMvc.perform(delete("/api/v1/me/account")
+                        .with(userJwt()).contentType("application/json")
+                        .content("{\"password\":\"password1234\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("SESSION_REVOKED"));
+        assertThat(jdbc.sql("SELECT count(*) FROM users WHERE id = :userId")
+                .param("userId", userId).query(Long.class).single()).isEqualTo(1L);
+    }
+
+    private UUID createJob(String storeName) throws Exception {
+        String body = mockMvc.perform(post("/api/v1/analysis-jobs")
+                        .with(userJwt())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType("application/json")
+                        .content("{\"storeName\":\"" + storeName + "\",\"category\":\"한식\","
+                                + "\"naverPlaceUrl\":\"https://map.naver.com/p/entry/place/1234567890\"}"))
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        return UUID.fromString(objectMapper.readTree(body).get("jobId").stringValue());
+    }
+
+    private UUID insertJob(String status, int attempts) {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO stores (id, name, category, naver_place_url) VALUES (:id, '소유권 식당', '한식', 'https://map.naver.com/p/entry/place/1234567890')")
+                .param("id", storeId).update();
+        // 임대 기한을 넉넉히 줘 테스트 중 폴러가 회수하지 않게 한다. QUEUED 는 폴러가 집어 가므로 쓰지 않는다.
+        jdbc.sql("""
+                        INSERT INTO analysis_jobs (id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, attempt_count, started_at, lease_expires_at, completed_at)
+                        VALUES (:id, :userId, :storeId, :key, 'hash', :status,
+                            CASE WHEN :status = 'FAILED' THEN 'FAILED' ELSE 'ANALYZING' END, :attempts,
+                            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '10 minutes',
+                            CASE WHEN :status = 'FAILED' THEN CURRENT_TIMESTAMP END)
+                        """)
+                .param("id", jobId).param("userId", userId).param("storeId", storeId)
+                .param("key", UUID.randomUUID().toString())
+                .param("status", status).param("attempts", attempts).update();
+        return jobId;
+    }
+
+    private void assertNothingSavedFor(UUID jobId, String expectedStatus) {
+        assertThat(jdbc.sql("SELECT status FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId).query(String.class).single()).isEqualTo(expectedStatus);
+        assertThat(jdbc.sql("SELECT count(*) FROM analyses WHERE job_id = :id")
+                .param("id", jobId).query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT count(*) FROM notifications WHERE job_id = :id AND type = 'ANALYSIS_COMPLETED'")
+                .param("id", jobId).query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("SELECT count(*) FROM saved_analyses WHERE user_id = :userId")
+                .param("userId", userId).query(Long.class).single()).isZero();
+    }
+
+    private long imageFileCount() throws java.io.IOException {
+        Path root = properties.imageStorageDirectory();
+        if (!Files.exists(root)) {
+            return 0;
+        }
+        try (var files = Files.walk(root)) {
+            return files.filter(Files::isRegularFile).count();
+        }
+    }
+
+    private org.springframework.test.web.servlet.request.RequestPostProcessor userJwt() {
+        return jwt().jwt(token -> token.subject(userId.toString())
+                .claim("sid", sessionId.toString()).claim("email", userId + "@scc.test"));
+    }
+
+    private JsonNode awaitStatus(UUID jobId, String expected) throws Exception {
+        for (int attempt = 0; attempt < 80; attempt++) {
+            String body = mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            JsonNode value = objectMapper.readTree(body);
+            if (expected.equals(value.get("status").stringValue())) return value;
+            Thread.sleep(100);
+        }
+        throw new AssertionError("analysis did not reach " + expected);
+    }
+
+    private JsonNode awaitCompleted(UUID jobId) throws Exception {
+        for (int attempt = 0; attempt < 50; attempt++) {
+            String body = mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            JsonNode value = objectMapper.readTree(body);
+            if ("COMPLETED".equals(value.get("status").stringValue())) return value;
+            Thread.sleep(100);
+        }
+        throw new AssertionError("analysis did not complete");
+    }
+
+    private WorkerResponse workerResponse() {
+        WorkerReview review = new WorkerReview("맛있고 빨라요", "맛있고 빨라요", "hash-1", BigDecimal.valueOf(5), LocalDate.now());
+        // 작성일을 확인하지 못한 리뷰. 2년 경고 판정에서 빠지고 건수로만 안내된다.
+        WorkerReview undated = new WorkerReview("양이 넉넉해요", "양이 넉넉해요", "hash-2", BigDecimal.valueOf(4), null);
+        List<WorkerInsight> insights = List.of("POSITIVE", "NEGATIVE", "PERCEPTION", "PRIORITY").stream()
+                .map(kind -> new WorkerInsight(kind, "반복 리뷰 사실", "AI 해석", List.of(new WorkerEvidence(0, "맛있고 빨라요"))))
+                .toList();
+        WorkerPersona persona = new WorkerPersona(1, 50, "빠른 식사 손님", "빠른 제공을 중요하게 봐요", "실제 개인이 아닙니다", "prompt", "AI 생성 이미지", insights,
+                List.of(new WorkerAdvice("빠른 제공 칭찬", "대기 시간을 안내해 보세요", "불확실성을 줄일 수 있습니다", List.of(new WorkerEvidence(0, "맛있고 빨라요")))));
+        Instant now = Instant.now();
+        return new WorkerResponse("job", 50, 50, false, now, now, List.of(review, undated),
+                new WorkerAnalysis(List.of(persona), List.of()),
+                List.of(new WorkerImage(1, "aGVsbG8=", "image/png")), Map.of("analysis", "test"), "1");
+    }
+}

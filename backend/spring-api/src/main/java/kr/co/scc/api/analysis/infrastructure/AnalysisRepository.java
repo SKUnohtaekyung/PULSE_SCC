@@ -1,0 +1,939 @@
+package kr.co.scc.api.analysis.infrastructure;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import kr.co.scc.api.analysis.domain.AnalysisContracts.JobContext;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.JobError;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.JobStatus;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerAdvice;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerEvidence;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerImage;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerInsight;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerPersona;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
+import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerReview;
+import kr.co.scc.api.analysis.domain.JobOwnershipLostException;
+import kr.co.scc.api.analysis.application.EvidenceCursorCodec.Cursor;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+@Repository
+public class AnalysisRepository {
+
+    /** 분석에 필요한 최소 유효 리뷰 수. Python 50건 게이트(pipeline.py)와 같다(PRD FR-009). */
+    static final int MINIMUM_VALID_REVIEWS = 50;
+    private static final String INSUFFICIENT_VALID_REVIEWS = "INSUFFICIENT_VALID_REVIEWS";
+
+    /** 자동 재시도를 모두 쓴 실패의 메시지 코드이자 앱에 보내는 공개 오류 코드. */
+    public static final String RETRY_EXHAUSTED = "ANALYSIS_RETRY_EXHAUSTED";
+
+    private final JdbcClient jdbc;
+    private final ObjectMapper objectMapper;
+    private final PersonaImageStorage imageStorage;
+
+    public AnalysisRepository(JdbcClient jdbc, ObjectMapper objectMapper, PersonaImageStorage imageStorage) {
+        this.jdbc = jdbc;
+        this.objectMapper = objectMapper;
+        this.imageStorage = imageStorage;
+    }
+
+    public Optional<ExistingJob> findByIdempotencyKey(UUID userId, String idempotencyKey) {
+        return jdbc.sql("""
+                        SELECT id, request_hash, status, progress_step, created_at
+                        FROM analysis_jobs
+                        WHERE user_id = :userId AND idempotency_key = :idempotencyKey
+                        """)
+                .param("userId", userId)
+                .param("idempotencyKey", idempotencyKey)
+                .query((rs, rowNum) -> new ExistingJob(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("request_hash"),
+                        rs.getString("status"),
+                        rs.getString("progress_step"),
+                        rs.getObject("created_at", OffsetDateTime.class).toInstant()))
+                .optional();
+    }
+
+    /**
+     * 작업을 만든다. 같은 사용자가 같은 키로 동시에 요청해 먼저 만들어진 작업이 있으면
+     * 아무것도 만들지 않고 비어 있는 값을 돌려준다. 호출자는 그 작업을 다시 조회한다.
+     */
+    public Optional<JobContext> insertJob(
+            UUID userId,
+            String idempotencyKey,
+            String requestHash,
+            String storeName,
+            String category,
+            String naverPlaceUrl) {
+        UUID storeId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        jdbc.sql("""
+                        INSERT INTO stores (id, name, category, naver_place_url)
+                        VALUES (:id, :name, :category, :url)
+                        """)
+                .param("id", storeId)
+                .param("name", storeName)
+                .param("category", category)
+                .param("url", naverPlaceUrl)
+                .update();
+        int inserted = jdbc.sql("""
+                        INSERT INTO analysis_jobs (
+                            id, user_id, store_id, idempotency_key, request_hash,
+                            status, progress_step, message_code
+                        ) VALUES (
+                            :id, :userId, :storeId, :idempotencyKey, :requestHash,
+                            'QUEUED', 'QUEUED', 'ANALYSIS_QUEUED'
+                        )
+                        ON CONFLICT (user_id, idempotency_key) DO NOTHING
+                        """)
+                .param("id", jobId)
+                .param("userId", userId)
+                .param("storeId", storeId)
+                .param("idempotencyKey", idempotencyKey)
+                .param("requestHash", requestHash)
+                .update();
+        if (inserted == 0) {
+            // 같은 키의 작업이 먼저 만들어졌다. 방금 넣은 가게 행은 쓰이지 않으므로 지운다.
+            jdbc.sql("DELETE FROM stores WHERE id = :id").param("id", storeId).update();
+            return Optional.empty();
+        }
+        return Optional.of(new JobContext(jobId, userId, storeId, storeName, category, naverPlaceUrl));
+    }
+
+    public Optional<JobContext> findContext(UUID jobId) {
+        return jdbc.sql("""
+                        SELECT j.id, j.user_id, j.store_id, s.name, s.category, s.naver_place_url
+                        FROM analysis_jobs j
+                        JOIN stores s ON s.id = j.store_id
+                        WHERE j.id = :jobId
+                        """)
+                .param("jobId", jobId)
+                .query((rs, rowNum) -> new JobContext(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("user_id", UUID.class),
+                        rs.getObject("store_id", UUID.class),
+                        rs.getString("name"),
+                        rs.getString("category"),
+                        rs.getString("naver_place_url")))
+                .optional();
+    }
+
+    public Optional<JobStatus> findStatus(UUID jobId, UUID userId) {
+        return jdbc.sql("""
+                        SELECT j.id, j.status, j.progress_step, j.message_code,
+                               j.error_code, j.retryable, j.created_at, j.updated_at,
+                               j.valid_review_count, a.id AS analysis_id
+                        FROM analysis_jobs j
+                        LEFT JOIN analyses a ON a.job_id = j.id
+                        WHERE j.id = :jobId AND j.user_id = :userId
+                        """)
+                .param("jobId", jobId)
+                .param("userId", userId)
+                .query(this::mapStatus)
+                .optional();
+    }
+
+    public boolean markRunning(UUID jobId) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'RUNNING', progress_step = 'COLLECTING_REVIEWS',
+                            message_code = 'COLLECTING_REVIEWS', started_at = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP, attempt_count = attempt_count + 1
+                        WHERE id = :jobId AND status = 'QUEUED'
+                        """)
+                .param("jobId", jobId)
+                .update() == 1;
+    }
+
+    /**
+     * 대기 중인 작업 하나를 원자적으로 집어 RUNNING 으로 바꾸고 임대를 건다.
+     *
+     * <p>{@code FOR UPDATE SKIP LOCKED} 로 같은 행을 두 워커가 동시에 집지 못하게 한다.
+     * 인스턴스가 여러 개여도 한 작업은 한 번만 실행된다.
+     *
+     * @return 집어온 작업 id. 대기 중인 작업이 없으면 비어 있다
+     */
+    public Optional<ClaimedJob> claimNextQueuedJob(Duration lease) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'RUNNING',
+                            progress_step = 'COLLECTING_REVIEWS',
+                            message_code = 'COLLECTING_REVIEWS',
+                            started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
+                            attempt_count = attempt_count + 1,
+                            lease_expires_at = CURRENT_TIMESTAMP + (:leaseSeconds * INTERVAL '1 second'),
+                            last_heartbeat_at = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = (
+                            SELECT id FROM analysis_jobs
+                            WHERE status = 'QUEUED'
+                            ORDER BY created_at
+                            FOR UPDATE SKIP LOCKED
+                            LIMIT 1
+                        )
+                        RETURNING id, attempt_count
+                        """)
+                .param("leaseSeconds", lease.toSeconds())
+                .query((rs, rowNum) -> new ClaimedJob(
+                        rs.getObject("id", UUID.class), rs.getInt("attempt_count")))
+                .optional();
+    }
+
+    /** 처리 중인 작업의 임대를 연장한다. 워커가 살아 있다는 신호다. */
+    public boolean extendLease(ClaimedJob claim, Duration lease) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET lease_expires_at = CURRENT_TIMESTAMP + (:leaseSeconds * INTERVAL '1 second'),
+                            last_heartbeat_at = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
+                        """)
+                .param("leaseSeconds", lease.toSeconds())
+                .param("jobId", claim.jobId())
+                .param("attemptCount", claim.attemptCount())
+                .update() == 1;
+    }
+
+    /**
+     * 임대가 끝난 RUNNING 작업을 다시 큐에 넣는다. 워커가 죽었거나 서버가 재시작된 경우다.
+     *
+     * <p>시도 횟수가 상한에 닿은 작업은 여기서 되살리지 않는다. {@link #failExhaustedJobs}
+     * 가 실패로 마무리한다.
+     *
+     * @return 다시 큐에 넣은 작업 수
+     */
+    public int requeueExpiredLeases(int maxAttempts) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'QUEUED',
+                            progress_step = 'QUEUED',
+                            message_code = 'QUEUED',
+                            lease_expires_at = NULL,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE status = 'RUNNING'
+                          AND lease_expires_at IS NOT NULL
+                          AND lease_expires_at < CURRENT_TIMESTAMP
+                          AND attempt_count < :maxAttempts
+                        """)
+                .param("maxAttempts", maxAttempts)
+                .update();
+    }
+
+    /**
+     * 임대가 끝났고 재시도 횟수도 모두 쓴 작업을 실패로 마무리한다.
+     *
+     * <p>자동 재시도를 모두 썼으므로 {@link #markRetryExhausted} 와 같이 사용자 재시도를
+     * 막고({@code retryable = false}) 재시도 소진 문구로 알린다. 원인 코드
+     * {@code ANALYSIS_TIMEOUT} 은 {@code error_code} 에 남긴다.
+     *
+     * <p>{@link #markFailed} 와 같은 규칙으로 실패 알림을 만든다. 이 경로는 워커가 죽은 뒤라 실패를
+     * 알릴 주체가 여기뿐이다. 상태 변경과 알림을 한 문장으로 묶어, 알림만 빠진 채
+     * FAILED 로 남는 경우가 없게 한다.
+     *
+     * @return 실패로 마감한 작업 수
+     */
+    public int failExhaustedJobs(int maxAttempts) {
+        return jdbc.sql("""
+                        WITH failed AS (
+                            UPDATE analysis_jobs
+                            SET status = 'FAILED',
+                                progress_step = 'FAILED',
+                                message_code = 'ANALYSIS_RETRY_EXHAUSTED',
+                                error_code = 'ANALYSIS_TIMEOUT',
+                                retryable = false,
+                                lease_expires_at = NULL,
+                                completed_at = CURRENT_TIMESTAMP,
+                                updated_at = CURRENT_TIMESTAMP
+                            WHERE status = 'RUNNING'
+                              AND lease_expires_at IS NOT NULL
+                              AND lease_expires_at < CURRENT_TIMESTAMP
+                              AND attempt_count >= :maxAttempts
+                            RETURNING id, user_id
+                        ), notified AS (
+                            INSERT INTO notifications (id, user_id, job_id, type, message_code)
+                            SELECT gen_random_uuid(), f.user_id, f.id, 'ANALYSIS_FAILED', 'ANALYSIS_RETRY_EXHAUSTED'
+                            FROM failed f
+                            LEFT JOIN notification_settings s ON s.user_id = f.user_id
+                            -- 설정 행이 없는 사용자(이 기능 전에 가입)는 기본값 켜짐으로 본다.
+                            WHERE COALESCE(s.analysis_result_enabled, true)
+                            ON CONFLICT (job_id, type) DO NOTHING
+                        )
+                        SELECT count(*)::int FROM failed
+                        """)
+                .param("maxAttempts", maxAttempts)
+                .query(Integer.class)
+                .single();
+    }
+
+    /** 재시도 가능한 실패를 다시 큐에 넣는다. 시도 횟수가 남아 있을 때만이다. */
+    public boolean requeueForRetry(ClaimedJob claim, int maxAttempts) {
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'QUEUED',
+                            progress_step = 'QUEUED',
+                            message_code = 'QUEUED',
+                            error_code = NULL,
+                            lease_expires_at = NULL,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
+                          AND attempt_count < :maxAttempts
+                        """)
+                .param("jobId", claim.jobId())
+                .param("attemptCount", claim.attemptCount())
+                .param("maxAttempts", maxAttempts)
+                .update() == 1;
+    }
+
+    /**
+     * 작업을 실패로 마감한다.
+     *
+     * <p>실패한 작업은 사용자가 곧바로 다시 시도할 대상이 아니므로 {@code retryable} 은 항상
+     * {@code false} 다. 재시도할 수 있는 원인은 서버가 먼저 자동으로 다시 시도한다.
+     */
+    public void markFailed(ClaimedJob claim, String code) {
+        fail(claim, code, "ANALYSIS_FAILED", 0, null);
+    }
+
+    /** 유효 리뷰가 기준보다 적어 실패한 작업을 현재 건수와 함께 마감한다(REVIEW-008). */
+    public void markFailed(ClaimedJob claim, String code, int validReviewCount) {
+        fail(claim, code, "ANALYSIS_FAILED", 0, validReviewCount);
+    }
+
+    /**
+     * 자동 재시도를 모두 쓴 작업을 실패로 마감한다.
+     *
+     * <p>원인 코드는 {@code error_code} 에 남기고, 사용자에게는 재시도 소진으로 알린다.
+     * 앱이 곧바로 다시 요청하면 수집·모델 호출이 또 최대 {@code MAX_ATTEMPTS} 번 반복되므로
+     * {@code retryable} 을 끈다(#30, 2026-09-27 결정).
+     */
+    public boolean markRetryExhausted(ClaimedJob claim, String causeCode, int maxAttempts) {
+        // 시도 횟수가 상한에 닿은 작업만 마감한다. 임대가 끝나 다른 워커가 이 작업을 다시
+        // 가져간 뒤라면 다시 넣기가 실패해도 시도 횟수가 남아 있으므로 건드리지 않는다.
+        return fail(claim, causeCode, RETRY_EXHAUSTED, maxAttempts, null);
+    }
+
+    /** @return 이 호출이 작업을 실패로 바꿨는지 */
+    private boolean fail(
+            ClaimedJob claim,
+            String code,
+            String messageCode,
+            int minAttempts,
+            Integer validReviewCount) {
+        int updated = jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'FAILED', progress_step = 'FAILED', message_code = :messageCode,
+                            error_code = :code, retryable = false, valid_review_count = :validReviewCount,
+                            completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
+                          AND attempt_count >= :minAttempts
+                        """)
+                .param("jobId", claim.jobId())
+                .param("attemptCount", claim.attemptCount())
+                .param("code", code)
+                .param("messageCode", messageCode)
+                .param("minAttempts", minAttempts)
+                .param("validReviewCount", validReviewCount, java.sql.Types.INTEGER)
+                .update();
+        if (updated == 0) {
+            // 이미 끝났거나 다른 워커가 처리 중인 작업이다. 이 호출이 실패시킨 것이 아니므로
+            // 알림도 만들지 않는다.
+            return false;
+        }
+        jdbc.sql("""
+                        INSERT INTO notifications (id, user_id, job_id, type, message_code)
+                        SELECT :id, j.user_id, j.id, 'ANALYSIS_FAILED', :messageCode
+                        FROM analysis_jobs j
+                        LEFT JOIN notification_settings s ON s.user_id = j.user_id
+                        -- 설정 행이 없는 사용자(이 기능 전에 가입)는 기본값 켜짐으로 본다. 완료 알림과 같다.
+                        WHERE j.id = :jobId AND j.status = 'FAILED'
+                          AND COALESCE(s.analysis_result_enabled, true)
+                        ON CONFLICT (job_id, type) DO NOTHING
+                        """)
+                .param("id", UUID.randomUUID())
+                .param("jobId", claim.jobId())
+                .param("messageCode", messageCode)
+                .update();
+        return true;
+    }
+
+    /**
+     * 완료된 분석 결과를 저장한다. 호출자가 연 트랜잭션 안에서 실행해야 한다.
+     *
+     * <p>가장 먼저 작업을 RUNNING 에서 COMPLETED 로 바꾼다. 바뀐 행이 없으면 임대가 끝나 작업이
+     * 이미 실패로 마감됐거나 다시 큐에 들어간 것이므로 아무것도 저장하지 않고 예외를 던진다.
+     * 이 UPDATE 가 행을 잠그므로 저장이 끝날 때까지 다른 경로가 이 작업을 실패로 바꾸지 못한다.
+     */
+    public UUID saveCompleted(ClaimedJob claim, JobContext context, WorkerResponse response) {
+        int claimed = jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET status = 'COMPLETED', progress_step = 'COMPLETED',
+                            message_code = 'ANALYSIS_COMPLETED', retryable = false,
+                            lease_expires_at = NULL,
+                            completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
+                        """)
+                .param("jobId", context.jobId())
+                .param("attemptCount", claim.attemptCount())
+                .update();
+        if (claimed != 1) {
+            throw new JobOwnershipLostException(context.jobId());
+        }
+        UUID analysisId = UUID.randomUUID();
+        jdbc.sql("""
+                        INSERT INTO analyses (
+                            id, job_id, user_id, store_id, collected_review_count, valid_review_count,
+                            contains_old_reviews, schema_version, model_versions, limitations,
+                            collected_at, analyzed_at
+                        ) VALUES (
+                            :id, :jobId, :userId, :storeId, :collected, :valid,
+                            :containsOld, :schemaVersion,
+                            CAST(:modelVersions AS jsonb), CAST(:limitations AS jsonb),
+                            :collectedAt, :analyzedAt
+                        )
+                        """)
+                .param("id", analysisId)
+                .param("jobId", context.jobId())
+                .param("userId", context.userId())
+                .param("storeId", context.storeId())
+                .param("collected", response.collectedReviewCount())
+                .param("valid", response.validReviewCount())
+                .param("containsOld", response.containsOldReviews())
+                .param("schemaVersion", response.schemaVersion())
+                .param("modelVersions", writeJson(response.modelVersions()))
+                .param("limitations", writeJson(response.analysis().limitations()))
+                .param("collectedAt", utc(response.collectedAt()))
+                .param("analyzedAt", utc(response.analyzedAt()))
+                .update();
+
+        List<UUID> reviewIds = insertReviews(context, analysisId, response);
+        Map<Integer, PublicPersona> personas = insertPersonas(analysisId, response, reviewIds);
+        String publicPayload = writeJson(buildPublicResult(context, analysisId, response, personas));
+        jdbc.sql("""
+                        INSERT INTO analysis_result_documents (analysis_id, payload)
+                        VALUES (:analysisId, CAST(:payload AS jsonb))
+                        """)
+                .param("analysisId", analysisId)
+                .param("payload", publicPayload)
+                .update();
+
+        jdbc.sql("""
+                        INSERT INTO saved_analyses (user_id, analysis_id)
+                        VALUES (:userId, :analysisId)
+                        ON CONFLICT (user_id) DO NOTHING
+                        """)
+                .param("userId", context.userId())
+                .param("analysisId", analysisId)
+                .update();
+        jdbc.sql("""
+                        INSERT INTO notification_settings (user_id)
+                        VALUES (:userId)
+                        ON CONFLICT (user_id) DO NOTHING
+                        """)
+                .param("userId", context.userId())
+                .update();
+        jdbc.sql("""
+                        INSERT INTO notifications (id, user_id, job_id, type, message_code)
+                        SELECT :id, :userId, :jobId, 'ANALYSIS_COMPLETED', 'ANALYSIS_COMPLETED'
+                        FROM notification_settings
+                        WHERE user_id = :userId AND analysis_result_enabled = true
+                        ON CONFLICT (job_id, type) DO NOTHING
+                        """)
+                .param("id", UUID.randomUUID())
+                .param("userId", context.userId())
+                .param("jobId", context.jobId())
+                .update();
+        return analysisId;
+    }
+
+    public Optional<JsonNode> findResultByJob(UUID jobId, UUID userId) {
+        return jdbc.sql("""
+                        SELECT d.payload
+                        FROM analysis_result_documents d
+                        JOIN analyses a ON a.id = d.analysis_id
+                        WHERE a.job_id = :jobId AND a.user_id = :userId
+                        """)
+                .param("jobId", jobId)
+                .param("userId", userId)
+                .query((rs, rowNum) -> readJson(rs.getString("payload")))
+                .optional();
+    }
+
+    public Optional<JsonNode> findSavedResult(UUID userId) {
+        return jdbc.sql("""
+                        SELECT d.payload
+                        FROM saved_analyses s
+                        JOIN analysis_result_documents d ON d.analysis_id = s.analysis_id
+                        WHERE s.user_id = :userId
+                        """)
+                .param("userId", userId)
+                .query((rs, rowNum) -> readJson(rs.getString("payload")))
+                .optional();
+    }
+
+    public boolean replaceSavedResult(UUID userId, UUID analysisId) {
+        return jdbc.sql("""
+                        INSERT INTO saved_analyses (user_id, analysis_id, saved_at)
+                        SELECT :userId, a.id, CURRENT_TIMESTAMP
+                        FROM analyses a
+                        WHERE a.id = :analysisId AND a.user_id = :userId
+                        ON CONFLICT (user_id) DO UPDATE
+                        SET analysis_id = EXCLUDED.analysis_id, saved_at = EXCLUDED.saved_at
+                        """)
+                .param("userId", userId)
+                .param("analysisId", analysisId)
+                .update() == 1;
+    }
+
+    public Optional<ImageRecord> findImage(UUID imageId, UUID userId) {
+        return jdbc.sql("""
+                        SELECT i.storage_key, i.alt_text
+                        FROM persona_images i
+                        JOIN personas p ON p.id = i.persona_id
+                        JOIN analyses a ON a.id = p.analysis_id
+                        WHERE i.id = :imageId AND a.user_id = :userId AND i.status = 'COMPLETED'
+                        """)
+                .param("imageId", imageId)
+                .param("userId", userId)
+                .query((rs, rowNum) -> new ImageRecord(
+                        rs.getString("storage_key"), rs.getString("alt_text")))
+                .optional();
+    }
+
+    public boolean ownsPersona(UUID userId, UUID analysisId, UUID personaId) {
+        return jdbc.sql("""
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM personas p
+                            JOIN analyses a ON a.id = p.analysis_id
+                            WHERE p.id = :personaId
+                              AND p.analysis_id = :analysisId
+                              AND a.user_id = :userId
+                        )
+                        """)
+                .param("personaId", personaId)
+                .param("analysisId", analysisId)
+                .param("userId", userId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    public List<EvidenceRecord> findEvidence(
+            UUID analysisId,
+            UUID personaId,
+            String perspective,
+            Cursor cursor,
+            int fetchSize) {
+        return jdbc.sql("""
+                        SELECT el.id, el.sort_order, r.id AS review_id, el.excerpt,
+                               r.rating, r.written_at, r.platform
+                        FROM evidence_links el
+                        JOIN reviews r
+                          ON r.id = el.review_id AND r.analysis_id = el.analysis_id
+                        LEFT JOIN insights i
+                          ON i.id = el.insight_id AND i.analysis_id = el.analysis_id
+                        LEFT JOIN advice ad
+                          ON ad.id = el.advice_id AND ad.analysis_id = el.analysis_id
+                        JOIN personas p ON p.id = COALESCE(i.persona_id, ad.persona_id)
+                        WHERE el.analysis_id = :analysisId
+                          AND p.id = :personaId
+                          AND ((:perspective = 'ADVICE' AND el.advice_id IS NOT NULL)
+                            OR (:perspective <> 'ADVICE' AND i.kind = :perspective))
+                          AND (CAST(:cursorOrder AS integer) IS NULL
+                            OR (el.sort_order, el.id) > (
+                                CAST(:cursorOrder AS integer), CAST(:cursorId AS uuid)))
+                        ORDER BY el.sort_order, el.id
+                        LIMIT :fetchSize
+                        """)
+                .param("analysisId", analysisId)
+                .param("personaId", personaId)
+                .param("perspective", perspective)
+                .param("cursorOrder", cursor == null ? null : cursor.sortOrder())
+                .param("cursorId", cursor == null ? null : cursor.evidenceLinkId())
+                .param("fetchSize", fetchSize)
+                .query((rs, rowNum) -> new EvidenceRecord(
+                        rs.getObject("id", UUID.class),
+                        rs.getInt("sort_order"),
+                        rs.getObject("review_id", UUID.class),
+                        rs.getString("excerpt"),
+                        rs.getBigDecimal("rating"),
+                        rs.getObject("written_at", java.time.LocalDate.class),
+                        rs.getString("platform")))
+                .list();
+    }
+
+    private List<UUID> insertReviews(JobContext context, UUID analysisId, WorkerResponse response) {
+        List<UUID> ids = new ArrayList<>();
+        for (WorkerReview review : response.reviews()) {
+            UUID reviewId = UUID.randomUUID();
+            ids.add(reviewId);
+            jdbc.sql("""
+                            INSERT INTO reviews (
+                                id, job_id, analysis_id, platform, content, normalized_content,
+                                rating, written_at, collected_at, content_hash
+                            ) VALUES (
+                                :id, :jobId, :analysisId, 'NAVER', :content, :normalized,
+                                :rating, :writtenAt, :collectedAt, :contentHash
+                            )
+                            """)
+                    .param("id", reviewId)
+                    .param("jobId", context.jobId())
+                    .param("analysisId", analysisId)
+                    .param("content", review.content())
+                    .param("normalized", review.normalizedContent())
+                    .param("rating", review.rating())
+                    .param("writtenAt", review.writtenAt())
+                    .param("collectedAt", utc(response.collectedAt()))
+                    .param("contentHash", review.contentHash())
+                    .update();
+        }
+        return ids;
+    }
+
+    private Map<Integer, PublicPersona> insertPersonas(
+            UUID analysisId, WorkerResponse response, List<UUID> reviewIds) {
+        Map<Integer, PublicPersona> result = new LinkedHashMap<>();
+        for (WorkerPersona persona : response.analysis().personas()) {
+            UUID personaId = UUID.randomUUID();
+            jdbc.sql("""
+                            INSERT INTO personas (
+                                id, analysis_id, rank, topic_review_count, label, summary, caveat
+                            ) VALUES (:id, :analysisId, :rank, :count, :label, :summary, :caveat)
+                            """)
+                    .param("id", personaId)
+                    .param("analysisId", analysisId)
+                    .param("rank", persona.rank())
+                    .param("count", persona.topicReviewCount())
+                    .param("label", persona.label())
+                    .param("summary", persona.summary())
+                    .param("caveat", persona.caveat())
+                    .update();
+
+            Map<String, PublicInsight> insights = new LinkedHashMap<>();
+            for (WorkerInsight insight : persona.insights()) {
+                UUID insightId = UUID.randomUUID();
+                jdbc.sql("""
+                                INSERT INTO insights (
+                                    id, persona_id, analysis_id, kind,
+                                    review_fact, ai_interpretation, sort_order
+                                ) VALUES (
+                                    :id, :personaId, :analysisId, :kind,
+                                    :reviewFact, :interpretation, 0
+                                )
+                                """)
+                        .param("id", insightId)
+                        .param("personaId", personaId)
+                        .param("analysisId", analysisId)
+                        .param("kind", insight.kind())
+                        .param("reviewFact", insight.reviewFact())
+                        .param("interpretation", insight.aiInterpretation())
+                        .update();
+                List<Map<String, Object>> evidence = insertEvidence(
+                        analysisId, reviewIds, insight.evidence(), insightId, null, response.reviews());
+                insights.put(insight.kind(), new PublicInsight(insightId, insight, evidence));
+            }
+
+            List<PublicAdvice> advice = new ArrayList<>();
+            for (int index = 0; index < persona.advice().size(); index++) {
+                WorkerAdvice item = persona.advice().get(index);
+                UUID adviceId = UUID.randomUUID();
+                jdbc.sql("""
+                                INSERT INTO advice (
+                                    id, persona_id, analysis_id, review_fact,
+                                    suggested_action, ai_interpretation, sort_order
+                                ) VALUES (
+                                    :id, :personaId, :analysisId, :reviewFact,
+                                    :action, :interpretation, :sortOrder
+                                )
+                                """)
+                        .param("id", adviceId)
+                        .param("personaId", personaId)
+                        .param("analysisId", analysisId)
+                        .param("reviewFact", item.reviewFact())
+                        .param("action", item.suggestedAction())
+                        .param("interpretation", item.aiInterpretation())
+                        .param("sortOrder", index)
+                        .update();
+                List<Map<String, Object>> evidence = insertEvidence(
+                        analysisId, reviewIds, item.evidence(), null, adviceId, response.reviews());
+                advice.add(new PublicAdvice(adviceId, item, evidence));
+            }
+
+            WorkerImage workerImage = response.images().stream()
+                    .filter(image -> image.rank() == persona.rank())
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Missing persona image"));
+            UUID imageId = UUID.randomUUID();
+            String storageKey = imageStorage.save(analysisId, imageId, workerImage.contentBase64());
+            jdbc.sql("""
+                            INSERT INTO persona_images (
+                                id, persona_id, storage_key, alt_text,
+                                style_version, model_version, status
+                            ) VALUES (
+                                :id, :personaId, :storageKey, :altText,
+                                'pulse-editorial-v1', 'configured-openai-image-model', 'COMPLETED'
+                            )
+                            """)
+                    .param("id", imageId)
+                    .param("personaId", personaId)
+                    .param("storageKey", storageKey)
+                    .param("altText", persona.imageAltText())
+                    .update();
+            result.put(
+                    persona.rank(),
+                    new PublicPersona(personaId, imageId, persona, insights, advice));
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> insertEvidence(
+            UUID analysisId,
+            List<UUID> reviewIds,
+            List<WorkerEvidence> evidence,
+            UUID insightId,
+            UUID adviceId,
+            List<WorkerReview> reviews) {
+        List<Map<String, Object>> publicEvidence = new ArrayList<>();
+        for (int index = 0; index < evidence.size(); index++) {
+            WorkerEvidence item = evidence.get(index);
+            UUID reviewId = reviewIds.get(item.reviewIndex());
+            jdbc.sql("""
+                            INSERT INTO evidence_links (
+                                id, analysis_id, review_id, insight_id, advice_id, excerpt, sort_order
+                            ) VALUES (
+                                :id, :analysisId, :reviewId, :insightId, :adviceId, :excerpt, :sortOrder
+                            )
+                            """)
+                    .param("id", UUID.randomUUID())
+                    .param("analysisId", analysisId)
+                    .param("reviewId", reviewId)
+                    .param("insightId", insightId)
+                    .param("adviceId", adviceId)
+                    .param("excerpt", item.excerpt())
+                    .param("sortOrder", index)
+                    .update();
+            WorkerReview review = reviews.get(item.reviewIndex());
+            Map<String, Object> preview = new LinkedHashMap<>();
+            preview.put("reviewId", reviewId.toString());
+            preview.put("excerpt", item.excerpt());
+            preview.put("writtenAt", review.writtenAt());
+            publicEvidence.add(preview);
+        }
+        return publicEvidence;
+    }
+
+    private Map<String, Object> buildPublicResult(
+            JobContext context,
+            UUID analysisId,
+            WorkerResponse response,
+            Map<Integer, PublicPersona> personas) {
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("analysisId", analysisId.toString());
+        root.put("jobId", context.jobId().toString());
+        root.put("store", Map.of(
+                "name", context.storeName(),
+                "category", context.category(),
+                "naverPlaceUrl", context.naverPlaceUrl()));
+        root.put("metadata", Map.of(
+                "platform", "NAVER",
+                "collectedReviewCount", response.collectedReviewCount(),
+                "validReviewCount", response.validReviewCount(),
+                "collectedAt", response.collectedAt().toString(),
+                "analyzedAt", response.analyzedAt().toString(),
+                "containsReviewsOlderThanTwoYears", response.containsOldReviews(),
+                // 작성일을 모르는 리뷰는 2년 경고 판정에서 빠진다. 몇 건이 빠졌는지 따로
+                // 알린다(#29, 2026-09-27 결정).
+                "reviewsWithoutWrittenDateCount", response.reviews().stream()
+                        .filter(review -> review.writtenAt() == null)
+                        .count(),
+                "modelVersions", response.modelVersions()));
+        List<Map<String, String>> limitations = response.analysis().limitations().stream()
+                .map(message -> Map.of("code", "ANALYSIS_LIMITATION", "message", message))
+                .toList();
+        root.put("limitations", limitations);
+
+        List<Map<String, Object>> podium = new ArrayList<>();
+        for (int rank = 1; rank <= 3; rank++) {
+            PublicPersona persona = personas.get(rank);
+            if (persona == null) {
+                podium.add(Map.of(
+                        "rank", rank,
+                        "status", "EMPTY",
+                        "reason", Map.of(
+                                "code", "INSUFFICIENT_TOPIC_EVIDENCE",
+                                "message", "리뷰 수가 적어서 손님 유형이 도출되지 않았습니다.")));
+            } else {
+                podium.add(publicPersona(persona));
+            }
+        }
+        root.put("podium", podium);
+        return root;
+    }
+
+    private Map<String, Object> publicPersona(PublicPersona value) {
+        WorkerPersona persona = value.worker();
+        Map<String, Object> perspectives = new LinkedHashMap<>();
+        for (Map.Entry<String, PublicInsight> entry : value.insights().entrySet()) {
+            PublicInsight item = entry.getValue();
+            perspectives.put(entry.getKey().toLowerCase(), Map.of(
+                    "reviewFacts", List.of(Map.of(
+                            "id", item.id().toString(), "text", item.worker().reviewFact())),
+                    "aiInterpretations", List.of(Map.of(
+                            "id", item.id().toString(), "text", item.worker().aiInterpretation())),
+                    "evidencePreview", item.evidence().stream().limit(2).toList(),
+                    "evidenceCount", item.evidence().size()));
+        }
+        List<Map<String, Object>> advice = value.advice().stream()
+                .map(item -> Map.<String, Object>of(
+                        "id", item.id().toString(),
+                        "reviewFact", item.worker().reviewFact(),
+                        "suggestedAction", item.worker().suggestedAction(),
+                        "details", Map.of(
+                                "aiInterpretation", item.worker().aiInterpretation(),
+                                "knowledgeReferences", List.of()),
+                        "evidencePreview", item.evidence().stream().limit(2).toList(),
+                        "evidenceCount", item.evidence().size()))
+                .toList();
+        Map<String, Object> publicPersona = new LinkedHashMap<>();
+        publicPersona.put("id", value.id().toString());
+        publicPersona.put("label", persona.label());
+        publicPersona.put("summary", persona.summary());
+        publicPersona.put("caveat", persona.caveat());
+        publicPersona.put("image", Map.of(
+                "id", value.imageId().toString(),
+                "url", "/api/v1/persona-images/" + value.imageId(),
+                "altText", persona.imageAltText(),
+                "generatedByAi", true));
+        publicPersona.put("perspectives", perspectives);
+        publicPersona.put("advice", advice);
+        return Map.of(
+                "rank", persona.rank(),
+                "status", "FILLED",
+                "topicReviewCount", persona.topicReviewCount(),
+                "persona", publicPersona);
+    }
+
+    private JobStatus mapStatus(ResultSet rs, int rowNum) throws SQLException {
+        String status = rs.getString("status");
+        String messageCode = rs.getString("message_code");
+        // 재시도 소진은 원인과 무관하게 같은 공개 코드로 알린다. 원인은 error_code 에 남아 있다.
+        String errorCode = RETRY_EXHAUSTED.equals(messageCode) ? RETRY_EXHAUSTED : rs.getString("error_code");
+        return new JobStatus(
+                rs.getObject("id", UUID.class),
+                status,
+                rs.getString("progress_step"),
+                messageFor(messageCode, errorCode),
+                // 이 규칙 이전에 retryable = true 로 저장된 실패 작업도 즉시 재시도 대상으로 보이지 않게 한다.
+                !"FAILED".equals(status) && rs.getBoolean("retryable"),
+                rs.getObject("analysis_id", UUID.class),
+                jobError(errorCode, rs.getObject("valid_review_count", Integer.class)),
+                rs.getObject("created_at", OffsetDateTime.class).toInstant(),
+                rs.getObject("updated_at", OffsetDateTime.class).toInstant());
+    }
+
+    private static JobError jobError(String errorCode, Integer validReviewCount) {
+        if (errorCode == null) {
+            return null;
+        }
+        if (INSUFFICIENT_VALID_REVIEWS.equals(errorCode) && validReviewCount != null) {
+            return new JobError(
+                    errorCode,
+                    "분석 가능한 리뷰가 " + validReviewCount + "건으로 기준 " + MINIMUM_VALID_REVIEWS + "건보다 적습니다.",
+                    validReviewCount,
+                    MINIMUM_VALID_REVIEWS);
+        }
+        return new JobError(errorCode, messageFor(null, errorCode));
+    }
+
+    private static String messageFor(String messageCode, String errorCode) {
+        if (errorCode != null) {
+            return switch (errorCode) {
+                case "INVALID_NAVER_PLACE_URL" -> "지원하는 네이버 가게 주소를 확인해 주세요.";
+                case "INSUFFICIENT_VALID_REVIEWS" -> "분석 가능한 리뷰가 50건보다 적습니다.";
+                case "REVIEW_COLLECTION_BLOCKED" -> "현재 네이버 공개 리뷰를 가져올 수 없습니다.";
+                case "ANALYSIS_CONFIGURATION_MISSING" -> "분석 서비스 설정이 완료되지 않았습니다.";
+                case RETRY_EXHAUSTED -> "여러 번 시도했지만 분석을 완료하지 못했습니다. 잠시 뒤에 가게 정보에서 다시 요청해 주세요.";
+                default -> "분석을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+            };
+        }
+        return switch (String.valueOf(messageCode)) {
+            // 재시도로 다시 큐에 들어간 작업은 message_code 가 QUEUED 다.
+            case "ANALYSIS_QUEUED", "QUEUED" -> "분석 작업을 준비하고 있습니다.";
+            case "COLLECTING_REVIEWS" -> "공개 리뷰를 수집하고 분석하고 있습니다.";
+            case "ANALYSIS_COMPLETED" -> "리뷰 분석이 완료되었습니다.";
+            default -> "분석 상태를 확인하고 있습니다.";
+        };
+    }
+
+    private String writeJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JacksonException exception) {
+            throw new IllegalStateException("분석 결과 JSON을 만들지 못했습니다.", exception);
+        }
+    }
+
+    private JsonNode readJson(String value) {
+        try {
+            return objectMapper.readTree(value);
+        } catch (JacksonException exception) {
+            throw new IllegalStateException("저장된 분석 결과 JSON을 읽지 못했습니다.", exception);
+        }
+    }
+
+    private static OffsetDateTime utc(Instant instant) {
+        return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
+    }
+
+    public record ExistingJob(
+            UUID jobId, String requestHash, String status, String progressStep, Instant createdAt) {
+    }
+
+    /** 작업을 집은 특정 실행. attemptCount가 임대 소유권 토큰 역할을 한다. */
+    public record ClaimedJob(UUID jobId, int attemptCount) {
+    }
+
+    public record ImageRecord(String storageKey, String altText) {
+    }
+
+    public record EvidenceRecord(
+            UUID evidenceLinkId,
+            int sortOrder,
+            UUID reviewId,
+            String excerpt,
+            java.math.BigDecimal rating,
+            java.time.LocalDate writtenAt,
+            String platform) {
+    }
+
+    private record PublicInsight(UUID id, WorkerInsight worker, List<Map<String, Object>> evidence) {
+    }
+
+    private record PublicAdvice(UUID id, WorkerAdvice worker, List<Map<String, Object>> evidence) {
+    }
+
+    private record PublicPersona(
+            UUID id,
+            UUID imageId,
+            WorkerPersona worker,
+            Map<String, PublicInsight> insights,
+            List<PublicAdvice> advice) {
+    }
+}

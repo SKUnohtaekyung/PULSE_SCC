@@ -11,6 +11,8 @@ import kr.co.scc.api.auth.domain.RefreshSession;
 import kr.co.scc.api.auth.domain.SessionTokens;
 import kr.co.scc.api.auth.domain.UserAccount;
 import kr.co.scc.api.auth.infrastructure.AuthRepository;
+import kr.co.scc.api.legal.LegalDocuments;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +37,7 @@ public class AuthService {
     private final TokenService tokenService;
     private final GoogleIdTokenVerifier googleVerifier;
     private final Clock clock;
+    private final boolean registrationEnabled;
     private volatile String decoyHash;
 
     public AuthService(
@@ -42,18 +45,34 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             TokenService tokenService,
             GoogleIdTokenVerifier googleVerifier,
-            Clock clock) {
+            Clock clock,
+            @Value("${scc.legal.registration-enabled:false}") boolean registrationEnabled) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.googleVerifier = googleVerifier;
         this.clock = clock;
+        this.registrationEnabled = registrationEnabled;
     }
 
     @Transactional
-    public AuthResult register(String email, String password, String phoneNumber) {
+    public AuthResult register(
+            String email,
+            String password,
+            String phoneNumber,
+            String termsVersion,
+            String privacyVersion) {
+        requireRegistrationEnabled();
         String normalizedEmail = AuthPolicy.normalizeEmail(email);
         validatePassword(password);
+        try {
+            LegalDocuments.requireCurrent(termsVersion, privacyVersion);
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(
+                    HttpStatus.BAD_REQUEST,
+                    "CURRENT_LEGAL_CONSENT_REQUIRED",
+                    "최신 이용약관과 개인정보처리방침에 동의해 주세요.");
+        }
         String normalizedPhone = normalizePhone(phoneNumber);
         ensureEmailAvailable(normalizedEmail);
 
@@ -67,6 +86,9 @@ public class AuthService {
         try {
             repository.insertUser(user);
             repository.insertIdentity(UUID.randomUUID(), userId, "LOCAL", normalizedEmail);
+            repository.insertLegalConsent(userId, "TERMS_OF_SERVICE", termsVersion);
+            repository.insertLegalConsent(userId, "PRIVACY_POLICY", privacyVersion);
+            repository.insertNotificationSettings(userId);
         } catch (DataIntegrityViolationException exception) {
             throw emailConflict();
         }
@@ -171,6 +193,7 @@ public class AuthService {
     }
 
     private UserAccount createGoogleUser(String subject, String normalizedEmail) {
+        requireRegistrationEnabled();
         if (repository.findUserByEmail(normalizedEmail).isPresent()) {
             throw new AuthException(
                     HttpStatus.CONFLICT,
@@ -181,6 +204,7 @@ public class AuthService {
         try {
             repository.insertUser(user);
             repository.insertIdentity(UUID.randomUUID(), user.id(), "GOOGLE", subject);
+            repository.insertNotificationSettings(user.id());
         } catch (DataIntegrityViolationException exception) {
             throw new AuthException(HttpStatus.CONFLICT, "ACCOUNT_ALREADY_EXISTS", "이미 등록된 계정입니다.");
         }
@@ -235,6 +259,15 @@ public class AuthService {
 
     private static AuthException invalidRefreshToken() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "로그인이 만료되었습니다. 다시 로그인해 주세요.");
+    }
+
+    private void requireRegistrationEnabled() {
+        if (!registrationEnabled) {
+            throw new AuthException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "REGISTRATION_NOT_AVAILABLE",
+                    "현재 신규 가입을 받을 수 없습니다. 잠시 후 다시 시도해 주세요.");
+        }
     }
 
     public record AuthResult(

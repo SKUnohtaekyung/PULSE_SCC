@@ -28,11 +28,13 @@ class InitialSchemaMigrationTests {
             "advice",
             "analyses",
             "analysis_jobs",
+            "analysis_result_documents",
             "auth_sessions",
             "evidence_links",
             "flyway_schema_history",
             "insights",
             "knowledge_references",
+            "legal_consents",
             "notification_settings",
             "notifications",
             "persona_images",
@@ -76,7 +78,23 @@ class InitialSchemaMigrationTests {
                         """)
                 .query(Long.class)
                 .single();
-        assertThat(migrations).isEqualTo(2L);
+        assertThat(migrations).isEqualTo(5L);
+    }
+
+    /** V4 는 작업 큐가 죽은 워커의 작업을 회수할 수 있도록 임대 컬럼을 추가한다. */
+    @Test
+    void analysisJobsCarryLeaseColumnsForTheQueue() {
+        var columns = jdbc.sql("""
+                        SELECT column_name
+                        FROM information_schema.columns
+                        WHERE table_name = 'analysis_jobs'
+                          AND column_name IN ('lease_expires_at', 'last_heartbeat_at')
+                        ORDER BY column_name
+                        """)
+                .query(String.class)
+                .list();
+
+        assertThat(columns).containsExactly("last_heartbeat_at", "lease_expires_at");
     }
 
     @Test

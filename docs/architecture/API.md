@@ -2,8 +2,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | **설계 계약 v0.3 — 인증 API 구현, 분석 API 구현 전** |
-| 기준일 | 2026-09-16 |
+| 상태 | **설계 계약 v0.6 — 인증·분석·근거·마이페이지 API 구현, 브랜치 전체 검토 반영** |
+| 기준일 | 2026-09-28 |
 | 소유 역할 | `role:platform` |
 | 제품 요구사항 | [PRD.md](../product/PRD.md) |
 | 상세 기능명세 | [GUEST_ANALYSIS_FUNCTIONAL_SPEC.md](../product/requirements/GUEST_ANALYSIS_FUNCTIONAL_SPEC.md) |
@@ -56,7 +56,7 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | 시간 | ISO 8601 UTC 문자열. 예: `2026-09-15T12:30:00Z` |
 | 인증 | `Authorization: Bearer <access-token>` |
 | 사용자 범위 | 요청 본문의 `userId`를 신뢰하지 않고 인증 주체로 결정 |
-| 멱등성 | 분석 생성은 `Idempotency-Key` 헤더를 받으며 같은 사용자·키의 재시도는 같은 작업을 반환 |
+| 멱등성 | 분석 생성은 `Idempotency-Key` 헤더(1~255자)를 받으며 같은 사용자·키의 재시도는 같은 작업을 반환한다. 같은 키로 동시에 보낸 요청도 작업은 하나만 만들어지고 모두 그 작업을 받는다. 키가 없거나 255자를 넘으면 `400 INVALID_REQUEST` |
 | 민감정보 | 비밀번호·토큰·API 키·리뷰 작성자 식별정보를 응답과 로그에 포함하지 않음 |
 
 액세스·갱신 토큰 정책은 [ADR-008](../decisions/ADR-008-authentication-policy.md)을 따른다. Access Token은 15분 HS256 JWT, Refresh Token은 30일 불투명 난수이며 매 사용 시 회전한다. 토큰 문자열을 URL, 로그, 오류 상세에 넣지 않는다.
@@ -85,6 +85,7 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 - 내부 예외명·SQL·스택 트레이스·외부 제공자 응답 원문은 반환하지 않는다.
 - `traceId`는 운영 로그 상관관계용이며 개인정보를 포함하지 않는다.
 - `fieldErrors`는 필드 오류가 있을 때만 포함한다.
+- 인증·마이페이지·분석 API 모두 이 형식을 쓴다(2026-09-28 분석 API 도 `fields`·`timestamp` 에서 이 형식으로 바꿨다). 요청 형식 오류(본문 검증 실패, 필수 헤더·쿼리 누락, 경로 값 형식 오류, 읽을 수 없는 JSON)는 `400 INVALID_REQUEST` 와 해당 `fieldErrors` 로 돌려준다.
 
 ### 2.2 공통 HTTP 상태
 
@@ -118,8 +119,11 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | POST | `/api/v1/auth/refresh` | 갱신 토큰 | 서비스 세션 갱신 |
 | POST | `/api/v1/auth/logout` | 필요 | 현재 세션 폐기 |
 | GET | `/api/v1/auth/session` | 필요 | Access Token과 DB 세션 상태를 확인해 로그인 상태 복원 |
+| GET | `/api/v1/legal-documents` | 없음 | 현재 이용약관·개인정보 처리방침 버전 조회 |
 
-전화번호 인증·계정 복구·탈퇴 API는 정책이 확정되지 않아 이 계약에 추가하지 않는다.
+전화번호 인증·계정 복구는 정책이 확정되지 않았다. 계정 탈퇴는 `DELETE /api/v1/me/account`로 제공하며 자체 계정은 현재 비밀번호 확인 후 계정과 연계 데이터를 삭제한다. Google 전용 계정은 현재 인증 세션으로 본인을 확인한다. 모든 계정은 Access Token 의 세션(`sid`)이 DB 에서 폐기되지 않고 만료 전이어야 하며, 아니면 `401 SESSION_REVOKED` 다(ADR-010). 페르소나 이미지 파일은 DB 삭제가 커밋된 뒤에 지운다.
+
+`GET /api/v1/legal-documents`는 현재 동의 가능한 `termsVersion`, `privacyVersion`과 `legallyReviewed`를 반환한다. 법률 전문가 검토가 완료되기 전에는 `legallyReviewed=false`다. 이때 서버의 `LEGAL_REGISTRATION_ENABLED` 기본값은 `false`이며, 자체 회원가입과 신규 Google 계정 생성은 `503 REGISTRATION_NOT_AVAILABLE`로 거부한다. 기존 계정 로그인은 유지한다. 로컬 가입 흐름 검증에서만 이 값을 명시적으로 `true`로 바꾼다.
 
 ### 3.2 분석 작업과 결과
 
@@ -133,7 +137,9 @@ Spring Boot와 Python은 [ADR-006](../decisions/ADR-006-backend-bootstrap.md)에
 | GET | `/api/v1/me/saved-analysis` | 현재 계정의 저장 분석 1개 조회 |
 | PUT | `/api/v1/me/saved-analysis/{analysisId}` | 저장 분석을 새 결과로 교체 |
 
-Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Spring Boot에 준비 완료를 알린다. Spring Boot는 결과 소유권과 필수 산출물을 확인하고 하나의 완료 트랜잭션에서 작업을 `COMPLETED`로 전이하고, 저장본이 없는 계정에는 첫 결과를 저장하며, 알림 설정이 켜진 경우에만 완료 알림을 멱등하게 생성한다. 중간에 실패하면 작업은 공개 `COMPLETED`가 되지 않으며 같은 작업을 안전하게 재조정할 수 있어야 한다. 저장본이 있는 사용자가 새 결과를 유지하지 않기로 선택하면 교체 API를 호출하지 않는다.
+`/analyses/{analysisId}/evidence`는 요청 사용자 소유 분석과 해당 분석의 페르소나를 함께 확인한다. 앱은 결과 응답의 `evidencePreview`를 대표 근거로 먼저 보여주고, 전체 보기에서 이 endpoint를 호출한다.
+
+Python 컴포넌트는 DB 에 접근하지 않고 완성된 결과를 내부 HTTP 응답으로 돌려준다(§9, [ADR-009](../decisions/ADR-009-analysis-execution-boundary.md)). Spring Boot는 하나의 완료 트랜잭션에서 먼저 작업을 `RUNNING` 에서 `COMPLETED`로 전이하고(작업이 이미 실패·재대기로 넘어갔으면 아무것도 저장하지 않는다), 결과를 저장하고, 저장본이 없는 계정에는 첫 결과를 저장하며, 알림 설정이 켜진 경우에만 완료 알림을 멱등하게 생성한다. 중간에 실패하면 작업은 공개 `COMPLETED`가 되지 않으며 같은 작업을 안전하게 재조정할 수 있어야 한다. 저장본이 있는 사용자가 새 결과를 유지하지 않기로 선택하면 교체 API를 호출하지 않는다.
 
 ### 3.3 마이페이지 최소 기능
 
@@ -142,6 +148,7 @@ Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Sp
 | GET | `/api/v1/me/notifications` | 분석 완료·실패 인앱 알림 조회 |
 | GET | `/api/v1/me/notification-settings` | 분석 알림 설정 조회 |
 | PATCH | `/api/v1/me/notification-settings` | 분석 알림 켜기·끄기 |
+| DELETE | `/api/v1/me/account` | 자체 계정은 현재 비밀번호 확인 후 계정·세션·분석·리뷰·알림·이미지 삭제 |
 
 홍보 알림·OS 푸시·별도 이미지 아카이브 API는 MVP에 포함하지 않는다. 현재 저장 결과의 페르소나 이미지는 저장 분석 응답에 포함한다.
 
@@ -155,7 +162,9 @@ Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Sp
 {
   "email": "owner@example.com",
   "password": "<user-input>",
-  "phoneNumber": "01012345678"
+  "phoneNumber": "01012345678",
+  "termsVersion": "2026-09-17",
+  "privacyVersion": "2026-09-17"
 }
 ```
 
@@ -171,13 +180,13 @@ Python 컴포넌트는 결과를 PostgreSQL에 내구성 있게 기록한 뒤 Sp
   "refreshTokenExpiresAt": "2026-10-15T12:45:00Z",
   "user": {
     "id": "8bf5c78a-...",
-    "email": "owner@example.com"
-  },
-  "hasSavedAnalysis": false
+    "email": "owner@example.com",
+    "hasSavedAnalysis": false
+  }
 }
 ```
 
-`hasSavedAnalysis=false`이면 앱은 홈이 아니라 가게 정보 입력으로 이동한다.
+`user.hasSavedAnalysis=false`이면 앱은 홈이 아니라 가게 정보 입력으로 이동한다.
 
 Refresh Token은 `/api/v1/auth/refresh` 요청 본문에서만 받고 매 성공 시 새 값으로 교체한다. 로그아웃은 JWT의 `sid`가 가리키는 현재 세션을 폐기한다. 이미 폐기된 Refresh Token 재사용이 감지되면 해당 사용자의 활성 세션을 모두 폐기한다.
 
@@ -204,8 +213,8 @@ Content-Type: application/json
 }
 ```
 
-클라이언트가 `userId`, 내부 `storeId`, 리뷰 수 또는 분석 상태를 지정할 수 없다. 서버는 리다이렉트된 최종 URL까지 허용 목록과 사설·로컬 주소 여부를 검증한 뒤 작업을 만든다.
-`category`는 PRD에 정의된 사용자 표시값(`한식`, `중식`, `일식`, `양식`, `카페/디저트`, `주점`, `기타`)을 사용한다. 별도 영문 enum 코드는 OpenAPI 작성 시 확정하기 전까지 만들지 않는다.
+클라이언트가 `userId`, 내부 `storeId`, 리뷰 수 또는 분석 상태를 지정할 수 없다. Spring 은 작업을 만들 때 URL 의 scheme·host·사용자 정보를 문자열로 검증한다. 리다이렉트된 최종 URL 과 DNS 해석 결과(사설·로컬 주소 여부)는 작업을 만든 뒤 Python 수집 단계에서 검증하므로, 그 단계에서 막힌 요청도 `202` 와 작업 ID 를 받은 뒤 작업 실패로 끝난다.
+`category`는 PRD에 정의된 사용자 표시값(`한식`, `중식`, `일식`, `양식`, `카페/디저트`, `주점`, `기타`)을 사용한다. 별도 영문 enum 코드는 OpenAPI 작성 시 확정하기 전까지 만들지 않는다. `naverPlaceUrl`은 `https://map.naver.com` 또는 `https://m.place.naver.com` 호스트만 허용한다. Python 수집기는 수집 페이지 host(`pcmap.place.naver.com` 포함 3개)를 다시 확인하고, DNS 해석 결과가 공개 인터넷 주소가 아니면(사설·loopback·link-local·CGNAT·멀티캐스트 등) 거부한다.
 
 ```json
 {
@@ -259,18 +268,43 @@ FAILED
 
 근거 없는 퍼센트 진행률은 계약하지 않는다. 앱은 단계와 메시지를 표시한다.
 
+실패한 작업은 `error` 에 `code`·`message` 를 준다. 유효 리뷰가 기준보다 적어 실패하면(`INSUFFICIENT_VALID_REVIEWS`) 현재 건수와 기준도 함께 준다(기능명세 REVIEW-008). 그 밖의 실패에는 두 필드가 없다.
+
+```json
+{
+  "status": "FAILED",
+  "progressStep": "FAILED",
+  "retryable": false,
+  "error": {
+    "code": "INSUFFICIENT_VALID_REVIEWS",
+    "message": "분석 가능한 리뷰가 49건으로 기준 50건보다 적습니다.",
+    "validReviewCount": 49,
+    "minimumValidReviewCount": 50
+  }
+}
+```
+
 ### 5.3 대표 실패 코드
 
 | 코드 | retryable | 의미 |
 |---|---:|---|
 | `STORE_NOT_FOUND` | false | URL에서 가게를 식별하지 못함 |
 | `INVALID_NAVER_PLACE_URL` | false | 허용되지 않은 URL |
-| `REVIEW_COLLECTION_BLOCKED` | true | 접근 제한·페이지 변경 등으로 수집 실패 |
+| `REVIEW_COLLECTION_BLOCKED` | true | 접근 제한·페이지 변경·수집 host 이름 조회 일시 실패 등으로 수집 실패 |
 | `INSUFFICIENT_VALID_REVIEWS` | false | 유효 리뷰가 50건 미만 |
 | `ANALYSIS_OUTPUT_INVALID` | true | 구조화 결과·근거 연결 검증 실패 |
 | `IMAGE_GENERATION_FAILED` | true | 도출된 페르소나 이미지 생성 실패 |
 | `ANALYSIS_TIMEOUT` | true | 목표 시간 초과 |
-| `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE` | true | 내부 분석 서비스 연결 실패 |
+| `INTERNAL_ANALYSIS_SERVICE_UNAVAILABLE` | true | 내부 분석 서비스 연결 실패, 또는 Python 이 OpenAI 를 호출하지 못함 |
+| `ANALYSIS_SERVICE_REJECTED` | 5xx 면 true, 그 밖은 false | Python 이 구조화된 오류 없이 요청을 거부함(Spring 기본값). 코드가 있는 Python 오류는 그 코드를 쓴다 |
+| `ANALYSIS_CONFIGURATION_MISSING` | false | 분석 서비스 설정(OpenAI 키 등)이 없음 |
+| `ANALYSIS_RETRY_EXHAUSTED` | false | 서버가 자동 재시도(최대 3회 시도, 재시도 2회)를 모두 썼다. 원인 코드는 서버에만 남는다. 앱은 즉시 재시도 버튼 없이 가게 정보로 돌아가 나중에 다시 요청하도록 안내한다 |
+
+위 표의 `retryable` 열은 서버가 그 원인을 자동으로 다시 시도하는지를 뜻한다. `true` 인 원인은 서버가 한 작업을 최대 3회까지 시도하고(재시도 2회), 다 쓰면 원인과 관계없이 `ANALYSIS_RETRY_EXHAUSTED` 로 끝난다. 예외로, 작업 정보 자체를 찾지 못한 경우는 재시도 없이 `ANALYSIS_OUTPUT_INVALID` 로 끝난다.
+
+작업 상태 응답(`GET /api/v1/analysis-jobs/{jobId}`)의 `retryable` 은 사용자가 그 작업을 곧바로 다시 시도할 수 있는지를 뜻하며, `FAILED` 작업이면 항상 `false` 다. 이 규칙 이전에 `true` 로 저장된 실패 작업도 응답에서는 `false` 로 내보낸다. 공통 오류 응답(2.1절)의 `retryable` 은 같은 요청을 다시 보내도 되는지를 뜻한다. 앱의 재시도 버튼은 요청 전송·상태 조회 같은 네트워크 오류에만 쓴다.
+
+인앱 실패 알림도 같은 기준의 문구를 쓴다. 앱은 오류 코드를 화면에 표시하지 않는다.
 
 ---
 
@@ -293,7 +327,8 @@ FAILED
     "validReviewCount": 67,
     "collectedAt": "2026-09-15T12:30:30Z",
     "analyzedAt": "2026-09-15T12:32:00Z",
-    "containsReviewsOlderThanTwoYears": true
+    "containsReviewsOlderThanTwoYears": true,
+    "reviewsWithoutWrittenDateCount": 12
   },
   "limitations": [
     {
@@ -330,7 +365,7 @@ FAILED
       "status": "EMPTY",
       "reason": {
         "code": "INSUFFICIENT_TOPIC_EVIDENCE",
-        "message": "분석에 활용할 리뷰 근거가 부족해 손님 유형을 채우지 않았습니다."
+        "message": "리뷰 수가 적어서 손님 유형이 도출되지 않았습니다."
       },
       "persona": null
     },
@@ -339,13 +374,15 @@ FAILED
       "status": "EMPTY",
       "reason": {
         "code": "INSUFFICIENT_TOPIC_EVIDENCE",
-        "message": "분석에 활용할 리뷰 근거가 부족해 손님 유형을 채우지 않았습니다."
+        "message": "리뷰 수가 적어서 손님 유형이 도출되지 않았습니다."
       },
       "persona": null
     }
   ]
 }
 ```
+
+`metadata.reviewsWithoutWrittenDateCount` 는 작성일을 확인하지 못한 리뷰 수다. 이 리뷰들은 `containsReviewsOlderThanTwoYears` 판정에서 제외되며, 화면은 1건 이상일 때 제외 사실을 안내한다. 이 필드가 생기기 전(2026-09-27 이전)에 저장된 결과에는 없으므로 클라이언트는 없으면 0으로 본다.
 
 `podium` 배열은 항상 1·2·3위 슬롯 세 개를 반환한다. 유효 토픽이 0개면 세 슬롯이 모두 `EMPTY`이고 선택할 페르소나 콘텐츠가 없다. 하나 이상이면 가장 낮은 `rank`가 최초 선택 대상이다.
 
@@ -416,9 +453,26 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 | `personaId` | 요청 분석에 속한 페르소나만 허용 |
 | `perspective` | `POSITIVE`, `NEGATIVE`, `PERCEPTION`, `PRIORITY`, `ADVICE` |
 | `cursor` | 불투명 cursor. 클라이언트가 내부 ID 구조를 해석하지 않음 |
-| `limit` | 기본 20, 최대값은 구현 전 확정 |
+| `limit` | 기본 20, 최대 120. 한 분석의 공개 리뷰 수집 상한과 동일 |
 
 응답에는 작성자 식별정보 없이 `reviewId`, `excerpt`, `rating`, `writtenAt`, `platform`만 포함한다.
+
+```json
+{
+  "items": [
+    {
+      "reviewId": "review-...",
+      "excerpt": "점심에 갔는데 금방 나와서 좋았어요.",
+      "rating": 5,
+      "writtenAt": "2026-08-01",
+      "platform": "NAVER"
+    }
+  ],
+  "nextCursor": "opaque-cursor-or-null"
+}
+```
+
+정렬은 근거 연결 순서와 내부 식별자의 안정된 순서를 사용한다. `nextCursor`는 다음 항목이 있을 때만 반환하며 클라이언트는 값을 해석하지 않고 그대로 다음 요청에 전달한다. 잘못된 cursor는 `400 INVALID_EVIDENCE_CURSOR`, 지원하지 않는 관점이나 범위를 벗어난 `limit`은 `400 INVALID_EVIDENCE_REQUEST`다. 다른 사용자의 분석 또는 요청 분석에 속하지 않은 페르소나는 리소스 존재 여부를 노출하지 않도록 `404 ANALYSIS_NOT_FOUND`로 응답한다.
 
 ---
 
@@ -452,34 +506,34 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 
 ## 9. Spring Boot–Python 내부 계약
 
-전송 방식은 내부 HTTP로 확정했다. 현재 구현된 endpoint는 Python의 `GET /internal/v1/health`뿐이며, 아래 분석 endpoint는 비즈니스 API 작업에서 구현·검증할 목표 계약이다.
+전송 방식은 내부 HTTP로 확정했다. Python은 `GET /internal/v1/health`와 서비스 토큰으로 보호된 `POST /internal/v1/analysis-jobs`를 구현한다. Spring은 이 요청이 반환한 완성 결과를 검증·저장하고 공개 작업을 완료한다.
 
 | Spring Boot | Python 후보 |
 |---|---|
 | `POST /api/v1/analysis-jobs` | `POST /internal/v1/analysis-jobs` |
-| `GET /api/v1/analysis-jobs/{jobId}` | `GET /internal/v1/analysis-jobs/{jobId}` |
-| `GET /api/v1/analysis-jobs/{jobId}/result` | `GET /internal/v1/analysis-jobs/{jobId}/result` |
+| 이후 상태·결과 조회 | Spring이 PostgreSQL에서 직접 조회 |
 
 내부 HTTP는 다음을 요구한다.
 
 - 외부 네트워크에 노출하지 않는다.
 - 별도 서비스 자격 증명을 사용하고 timing-safe 비교를 적용한다.
-- 인증 사용자 ID와 검증된 가게 정보를 Spring Boot가 전달한다.
-- Python은 요청의 사용자·작업 소유권을 다시 검증한다.
+- 검증된 작업 ID와 가게 정보를 Spring Boot가 전달하며 사용자 ID는 내부 서비스로 보내지 않는다.
+- Python은 허용 호스트와 DNS 결과를 다시 검증하지만 사용자·작업 소유권은 Spring이 소유한다.
 - Spring Boot는 Python 내부 상태와 오류를 공개 enum·오류 구조로 정규화한다.
-- 연결·응답 timeout, 재시도, 중복 실행 방지 규칙을 실제 설정과 테스트로 확정한다.
+- 연결·응답 timeout은 환경변수로 설정하고 공개 생성 API는 사용자별 `Idempotency-Key`와 요청 해시로 중복 생성을 방지한다.
+- 작업은 PostgreSQL 임대 방식 큐로 실행한다([ADR-012](../decisions/ADR-012-durable-analysis-job-queue.md)). 재시작하면 임대가 만료된 작업을 다시 큐에 넣어 복구하고, 한 작업은 최대 3회 시도한다.
 
 ---
 
 ## 10. 미확정 항목
 
-1. 액세스·갱신 토큰 형식과 수명·회전·폐기
-2. 전화번호 인증·복구·탈퇴 API
-3. 동시 분석 작업 수와 재분석 cooldown
-4. 기존 결과 유지 시 미저장 결과의 접근 범위·최대 보관 시간
-5. 근거 리뷰 pagination 최대 크기
-6. 분석 목표 처리 시간과 timeout
-7. 내부 서비스 자격 증명의 저장·회전 방식
-8. 객체 저장소 선택과 이미지 private cache·서명 URL 수명
+1. 전화번호 인증·계정 복구 API
+2. 동시 분석 작업 수와 재분석 cooldown
+3. 기존 결과 유지 시 미저장 결과의 접근 범위·최대 보관 시간
+4. 분석 목표 처리 시간과 timeout
+5. 내부 서비스 자격 증명의 저장·회전 방식
+6. 객체 저장소 선택과 이미지 private cache·서명 URL 수명
+
+토큰 형식·수명·회전·폐기는 [ADR-008](../decisions/ADR-008-authentication-policy.md)로, 계정 탈퇴는 [ADR-010](../decisions/ADR-010-account-deletion.md)과 §3.1 `DELETE /api/v1/me/account` 로 확정해 이 목록에서 뺐다(2026-09-28).
 
 미확정 값을 구현자가 임의로 채우지 않는다. 결정 후 ADR과 OpenAPI/schema/types에 반영한다.

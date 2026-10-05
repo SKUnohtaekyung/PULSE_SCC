@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from scc_analysis.api.analysis import router as analysis_router
 from scc_analysis.api.health import router as health_router
 from scc_analysis.core.config import get_settings
 
@@ -15,6 +16,7 @@ def create_app() -> FastAPI:
         redoc_url=None,
     )
     application.include_router(health_router, prefix="/internal/v1")
+    application.include_router(analysis_router, prefix="/internal/v1")
     return application
 
 
