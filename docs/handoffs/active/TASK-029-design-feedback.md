@@ -100,4 +100,4 @@
 
 ## Last Verified Commit
 
-화면 구현을 담은 커밋. 해시는 `git log -1 -- frontend/mobile/src/features/result/ResultView.tsx`로 확인한다.
+`884f0ac` — 화면 구현을 담은 커밋.
