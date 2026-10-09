@@ -12,10 +12,11 @@ import {
 } from '@/api/endpoints';
 import { ApiError, NetworkError, SessionExpiredError } from '@/api/errors';
 import type { AnalysisResult, JobStatus } from '@/api/types';
+import { SuccessCheckIcon } from '@/components/icons/SuccessCheckIcon';
 import { BottomNavigation } from '@/components/ui/BottomNavigation';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
+import { Reveal, revealStagger } from '@/components/ui/Motion';
 import { Notice } from '@/components/ui/Notice';
 import { PageTitle } from '@/components/ui/PageTitle';
 import { ProgressList, type ProgressRow } from '@/components/ui/ProgressList';
@@ -35,6 +36,7 @@ import {
   readPendingAnalysis,
   writePendingAnalysis,
 } from '@/features/analysis/pendingAnalysisStorage';
+import { CategoryPicker } from '@/features/analysis/CategoryPicker';
 import { WaitingTips } from '@/features/analysis/WaitingTips';
 import { useSession } from '@/session/SessionProvider';
 
@@ -52,7 +54,7 @@ const categories = ['한식', '중식', '일식', '양식', '카페/디저트', 
 const pollIntervalMs = 1200;
 
 // 네이버 가게 주소를 어디서 복사하는지. 주소 칸 바로 아래에 작게 둔다(2026-10-05 팀 디자인 피드백 #17).
-const urlGuideSteps = ['네이버 지도에서 내 가게를 찾아요', '공유를 눌러요', '링크 복사를 누르고 여기에 붙여 넣어요'];
+const urlGuide = '주소 복사: 네이버 지도 › 내 가게 › 공유 › 링크 복사';
 
 const failureActionLabel = (failure: JobFailure) => {
   if (failure.kind === 'statusUnavailable') return '진행 상태 다시 확인';
@@ -582,68 +584,62 @@ export function AnalyzeScreen() {
           ) : null}
         </View>
       ) : (
-        <View style={styles.formCard}>
+        <View style={styles.form}>
           {prefilled ? (
-            <Notice
-              title="지난번 가게 정보를 불러왔어요"
-              message="다른 가게라면 고쳐 주세요."
-            />
+            <Reveal style={styles.prefill}>
+              <Text style={styles.prefillText}>
+                <Text style={styles.prefillStrong}>지난번 가게 정보를 불러왔어요.</Text> 다른 가게라면 고쳐 주세요.
+              </Text>
+            </Reveal>
           ) : null}
 
-          <TextField
-            error={errors.name}
-            label="가게 이름"
-            onChangeText={(value) => {
-              setName(value);
-              markEdited();
-              clearError('name');
-            }}
-            placeholder="예: 운산국밥"
-            value={name}
-          />
+          <FormStep done={Boolean(name.trim())} order={1} title="가게 이름">
+            <TextField
+              error={errors.name}
+              label="가게 이름"
+              labelHidden
+              onChangeText={(value) => {
+                setName(value);
+                markEdited();
+                clearError('name');
+              }}
+              placeholder="예: 운산국밥"
+              value={name}
+            />
+          </FormStep>
 
-          <Field error={errors.category} label="업종">
-            <View accessibilityLabel="업종" accessibilityRole="radiogroup" style={styles.chipRow}>
-              {categories.map((item) => (
-                <Chip
-                  key={item}
-                  label={item}
-                  onPress={() => {
-                    setCategory(item);
-                    markEdited();
-                    clearError('category');
-                  }}
-                  radio
-                  selected={category === item}
-                />
-              ))}
-            </View>
-          </Field>
+          <FormStep done={Boolean(category)} order={2} title="업종">
+            <Field error={errors.category} label="업종" labelHidden>
+              <CategoryPicker
+                categories={categories}
+                onChange={(item) => {
+                  setCategory(item);
+                  markEdited();
+                  clearError('category');
+                }}
+                value={category}
+              />
+            </Field>
+          </FormStep>
 
-          <TextField
-            autoCapitalize="none"
-            autoCorrect={false}
-            error={errors.url}
-            inputMode="url"
-            label="네이버 가게 주소"
-            onChangeText={(value) => {
-              setUrl(value);
-              markEdited();
-              clearError('url');
-            }}
-            placeholder="naver.me 또는 naver.com 주소"
-            value={url}
-          />
-
-          <View style={styles.urlGuide}>
-            <Text style={styles.urlGuideTitle}>주소는 이렇게 복사해요</Text>
-            {urlGuideSteps.map((step, index) => (
-              <View key={step} style={styles.urlGuideRow}>
-                <Text style={styles.urlGuideNumber}>{index + 1}</Text>
-                <Text style={styles.urlGuideText}>{step}</Text>
-              </View>
-            ))}
-          </View>
+          <FormStep done={isNaverPlaceUrl(url)} order={3} title="네이버 가게 주소">
+            <TextField
+              autoCapitalize="none"
+              autoCorrect={false}
+              error={errors.url}
+              hint={urlGuide}
+              inputMode="url"
+              label="네이버 가게 주소"
+              labelHidden
+              onChangeText={(value) => {
+                setUrl(value);
+                markEdited();
+                clearError('url');
+              }}
+              placeholder="naver.me 또는 naver.com 주소"
+              value={url}
+            />
+          </FormStep>
         </View>
       )}
 
@@ -699,42 +695,90 @@ export function AnalyzeScreen() {
   );
 }
 
+// 입력 한 단계. 번호가 순서를 알리고, 채우면 번호가 체크로 바뀌어 어디까지 했는지 보인다.
+function FormStep({
+  order,
+  title,
+  done,
+  children,
+}: {
+  order: number;
+  title: string;
+  done: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Reveal delay={revealStagger * order} style={styles.step}>
+      <View style={styles.stepHead}>
+        <View
+          accessibilityLabel={done ? `${order}단계 입력함` : `${order}단계`}
+          accessible
+          style={[styles.stepBadge, done && styles.stepBadgeDone]}
+        >
+          {done ? (
+            <SuccessCheckIcon color={colors.status.success} size={spacing[4]} />
+          ) : (
+            <Text style={styles.stepNumber}>{order}</Text>
+          )}
+        </View>
+        <Text accessibilityRole="header" style={styles.stepTitle}>
+          {title}
+        </Text>
+      </View>
+      {children}
+    </Reveal>
+  );
+}
+
 const styles = StyleSheet.create({
-  formCard: {
+  form: {
+    gap: spacing[3],
+  },
+  prefill: {
+    backgroundColor: colors.brand.tint,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+  },
+  prefillText: {
+    ...typography.body7,
+    color: colors.text.primary,
+  },
+  prefillStrong: {
+    ...typography.body6,
+    color: colors.text.brand,
+  },
+  step: {
     backgroundColor: colors.background.surface,
     borderColor: colors.border.default,
     borderRadius: radii.panel,
     borderWidth: strokes.hairline,
-    gap: spacing[4],
+    gap: spacing[3],
     padding: spacing[4],
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  urlGuide: {
-    backgroundColor: colors.background.subtle,
-    borderRadius: radii.control,
-    gap: spacing[1],
-    padding: spacing[3],
-  },
-  urlGuideTitle: {
-    ...typography.body6,
-    color: colors.text.primary,
-  },
-  urlGuideRow: {
+  stepHead: {
+    alignItems: 'center',
     flexDirection: 'row',
     gap: spacing[2],
   },
-  urlGuideNumber: {
+  stepBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.brand.tint,
+    borderRadius: radii.pill,
+    height: spacing[6] + spacing[1],
+    justifyContent: 'center',
+    width: spacing[6] + spacing[1],
+  },
+  stepBadgeDone: {
+    backgroundColor: colors.status.successSubtle,
+  },
+  stepNumber: {
     ...typography.body5,
     color: colors.text.brand,
   },
-  urlGuideText: {
-    ...typography.body7,
-    color: colors.text.secondary,
-    flex: 1,
+  stepTitle: {
+    ...typography.body1,
+    color: colors.text.strong,
   },
   summaryCard: {
     backgroundColor: colors.background.surface,
