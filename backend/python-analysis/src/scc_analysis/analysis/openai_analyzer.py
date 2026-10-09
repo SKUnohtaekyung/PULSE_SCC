@@ -20,10 +20,12 @@ SYSTEM_PROMPT = """당신은 음식점 공개 리뷰를 근거로 손님 사용 
 각 토픽마다 POSITIVE, NEGATIVE, PERCEPTION,
 PRIORITY 관점을 정확히 하나씩 작성하세요. 모든 사실과 제안은 evidence의 review_index로
 실제 리뷰에 연결되어야 합니다. 매출 상승이나 확정적인 효과를 보장하지 마세요.
-image_prompt는 그 손님 유형을 대표하는 가상 인물 한 명의 상반신 인물 사진으로 작성하세요.
-사람은 특정 인물을 재현하지 않는 일반적인 모습으로 묘사하고, 나이·성별·직업을 지정하지 마세요.
-얼굴 생김새보다 표정과 분위기, 옷차림을 적으세요. 손동작, 손에 든 물건, 배경과 장소는
-적지 마세요.
+image_prompt는 그 손님 유형의 이름(label)을 보고 바로 떠오르는 가상 인물 한 명의 상반신 인물
+사진으로 작성하세요. 누가 봐도 그 손님 유형이라고 알 수 있게, 그 상황의 손님다운 옷차림과 표정,
+분위기를 적고, 그 유형을 드러내는 물건 하나를 손에 들게 하세요(예: 기다리는 손님은 대기 번호표,
+포장해 가는 손님은 포장 봉투, 메뉴를 고르는 손님은 메뉴판). 손님 유형마다 서로 다른 사람으로
+보이게 하세요. 사람은 특정 인물을 재현하지 않는 일반적인 모습으로 묘사하고, 리뷰에 근거가 없는
+나이·성별·직업은 지정하지 마세요. 배경과 장소는 적지 마세요.
 review_index 를 제외한 모든 글(label, summary, caveat, review_fact, ai_interpretation,
 suggested_action, image_alt_text, limitations)은 가게 사장님이 그대로 읽는 문장입니다.
 쉬운 우리말로 쓰세요. 리뷰 번호, 번호 목록, "몇 번 리뷰", "[12]" 같은 번호 표기, 번호 범위,
@@ -104,10 +106,13 @@ class OpenAiReviewAnalyzer:
                 # 2026-10-05 결정). 실제 손님을 묘사하는 것이 아니므로 특정 인물로 식별되지
                 # 않아야 한다(기능명세 IMAGE-004). 아래 구도·조명·배경 값은 잠정값이다.
                 # 배경색·구도 세부 규칙은 참고 이미지를 받은 뒤 정한다(PRD §13-9).
+                # 인물은 손님 유형 이름과 닮아 보여야 한다(2026-10-09 사용자 요청). 그 유형을
+                # 드러내는 옷차림·표정·손에 든 물건 하나는 image_prompt가 정한다.
                 "Square photorealistic chest-up portrait of one fictional person, "
                 "like a profile picture, identical framing and lighting across every image. "
-                "The person is centred, facing the camera with a natural friendly expression, "
-                "soft even studio lighting. "
+                "The person is centred and facing the camera, soft even studio lighting. "
+                "Their clothing, expression and the single item they hold must make the "
+                "customer type described below recognisable at a glance. "
                 "Plain single-colour light background with no scenery, props behind the "
                 "person, gradients, or patterns. "
                 "The person is entirely fictional and must not resemble any real or "
