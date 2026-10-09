@@ -7,7 +7,8 @@ import { colors, layout, radii, spacing, typography } from '@/design/tokens';
 // 분석이 진행되는 동안 화면을 덮는 진행 팝업(2026-10-09 사용자 결정). 퍼센트 게이지를 크게 두고
 // 그 밑에 지금 단계를 작게 적는다.
 //
-// 닫는 버튼이 없고 뒤로가기로도 닫히지 않는다 — 분석이 끝나거나 실패해 화면이 바뀔 때 함께 사라진다.
+// 닫는 버튼이 없고 뒤로가기로도 닫히지 않는다 — 분석이 끝나거나 실패해 화면이 바뀔 때, 또는 저장 상태를
+// 확인하지 못해 뒤 화면의 재시도 버튼이 필요할 때 화면 쪽에서 내린다.
 // 게이지는 서버가 확인해 준 단계에서만 움직인다. 시간에 맞춰 채우지 않는다(DESIGN_SYSTEM §9).
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -187,6 +188,7 @@ const styles = StyleSheet.create({
   step: {
     ...typography.body6,
     color: colors.text.brand,
+    flexShrink: 1,
   },
   note: {
     ...typography.caption,

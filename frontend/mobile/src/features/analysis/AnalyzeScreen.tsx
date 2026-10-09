@@ -506,7 +506,10 @@ export function AnalyzeScreen() {
             : (visibleRows[visibleRows.length - 1]?.label ?? '분석 요청을 보내는 중')
         }
         storeName={name}
-        visible={phase === 'creating' || phase === 'progress' || phase === 'completing'}
+        // 저장 상태를 확인하지 못했으면 팝업을 내린다. 다시 확인하는 버튼이 뒤 화면에 있다(SAVE-FIRST-ERROR).
+        visible={
+          (phase === 'creating' || phase === 'progress' || phase === 'completing') && !completionIssue
+        }
       />
 
       {phase === 'input' ? (
