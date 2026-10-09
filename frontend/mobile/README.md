@@ -12,6 +12,10 @@ Expo 기반 React Native·TypeScript Android 클라이언트다. 제품 요구�
 
 2026-09-21 기준 로컬 PC에는 Android SDK·`adb`와 `Medium_Phone` 에뮬레이터(Android 17/API 37)가 있고 Expo Go 실행을 확인했다. `android.package`·scheme이 정해지지 않아 development build와 실기기 검증은 아직 수행하지 않았다.
 
+2026-10-09 기준 `android.package`는 `kr.co.scc.pulse`, scheme은 `pulse-scc`로 정해졌다(`app.json`). `expo prebuild`로 만든 release APK를 빌드해 `Medium_Phone` 에뮬레이터에 설치하고 실행했다. development build와 실기기 검증은 여전히 수행하지 않았다.
+
+**`app.json`은 암호화되지 않은 http 접속을 허용한다**(`expo-build-properties`의 `usesCleartextTraffic: true`). 전시 시연에서 앱이 노트북의 `http://localhost:8080` 서버에 붙기 위한 설정이며, 이 저장소에서 만드는 모든 Android 빌드에 적용된다. 외부에 배포하는 빌드를 만들기 전에는 이 설정을 빼거나 빌드 종류별로 나눠야 한다.
+
 ## 명령
 
 ```powershell

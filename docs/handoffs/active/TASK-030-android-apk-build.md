@@ -10,7 +10,7 @@ role:platform — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 
 ## Branch
 
-`chore/TASK-030-android-apk-build` — `ui/TASK-029-design-feedback`([SKUnohtaekyung/PULSE_SCC#43](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/43), 미병합) 위에서 갈라졌다. PR #43이 먼저 병합돼야 이 브랜치의 PR이 깔끔해진다. 아직 푸시하지 않았다.
+`chore/TASK-030-android-apk-build` — `ui/TASK-029-design-feedback`([SKUnohtaekyung/PULSE_SCC#43](https://github.com/SKUnohtaekyung/PULSE_SCC/pull/43)) 위에서 갈라졌다. PR #43은 2026-10-09에 `main`으로 병합됐고(`f69cc51`), 이 브랜치도 같은 날 푸시했다. 이 브랜치 위에 `ui/TASK-031-analysis-progress`와 `feat/TASK-032-analysis-progress-steps`가 쌓여 있다.
 
 ## Goal
 
@@ -38,6 +38,7 @@ role:platform — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 - `frontend/mobile/src/features/auth/LoginScreen.tsx` — Google 버튼 연결, 버튼 문구 `Google로 회원가입` → `Google로 계속하기`
 - `frontend/mobile/src/api/config.ts` — `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` 읽기
 - `frontend/mobile/README.md`, `backend/README.md`, `backend/.env.example` — 클라이언트 ID 안내
+- `frontend/mobile/README.md` — 2026-10-09 기준 네이티브 빌드 상태와 http 접속 허용 경고(reviewer 지적 반영)
 
 `frontend/mobile/.gitignore`는 이미 `/android`·`/ios`를 무시하고 있어(ADR-011: 생성물은 커밋하지 않는다) 고치지 않았다.
 
@@ -56,6 +57,7 @@ role:platform — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 |---|---|---|
 | lint | `npm run lint` (`frontend/mobile`, 2026-10-09 Google 로그인 작업 뒤) | PASS — 출력 없음 |
 | typecheck | `npm run typecheck` | PASS — 출력 없음 |
+| 토큰 검증 | `npm run verify:tokens` | PASS — `Design token verification: PASS` |
 | Android bundle | `npm run export:android` | PASS — `entry-….hbc (3.2MB)`, `Exported: dist` |
 | build (Google 모듈 포함) | `gradlew.bat :app:createBundleReleaseJsAndAssets --rerun assembleRelease` (웹 클라이언트 ID 지정) | PASS — `BUILD SUCCESSFUL in 1m 59s`. APK 번들 안에 클라이언트 ID 1회, dex 안에 `RNGoogleSignin` 확인. 모듈을 처음 넣은 빌드는 9m 17s |
 | 설치 | `adb install -r app-release.apk` (`Medium_Phone`) | PASS — `Success`. 기존 로그인 세션이 유지돼 결과 화면으로 열림 |
@@ -81,7 +83,7 @@ role:platform — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 - **로컬 Spring이 뜨려면 임시 파일이 필요하다.** 이 PC의 DB에 적용된 V4 마이그레이션과 `main`의 V4 파일이 달라 Flyway 검증에서 멈춘다. `origin/fix/TASK-025-flyway-migration`의 `V4__add_analysis_job_lease.sql`과 `V6__requeue_prelease_running_analysis_jobs.sql`을 작업 폴더에 커밋 없이 덮어써 둔 상태다. TASK-025는 PR이 없다. 이 두 파일을 이 브랜치에 커밋하면 안 된다.
 - APK에 모든 기기 종류(ABI)용 코드가 들어가 크다. 태블릿의 종류에 맞춰 줄일 수 있다.
 - `expo-media-library` 플러그인 기본값이 읽기 권한까지 매니페스트에 넣는다(`requestLegacyExternalStorage` 포함). 줄이는 옵션을 확인하지 않았다.
-- 패키지 이름 결정을 ADR로 남기지 않았다. `AGENTS.md` 2장의 로컬 실행 확인 기록과 `frontend/mobile/README.md`의 "`android.package` 미정" 서술도 고치지 않았다.
+- 패키지 이름 결정을 ADR로 남기지 않았다. `frontend/mobile/README.md`에는 2026-10-09 기준 상태를 덧붙였으나, 아래 문서의 "`android.package` 미정"·"네이티브 development build·실기기 검증 미실행" 서술은 고치지 않았다: `AGENTS.md` 2장 로컬 실행 확인 기록, `docs/architecture/FRONTEND_STRUCTURE.md`(94·95·126~127줄 부근), `.claude/skills/visual-qa/SKILL.md`(15줄 부근).
 
 ## Do Not Assume
 
@@ -123,4 +125,4 @@ Expo Go로 개발할 때는 `frontend/mobile`에서 `npx expo start --go --andro
 
 ## Last Verified Commit
 
-이 문서를 담은 커밋(Google 로그인 연결). lint·typecheck·토큰 검증·Android 번들은 이 커밋의 소스로 실행했다. 에뮬레이터에 설치된 APK도 같은 소스로 빌드했다. 화면 소스는 `ui/TASK-029-design-feedback`의 `2bb6ec1` 시점 그대로다.
+`3d1919b`(Google 로그인 연결). lint·typecheck·토큰 검증·Android 번들은 그 커밋의 소스로 실행했다. 에뮬레이터에 설치했던 APK도 같은 소스로 빌드했다. 그 뒤의 커밋은 문서(이 문서와 `frontend/mobile/README.md`)만 고쳤다. 로그인 화면(`LoginScreen.tsx`, `googleSignIn.ts`)과 `api/config.ts`는 이 브랜치에서 바뀌었고, 그 밖의 화면 소스는 `ui/TASK-029-design-feedback`의 `2bb6ec1` 시점 그대로다.
