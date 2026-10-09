@@ -235,7 +235,7 @@ Content-Type: application/json
   "jobId": "6af9a900-...",
   "status": "RUNNING",
   "progressStep": "ANALYZING",
-  "message": "손님 유형과 리뷰 특징을 분석하고 있습니다.",
+  "message": "리뷰에서 반복되는 손님 경험을 분석하고 있습니다.",
   "retryable": false,
   "analysisId": null,
   "error": null,
@@ -516,6 +516,7 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 |---|---|
 | `POST /api/v1/analysis-jobs` | `POST /internal/v1/analysis-jobs` |
 | 이후 상태·결과 조회 | Spring이 PostgreSQL에서 직접 조회 |
+| (공개 endpoint 없음) 처리 중 진행 단계 옮기기 | `GET /internal/v1/analysis-jobs/{jobId}/progress` |
 
 내부 HTTP는 다음을 요구한다.
 
