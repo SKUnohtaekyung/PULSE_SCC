@@ -237,7 +237,7 @@
 | 빈 슬롯의 사유 | `status=EMPTY` 슬롯의 `reason.message`. 빈 슬롯에는 `persona` 키가 없을 수 있다 |
 | 최초 선택 | `FILLED` 슬롯 중 가장 낮은 `rank` |
 | `RESULT-OLD-REVIEWS` | `metadata.containsReviewsOlderThanTwoYears=true`. 원격 백엔드의 `limitations[].code`는 항상 `ANALYSIS_LIMITATION`이라 코드로 판정하지 않는다 |
-| `RESULT-LIMITS` | 항상 표시. 서버 `limitations[].message`가 있으면 함께 표시 |
+| `RESULT-LIMITS` | 대표성 한계와 2년 초과 경고는 항상 표시. 서버 `limitations[].message`와 손님 유형별 단서(`caveat`)는 `알아 둘 점 N가지 더 보기` 뒤에 접어 두고 건수를 버튼에 적는다(2026-10-09 사용자 결정. 그 전에는 모두 펼쳐 표시했고 단서는 유형 제목 아래에 있었다) |
 | 분석 기준 정보 | `store.name`, `metadata`의 `platform`, `collectedReviewCount`(수집 건수), `validReviewCount`(분석 사용 건수), `collectedAt`, `analyzedAt` |
 | 선택 유형 요약 카드(2026-09-28) | 유형 이름·요약 아래, 4관점 위. 손님 그림(`persona.image`), `rank`, `topicReviewCount`, 분석 사용 리뷰 대비 비율(앱 계산값 `round(topicReviewCount ÷ validReviewCount × 100)`), 관점별 `evidenceCount` 칩. 비율의 뜻은 §11 미정 항목을 따른다 |
 
@@ -334,7 +334,7 @@
 | 설정 | `SETTING-UPDATING` | 분석 알림 설정 변경 중 | 중복 토글 방지 |
 | 설정 | `SETTING-ERROR` | 기존 설정값과 저장 실패 안내 | 서버 값 재조회·재시도 |
 | 서비스 | `SERVICE-INFO-NORMAL` | 확정된 서비스 정보 | MVP 밖 설정·프로필 기능으로 확장하지 않음 |
-| 이미지 | `STORED-IMAGES-NORMAL` | 현재 저장 결과 이미지 최대 3개. 순위 순으로 옆으로 넘기는 카드 피드(큰 정사각 이미지 + `N위 손님`·리뷰 수·유형 이름), 누르면 크게 보고 카드의 `이미지 저장`으로 기기 사진 앱에 저장한다(2026-10-09 사용자 결정. 그 전에는 2026-10-05의 정사각 3칸 격자, 그 전에는 2026-09-28의 한 줄씩 동그란 그림이었다). 앱 안의 이미지는 여전히 현재 저장 결과의 것만 보여 준다. 로딩·실패는 §6.4 요약 카드와 같은 규칙 | 읽기 전용 |
+| 이미지 | `STORED-IMAGES-NORMAL` | 현재 저장 결과 이미지 최대 3개. 순위 순으로 옆으로 넘기는 카드 피드(큰 정사각 이미지 + `N위 손님`·리뷰 수·유형 이름), 누르면 크게 보고 카드의 `이미지 저장`으로 기기 사진 앱에 저장한다(2026-10-09 사용자 결정. 그 전에는 2026-10-05의 정사각 3칸 격자, 그 전에는 2026-09-28의 한 줄씩 동그란 그림이었다). 앱 안의 이미지는 여전히 현재 저장 결과의 것만 보여 준다. 로딩·실패는 §6.4 요약 카드와 같은 규칙 | 크게 보기, 기기에 저장. 앱 안에서는 고치거나 지울 수 없음 |
 | 이미지 | `STORED-IMAGES-EMPTY` | 현재 결과에 표시할 이미지가 없다는 안내 | 별도 업로드·삭제 기능 없음 |
 | 로그아웃 | `LOGOUT-CONFIRM` | 로그아웃 확인 | 취소 또는 로그아웃 |
 | 로그아웃 | `LOGOUT-SUBMITTING` | 로그아웃 처리 중 | 중복 실행 방지 |

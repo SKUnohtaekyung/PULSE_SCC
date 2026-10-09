@@ -593,7 +593,7 @@ export function AnalyzeScreen() {
             </Reveal>
           ) : null}
 
-          <FormStep done={Boolean(name.trim())} order={1} title="가게 이름">
+          <FormStep done={Boolean(name.trim()) && !errors.name} order={1} title="가게 이름">
             <TextField
               error={errors.name}
               label="가게 이름"
@@ -608,7 +608,7 @@ export function AnalyzeScreen() {
             />
           </FormStep>
 
-          <FormStep done={Boolean(category)} order={2} title="업종">
+          <FormStep done={Boolean(category) && !errors.category} order={2} title="업종">
             <Field error={errors.category} label="업종" labelHidden>
               <CategoryPicker
                 categories={categories}
@@ -622,7 +622,7 @@ export function AnalyzeScreen() {
             </Field>
           </FormStep>
 
-          <FormStep done={isNaverPlaceUrl(url)} order={3} title="네이버 가게 주소">
+          <FormStep done={isNaverPlaceUrl(url) && !errors.url} order={3} title="네이버 가게 주소">
             <TextField
               autoCapitalize="none"
               autoCorrect={false}

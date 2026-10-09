@@ -19,9 +19,14 @@ export function useReduceMotion() {
   const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (!cancelled) setReduceMotion(enabled);
-    });
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (!cancelled) setReduceMotion(enabled);
+      })
+      // 설정을 읽지 못하면 움직이는 쪽으로 둔다. null로 남으면 내용이 영영 나타나지 않는다.
+      .catch(() => {
+        if (!cancelled) setReduceMotion(false);
+      });
     const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
     return () => {
       cancelled = true;

@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
-// 짧은 선택지 한 칸. 업종 선택과 개발용 시나리오 선택에서 함께 쓴다.
+// 짧은 선택지 한 칸. 2026-10-09에 업종 선택이 CategoryPicker로 바뀌어 지금은 쓰는 화면이 없다.
 
 export function Chip({
   label,

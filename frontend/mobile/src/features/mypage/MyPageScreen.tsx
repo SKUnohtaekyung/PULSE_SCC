@@ -395,6 +395,8 @@ async function savePersonaImage(source: PersonaImageSource, fileName: string): P
   file.create();
   file.write(bytes);
   await saveToLibraryAsync(file.uri);
+  // 사진 앱에 복사됐으므로 캐시의 사본은 남기지 않는다.
+  file.delete();
   return 'saved';
 }
 
@@ -553,9 +555,6 @@ const styles = StyleSheet.create({
   empty: {
     ...typography.caption,
     color: colors.text.secondary,
-  },
-  images: {
-    gap: spacing[3],
   },
   feedSection: {
     gap: spacing[3],

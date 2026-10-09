@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CategoryIcon } from '@/components/icons/CategoryIcons';
@@ -60,9 +60,12 @@ function CategoryTile({
   const reduceMotion = useReduceMotion();
   const [scale] = useState(() => new Animated.Value(1));
 
-  // 고른 순간 한 번 통 튀어 고른 칸이 어디인지 알린다.
+  // 고른 순간 한 번 통 튀어 고른 칸이 어디인지 알린다. 처음부터 골라져 있던 칸(미리 채움)은 튀지 않는다.
+  const wasSelected = useRef(selected);
   useEffect(() => {
-    if (!selected || reduceMotion !== false) return;
+    const justSelected = selected && !wasSelected.current;
+    wasSelected.current = selected;
+    if (!justSelected || reduceMotion !== false) return;
     scale.setValue(0.92);
     const animation = Animated.spring(scale, { friction: 5, toValue: 1, useNativeDriver: true });
     animation.start();
@@ -82,7 +85,7 @@ function CategoryTile({
           category={category}
           color={selected ? colors.brand.onPrimary : colors.text.secondary}
         />
-        <Text numberOfLines={1} style={[styles.label, selected && styles.labelSelected]}>
+        <Text style={[styles.label, selected && styles.labelSelected]}>
           {category}
         </Text>
       </Pressable>
@@ -112,9 +115,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand.primary,
     borderColor: colors.brand.primary,
   },
+  // 글자를 키워도 잘리지 않게 줄 수를 제한하지 않는다. 길면 줄을 바꾸고 타일이 함께 높아진다(DESIGN_SYSTEM §8).
   label: {
     ...typography.caption,
     color: colors.text.primary,
+    textAlign: 'center',
   },
   labelSelected: {
     fontFamily: fontFamilies.semibold,
