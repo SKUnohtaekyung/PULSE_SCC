@@ -4,6 +4,7 @@ import { AnalysisIcon, HomeIcon, ProfileIcon } from '@/components/icons/NavIcons
 import { colors, layout, radii, shadows, spacing, strokes, typography } from '@/design/tokens';
 
 // 하단 내비게이션. 상태 정본은 SCREEN_STATES §9다.
+// 첫 탭은 화면 내부 이름이 홈(SC-011)이고 표시 이름이 `분석 결과`다(PRD FR-012, 2026-10-05 결정).
 // 저장 결과가 없는 사용자와 첫 저장 완료 화면·새 결과 미리보기에서는 이 컴포넌트를 아예 그리지 않는다(NAV-HIDDEN).
 // 분석하기가 현재 화면이면 가운데 원을 brand.primary로 바꾸고 눌러도 이동하지 않는다(NAV-ANALYSIS-ACTIVE).
 //
@@ -41,14 +42,14 @@ export function BottomNavigation({
     >
       <View style={styles.items}>
         <Pressable
-          accessibilityLabel={homeActive ? '홈, 현재 화면' : '홈'}
+          accessibilityLabel={homeActive ? '분석 결과, 현재 화면' : '분석 결과'}
           accessibilityRole="button"
           accessibilityState={{ selected: homeActive }}
-          onPress={homeActive ? () => undefined : (onHome ?? (() => unavailable('홈')))}
+          onPress={homeActive ? () => undefined : (onHome ?? (() => unavailable('분석 결과')))}
           style={({ pressed }) => [styles.navItem, pressed && !homeActive && styles.pressed]}
         >
           <HomeIcon color={homeActive ? colors.brand.primary : colors.text.secondary} />
-          <Text style={[styles.navLabel, homeActive && styles.navLabelSelected]}>홈</Text>
+          <Text style={[styles.navLabel, homeActive && styles.navLabelSelected]}>분석 결과</Text>
         </Pressable>
 
         <Pressable

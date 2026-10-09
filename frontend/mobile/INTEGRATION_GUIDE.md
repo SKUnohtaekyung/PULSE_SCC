@@ -12,7 +12,7 @@
 | 항목 | 상태 |
 |---|---|
 | 앱 | Expo 기반 Android 앱. 로그인·가입 → 가게 입력 3단계 → 분석 진행 → 첫 저장 → 결과(손님 TOP3·상세·근거) → 마이페이지까지 화면이 있다 |
-| 서버 연결 | **기본은 가상 서버(fixture).** 환경변수 하나로 실제 서버 모드로 바뀐다(4장). 실제 백엔드와 붙여 본 적은 **아직 없다** |
+| 서버 연결 | 실제 HTTP API만 사용한다. Android 에뮬레이터 개발 기본 주소는 `http://10.0.2.2:8080`이고 다른 환경은 주소를 명시한다(4장) |
 | 실행 확인 | Android 에뮬레이터 + **Expo Go**에서만 확인했다. development build·실기기는 미실행(앱 패키지 ID·scheme 미확정) |
 | 자동 검증 | `verify:tokens`·`lint`·`typecheck`·`export:android` 통과(2026-09-27). **단위 테스트·E2E·visual regression 도구는 없다**(도입하지 않기로 결정, 2026-09-27) |
 | 코드 위치 | 이 저장소의 `frontend/mobile/`. 원격 main에는 아직 없다(7장) |
@@ -94,9 +94,9 @@ adb shell am start -a android.intent.action.VIEW -d exp://10.0.2.2:8081
 - 환경변수: 그 브랜치의 `backend/.env.example`. 이름만 옮기면 `POSTGRES_*`, `SPRING_DATASOURCE_URL`, `SERVER_PORT`, `ANALYSIS_SERVICE_BASE_URL`·`ANALYSIS_SERVICE_TOKEN`·`ANALYSIS_*_TIMEOUT`·`ANALYSIS_IMAGE_STORAGE_PATH`, `AUTH_ACCESS_TOKEN_SECRET`, `GOOGLE_CLIENT_ID`, `SCC_*`(분석 서비스, `SCC_OPENAI_API_KEY` 포함)이다. 실제 값은 저장소에 없고 담당자에게 받는다.
 - Spring 기본 포트는 8080이다(`SERVER_PORT`). 아래 예시 주소의 8080이 이것이다.
 
-### 4.1 모드 전환
+### 4.1 서버 주소
 
-`src/api/config.ts`가 정한다. **`EXPO_PUBLIC_API_BASE_URL` 값이 있으면 실제 서버(http) 모드, 없으면 가상 서버(fixture) 모드**다. `app.json`의 `expo.extra.apiBaseUrl`로도 줄 수 있다(환경변수가 우선).
+`src/api/config.ts`가 정한다. Android 에뮬레이터 개발 모드에서는 `http://10.0.2.2:8080`을 기본으로 사용한다. 실기기·배포 환경에서는 `EXPO_PUBLIC_API_BASE_URL` 또는 `app.json`의 `expo.extra.apiBaseUrl`을 반드시 설정한다(환경변수가 우선).
 
 ```powershell
 $env:EXPO_PUBLIC_API_BASE_URL = "http://10.0.2.2:8080"
@@ -107,7 +107,6 @@ npx expo start --go --android --clear
 - `10.0.2.2` = 에뮬레이터에서 본 PC의 `localhost`. 실기기는 PC의 LAN 주소를 쓴다.
 - `EXPO_PUBLIC_*` 값은 번들에 박힌다. 값을 바꾸면 Metro를 `--clear`로 다시 띄운다.
 - 끝의 `/`는 자동으로 떼어 낸다.
-- 실제 서버 모드에서는 입력 화면 위 "가상 서버 상황" 패널(`features/dev/ScenarioPanel.tsx`)과 "예시 데이터" 안내(`FixtureBanner.tsx`)가 그려지지 않는다.
 
 ### 4.2 인증 동작
 
@@ -158,34 +157,17 @@ npx expo start --go --android --clear
 
 - 서버는 시간 초과를 DB에는 `ANALYSIS_TIMEOUT`으로 남기지만 응답 코드는 `ANALYSIS_RETRY_EXHAUSTED`로 보낸다(`AnalysisRepository.java`). 프론트는 이 코드를 따로 다루지 않는다 — `features/analysis/jobOutcome.ts`는 모르는 코드를 서버의 `retryable` 값에 따라 재시도 가능 실패 또는 다시 할 수 없는 실패로 나누고, 문구는 서버가 보낸 것을 그대로 보여 준다. 화면은 깨지지 않지만 문구가 앱의 다른 실패 문구와 톤이 다를 수 있다.
 
-## 5. 가상 서버(fixture)로 상태 재현하기
+## 5. 실제 API 상태 확인
 
-실제 서버 없이 화면 상태를 재현할 수 있다. 가상 서버 모드에서 입력 화면 위 패널의 **바꾸기**로 상황을 고른다(`src/api/fixtures/server.ts`).
-
-| 상황 | 내용 |
-|---|---|
-| 첫 분석 성공 | 손님 유형 3개까지 채워진 결과 |
-| 유형 부족 | 손님 유형 2개, 빈 슬롯 1개 |
-| 유형 0개 | 세 슬롯이 모두 빈 결과 |
-| 이미지 조회 실패 | 1위 이미지를 불러오지 못하는 결과 |
-| 리뷰 부족 | 유효 리뷰 50건 미만으로 실패 |
-| 재시도 가능 실패 | 첫 시도만 실패하고 다시 시도하면 성공 |
-| 서비스 문제 | 다시 시도해도 지금은 끝낼 수 없는 실패 |
-| 가게 못 찾음 | 입력 화면으로 돌아가는 실패 |
-| 지원하지 않는 주소 | 작업 생성 자체가 거부됨 |
-| 이미지 생성 실패 | 이미지 생성 단계에서 실패 |
-| 액세스 토큰 만료 | 봉투 없는 401 → 토큰 갱신 후 재전송 |
-| 멱등 키 거부 | 첫 요청이 409, 새 키로 다시 요청 |
-
-예시 계정은 로그인 화면 아래 안내에 나온다(`src/api/fixtures/server.ts`의 `fixtureAccount`). 가상 서버에는 실제 이미지가 없어 손님 그림 대신 코드로 그린 캐릭터가 나온다.
+fixture 응답과 예시 계정은 제거했다. 로그인·가입·세션 복원·분석·마이페이지 상태는 실행 중인 Spring/Python API와 실제 DB 응답으로 확인한다. 오류 상태 재현이 필요하면 임의 성공 응답을 추가하지 말고 테스트 DB 준비 또는 백엔드 통합 테스트로 검증한다.
 
 ## 6. 테스트할 때 알아 둘 것
 
 - **Android 에뮬레이터 결과가 판정 기준**이다. `npm run web`은 레이아웃을 빨리 보는 보조 수단일 뿐이다.
 - `adb shell input text`는 **한글을 넣지 못한다.** 자동 입력 테스트에서는 영문 값(예: `LandTest`)을 쓴다.
 - adb로 입력할 때 키보드가 안 떠 있는 상태에서 뒤로 가기(`keyevent 4`)를 보내면 **앱이 닫힌다.** 제출은 Enter(`keyevent 66`)가 안전하다.
-- prop을 **지운** 변경은 Fast Refresh만으로 네이티브 뷰에 반영되지 않을 수 있다. Expo Go를 강제 종료(`adb shell am force-stop host.exp.exponent`) 뒤 다시 열어 확인한다. 가상 서버 모드는 세션이 메모리에만 있어 다시 열면 로그인부터 다시 한다. 실제 서버 모드는 SecureStore의 토큰으로 세션을 복원한다(`session/SessionProvider.tsx`).
-- 제품 화면이 아닌 route(`/foundation`, `/prototype-result`, `/flow`, `/preview`)도 앱 안에 있다. 디자인 단계 견본이므로 통합 테스트 대상에서 뺀다.
+- prop을 **지운** 변경은 Fast Refresh만으로 네이티브 뷰에 반영되지 않을 수 있다. Expo Go를 강제 종료(`adb shell am force-stop host.exp.exponent`) 뒤 다시 열어 확인한다. SecureStore의 토큰이 있으면 세션을 복원한다(`session/SessionProvider.tsx`).
+- 제품 화면이 아닌 `/foundation` route는 디자인 토큰 견본이므로 통합 테스트 대상에서 뺀다.
 - 실제 분석은 오래 걸린다. 백엔드 `.env.example` 주석 기준 수집·AI 분석·이미지 생성 한 번에 **4~6분**이다.
 - 캡처 오른쪽 위의 회색 톱니 원은 **Expo Go 개발 도구 버튼**이다. 앱 UI가 아니다.
 - 글자 크기 확대 확인: `adb shell settings put system font_scale 2.0` → 끝나면 원래 값으로 되돌린다.
@@ -216,13 +198,12 @@ frontend/mobile/
 ├─ assets/               글꼴(Pretendard)·로고·아이콘
 └─ src/
    ├─ app/               Expo Router route (화면 하나 = 파일 하나)
-   ├─ api/               계약 타입(types.ts)·HTTP 클라이언트(client.ts)·엔드포인트·가상 서버(fixtures/)
+   ├─ api/               계약 타입(types.ts)·HTTP 클라이언트(client.ts)·엔드포인트
    ├─ session/           보안 저장소와 세션 상태(SessionProvider)
-   ├─ features/          화면 단위 구현(auth·analysis·result·mypage·dev). 가게 입력은 analysis/AnalyzeScreen.tsx
+   ├─ features/          화면 단위 구현(auth·analysis·result·mypage). 가게 입력은 analysis/AnalyzeScreen.tsx
    ├─ components/ui/     공용 UI 컴포넌트
    ├─ components/icons/  하단 아이콘·손님 캐릭터(SVG)
    ├─ design/            토큰과 글꼴
-   └─ prototypes/        디자인 단계 프로토타입 — 제품 화면 아님
 ```
 
 route와 화면 상태 대응표는 `frontend/mobile/README.md` "화면 구성"에 있다.

@@ -12,13 +12,15 @@ export type TextFieldProps = Omit<TextInputProps, 'style'> & {
   error?: string;
   /** 입력 아래에 두는 보조 설명. 오류가 있으면 오류가 우선한다. */
   hint?: string;
+  /** 바로 위에 같은 제목이 이미 보이면 true. 읽기 이름은 그대로 label을 쓴다. */
+  labelHidden?: boolean;
 };
 
-export function TextField({ label, error, hint, ...inputProps }: TextFieldProps) {
+export function TextField({ label, error, hint, labelHidden, ...inputProps }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
 
   return (
-    <Field error={error} hint={hint} label={label}>
+    <Field error={error} hint={hint} label={label} labelHidden={labelHidden}>
       <TextInput
         accessibilityLabel={error ? `${label}, 오류: ${error}` : label}
         placeholderTextColor={colors.text.secondary}

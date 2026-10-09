@@ -1,5 +1,5 @@
 import { ApiError, SessionExpiredError, sessionExpiredCodes, toApiError } from '@/api/errors';
-import { sendRequest, type ApiRequest } from '@/api/transport';
+import { sendBinaryRequest, sendRequest, type ApiRequest } from '@/api/transport';
 import type { SessionResponse } from '@/api/types';
 
 export type Tokens = {
@@ -53,6 +53,34 @@ export class ApiClient {
 
     const retryError = toApiError(second.status, second.body);
     // error.code가 있는 401은 세션 만료가 아니다(공통 불변식 9).
+    if (
+      retryError.status === 401 &&
+      (retryError.code === null || sessionExpiredCodes.includes(retryError.code))
+    ) {
+      this.expire();
+      throw new SessionExpiredError();
+    }
+    throw retryError;
+  }
+
+  /** 보호된 PNG를 일반 API와 같은 401 갱신 규칙으로 내려받는다. */
+  async requestImage(path: string): Promise<Uint8Array> {
+    const send = () => {
+      const headers: Record<string, string> = {};
+      if (this.tokens) headers.Authorization = 'Bearer ' + this.tokens.accessToken;
+      return sendBinaryRequest({ method: 'GET', path, headers });
+    };
+
+    const first = await send();
+    if (ok(first.status) && first.data) return first.data;
+    const error = toApiError(first.status, first.body);
+    if (!error.isEnvelopelessUnauthorized) throw error;
+
+    await this.refreshTokens();
+    const second = await send();
+    if (ok(second.status) && second.data) return second.data;
+
+    const retryError = toApiError(second.status, second.body);
     if (
       retryError.status === 401 &&
       (retryError.code === null || sessionExpiredCodes.includes(retryError.code))

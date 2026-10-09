@@ -2,6 +2,7 @@
   "expo": {
     "name": "PULSE",
     "slug": "pulse-scc",
+    "scheme": "pulse-scc",
     "version": "1.0.0",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
@@ -20,7 +21,13 @@
     "plugins": [
       "expo-router",
       "expo-splash-screen",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "손님 유형 이미지를 사진 앱에 저장하려면 권한이 필요해요."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

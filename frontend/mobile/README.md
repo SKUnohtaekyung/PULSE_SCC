@@ -63,16 +63,13 @@ npm run android:device
 | `/evidence` | 근거 리뷰 전체 보기 | `EVIDENCE-*` |
 | `/mypage` | 마이페이지 | `MYPAGE-*`·`NOTIFICATION-*`·`SETTING-*`·`LOGOUT-*` |
 | `/foundation` | Design Foundation 견본 | — |
-| `/prototype-result`, `/flow`, `/preview` | Step 5·6 디자인 프로토타입(가상 데이터) | — |
 
 상태 정본은 `docs/product/requirements/SCREEN_STATES.md`다.
 
 ## 서버 연결
 
-기본값은 **가상(fixture) 서버**다. 백엔드가 아직 병합·배포되지 않아 `src/api/fixtures`의 고정 데이터로 동작한다.
-fixture 모드에서는 입력 화면 위에 어떤 상황을 재현 중인지 보여주는 전환 패널이 나오고, 예시 계정은 `owner@example.com / pulse1234`다.
-
-실제 서버에 붙일 때는 환경변수로 주소를 준다. 값이 있으면 자동으로 HTTP 모드가 된다.
+앱은 실제 HTTP API만 사용한다. Android 에뮬레이터 개발 모드에서는 기본 주소가 `http://10.0.2.2:8080`이고,
+그 밖의 환경은 `EXPO_PUBLIC_API_BASE_URL` 또는 `expo.extra.apiBaseUrl`을 반드시 제공한다.
 
 ```powershell
 $env:EXPO_PUBLIC_API_BASE_URL = "http://10.0.2.2:8080"
@@ -86,11 +83,10 @@ npm run start
 
 ```
 src/
-├─ api/          계약 타입·HTTP 클라이언트·엔드포인트·가상 서버(fixtures)
+├─ api/          계약 타입·HTTP 클라이언트·엔드포인트
 ├─ session/      안전 저장소와 세션 상태(SessionProvider)
 ├─ components/ui 공용 UI 컴포넌트
-├─ features/     화면 단위 구현(auth·analysis·result·dev)
+├─ features/     화면 단위 구현(auth·analysis·result·mypage)
 ├─ design/       토큰과 글꼴
-├─ prototypes/   Step 5·6 디자인 프로토타입(제품 화면 아님)
 └─ app/          Expo Router route
 ```

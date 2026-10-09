@@ -10,16 +10,19 @@ export function Field({
   label,
   error,
   hint,
+  labelHidden = false,
   children,
 }: {
   label: string;
+  /** 바로 위에 같은 제목이 이미 보이면 true. 읽기 이름은 입력이 그대로 가진다. */
+  labelHidden?: boolean;
   error?: string;
   hint?: string;
   children: ReactNode;
 }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      {labelHidden ? null : <Text style={styles.label}>{label}</Text>}
       {children}
       {error ? (
         <Text accessibilityLiveRegion="polite" style={styles.error}>

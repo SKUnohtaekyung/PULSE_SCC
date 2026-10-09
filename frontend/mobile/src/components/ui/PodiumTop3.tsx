@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 
 import type { PersonaImageSource } from '@/api/personaImages';
 import type { PodiumSlot } from '@/api/types';
+import { Grow, revealStagger } from '@/components/ui/Motion';
 import { PersonaAvatar } from '@/components/ui/PersonaAvatar';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
 
@@ -59,15 +60,21 @@ export function PodiumTop3({
               <Text style={styles.emptyReason}>
                 {slot.reason?.message ?? '채우지 못한 자리예요.'}
               </Text>
-              <View style={[styles.block, styles.blockEmpty, { height: podiumBlockHeight(rank, fontScale) }]}>
+              <Grow
+                delay={revealStagger * rank}
+                height={podiumBlockHeight(rank, fontScale)}
+                style={[styles.block, styles.blockEmpty]}
+              >
                 <Text style={styles.blockRankEmpty}>{rank}</Text>
-              </View>
+              </Grow>
             </View>
           );
         }
 
         const persona = slot.persona;
         if (!persona) return <View key={rank} style={styles.column} />;
+        // 지금 보는 유형만 남색으로 세운다. 순위는 숫자와 단상 높이가 알린다(색만으로 구분하지 않는다).
+        const tone = selected ? colors.podium.selected : colors.podium.idle;
 
         return (
           <Pressable
@@ -87,16 +94,17 @@ export function PodiumTop3({
             />
             <Text style={styles.name}>{persona.label}</Text>
             <Text style={styles.count}>리뷰 {slot.topicReviewCount ?? 0}건</Text>
-            <View
-              style={[
-                styles.block,
-                selected ? styles.blockSelected : styles.blockPlain,
-                { height: podiumBlockHeight(rank, fontScale) },
-              ]}
+            {/* 1위부터 차례로 단상이 올라온다. 높이 차이가 순위를 알린다. */}
+            <Grow
+              delay={revealStagger * rank}
+              height={podiumBlockHeight(rank, fontScale)}
+              style={[styles.block, { backgroundColor: tone.background }]}
             >
-              <Text style={selected ? styles.blockRankSelected : styles.blockRank}>{rank}</Text>
-              {selected ? <Text style={styles.blockState}>보는 중</Text> : null}
-            </View>
+              <Text style={[styles.blockRank, { color: tone.on }]}>{rank}</Text>
+              {selected ? (
+                <Text style={[styles.blockState, { color: tone.on }]}>보는 중</Text>
+              ) : null}
+            </Grow>
           </Pressable>
         );
       })}
@@ -132,13 +140,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radii.control,
     justifyContent: 'center',
     marginTop: spacing[1],
+    overflow: 'hidden',
     paddingHorizontal: spacing[1],
-  },
-  blockPlain: {
-    backgroundColor: colors.background.emphasized,
-  },
-  blockSelected: {
-    backgroundColor: colors.brand.primary,
   },
   blockEmpty: {
     backgroundColor: colors.background.subtle,
@@ -148,11 +151,6 @@ const styles = StyleSheet.create({
   },
   blockRank: {
     ...typography.head5,
-    color: colors.text.brand,
-  },
-  blockRankSelected: {
-    ...typography.head5,
-    color: colors.brand.onPrimary,
   },
   blockRankEmpty: {
     ...typography.head5,
@@ -160,7 +158,6 @@ const styles = StyleSheet.create({
   },
   blockState: {
     ...typography.caption,
-    color: colors.brand.onPrimary,
   },
   emptyAvatar: {
     width: spacing[20],

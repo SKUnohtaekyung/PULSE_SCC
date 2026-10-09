@@ -42,12 +42,19 @@ export const palette = {
   illustrationPeach: '#FBE3DC',
   illustrationMint: '#E2ECE4',
   success: '#059669',
+  // 흰 카드 위 작은 글자용 초록. success는 카드 위에서 3.77:1이라 본문 글자 기준 4.5:1에 못 미친다.
+  successStrong: '#047857',
   // 큰 면적에 쓰는 연한 초록. 진한 초록을 넓게 깔면 화면을 잡아먹는다(2026-09-27 디자인 리뷰).
   successSubtle: '#D1FAE5',
   warning: '#D97706',
   warningStrong: '#B45309',
   error: '#DC2626',
   errorStrong: '#B91C1C',
+  errorSubtle: '#FEE2E2',
+  // 흰 카드 위에 올리는 연한 바탕과 순위 농도. 알파 값(royalBlue10 등)을 카드 위에 합성한 불투명 값이라
+  // 대비를 그대로 계산할 수 있다(2026-10-05 팀 디자인 피드백 #4).
+  royalBlueWash: '#E6EAF2',
+  actionOrangeWash: '#FFEFEB',
 } as const;
 
 export const colors = {
@@ -96,6 +103,20 @@ export const colors = {
     error: palette.error,
     warningText: palette.warningStrong,
     errorText: palette.errorStrong,
+  },
+  // 결과의 4개 관점. 색만으로 구분하지 않는다 — 항상 아이콘과 관점 이름을 함께 둔다(DESIGN_SYSTEM §3.3).
+  // accent는 아이콘·강조선, tint는 아이콘 바탕, text는 카드 위 관점 이름이다.
+  perspective: {
+    priority: { accent: palette.focusOrange, tint: palette.actionOrangeWash, text: palette.warningStrong },
+    positive: { accent: palette.success, tint: palette.successSubtle, text: palette.successStrong },
+    negative: { accent: palette.error, tint: palette.errorSubtle, text: palette.errorStrong },
+    perception: { accent: palette.royalBlue, tint: palette.royalBlueWash, text: palette.royalBlue },
+  },
+  // 손님 TOP3 단상. 지금 보는 유형만 남색이고 나머지는 같은 연한 색이다(2026-10-09).
+  // 순위별로 파랑을 세 단계로 나눴더니 나란히 놓였을 때 색이 겹쳐 탁해 보였다. 순위는 숫자와 단상 높이가 알린다.
+  podium: {
+    selected: { background: palette.royalBlue, on: palette.white },
+    idle: { background: palette.royalBlueWash, on: palette.royalBlue },
   },
   destructive: {
     primary: palette.errorStrong,
