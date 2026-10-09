@@ -383,6 +383,36 @@ class AnalysisApiIntegrationTests {
     }
 
     @Test
+    void aRunningJobTakesTheStepTheAnalysisServiceReports() throws Exception {
+        UUID jobId = insertJob("RUNNING", 1);
+        ClaimedJob claim = new ClaimedJob(jobId, 1);
+
+        assertThat(repository.updateProgressStep(claim, "GENERATING_IMAGE")).isTrue();
+        // 같은 값은 다시 쓰지 않는다.
+        assertThat(repository.updateProgressStep(claim, "GENERATING_IMAGE")).isFalse();
+
+        mockMvc.perform(get("/api/v1/analysis-jobs/{jobId}", jobId).with(userJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.progressStep").value("GENERATING_IMAGE"))
+                .andExpect(jsonPath("$.message").value("손님 유형 이미지를 만들고 있습니다."));
+    }
+
+    @Test
+    void aStepIsNotTakenFromAStaleWorkerOrOutsideTheKnownSteps() {
+        UUID jobId = insertJob("RUNNING", 2);
+
+        assertThat(repository.updateProgressStep(new ClaimedJob(jobId, 1), "GENERATING_IMAGE")).isFalse();
+        assertThat(repository.updateProgressStep(new ClaimedJob(jobId, 2), "COMPLETED")).isFalse();
+        assertThat(repository.updateProgressStep(new ClaimedJob(jobId, 2), "NOT_A_STEP")).isFalse();
+
+        assertThat(jdbc.sql("SELECT progress_step FROM analysis_jobs WHERE id = :id")
+                .param("id", jobId)
+                .query(String.class)
+                // insertJob 이 넣어 둔 단계 그대로다.
+                .single()).isEqualTo("ANALYZING");
+    }
+
+    @Test
     void accountDeletionRemovesUserOwnedData() throws Exception {
         // 완료된 분석(리뷰·페르소나·근거·이미지·저장본·알림)이 있는 사용자로 삭제 순서를 확인한다.
         UUID jobId = createJob("탈퇴 테스트 식당");

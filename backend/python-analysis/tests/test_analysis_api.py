@@ -5,10 +5,12 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, SecretStr, ValidationError
 
+from scc_analysis.analysis import progress
 from scc_analysis.analysis.openai_analyzer import (
     AnalysisOutputInvalidError,
     ImageGenerationError,
     ModelServiceUnavailableError,
+    OpenAiReviewAnalyzer,
 )
 from scc_analysis.api import analysis as analysis_api
 from scc_analysis.collection import naver
@@ -213,3 +215,77 @@ def test_an_allowed_host_that_now_resolves_privately_is_rejected_after_redirect(
         naver.validate_collection_page_url(
             "https://pcmap.place.naver.com/restaurant/1/review/visitor"
         )
+
+
+# ---------- 진행 단계 ----------
+
+_PROGRESS_PATH = "/internal/v1/analysis-jobs/job-1/progress"
+_AUTH = {"X-SCC-Service-Token": "secret"}
+
+
+def test_progress_requires_the_service_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    _token(monkeypatch, "secret")
+
+    response = TestClient(app).get(_PROGRESS_PATH)
+
+    assert response.status_code == 401
+
+
+def test_progress_of_a_job_this_process_is_not_running_is_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _token(monkeypatch, "secret")
+
+    response = TestClient(app).get(_PROGRESS_PATH, headers=_AUTH)
+
+    assert response.status_code == 404
+
+
+def test_progress_reports_the_step_the_job_is_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    _token(monkeypatch, "secret")
+    progress.set_step("job-1", progress.ANALYZING)
+    try:
+        response = TestClient(app).get(_PROGRESS_PATH, headers=_AUTH)
+    finally:
+        progress.clear("job-1")
+
+    assert response.status_code == 200
+    assert response.json() == {"job_id": "job-1", "progress_step": "ANALYZING"}
+
+
+def test_the_step_is_forgotten_once_the_job_ends(monkeypatch: pytest.MonkeyPatch) -> None:
+    _token(monkeypatch, "secret")
+
+    async def fail_midway(request: object) -> None:
+        progress.set_step("job-1", progress.COLLECTING_REVIEWS)
+        raise ReviewCollectionError("REVIEW_COLLECTION_BLOCKED", "차단", retryable=True)
+
+    monkeypatch.setattr(analysis_api, "run_analysis", fail_midway)
+    client = TestClient(app)
+
+    client.post(_PATH, json=_BODY, headers=_AUTH)
+
+    assert client.get(_PROGRESS_PATH, headers=_AUTH).status_code == 404
+
+
+def test_the_analyzer_reports_each_step_just_before_doing_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    analyzer = OpenAiReviewAnalyzer(api_key="test", analysis_model="m", image_model="i")
+    events: list[str] = []
+    persona = SimpleNamespace(rank=1, image_prompt="prompt")
+
+    def parse(review_lines: str) -> SimpleNamespace:
+        events.append("parse")
+        return SimpleNamespace(output_parsed=SimpleNamespace(personas=[persona]))
+
+    def generate_image(rank: int, prompt: str) -> str:
+        events.append("image")
+        return "image"
+
+    monkeypatch.setattr(analyzer, "_parse", parse)
+    monkeypatch.setattr(analyzer, "_generate_image", generate_image)
+
+    analyzer.analyze([], on_step=events.append)
+
+    assert events == ["ANALYZING", "parse", "GENERATING_IMAGE", "image"]
