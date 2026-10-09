@@ -5,6 +5,7 @@ import time
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import ValidationError
 
+from scc_analysis.analysis import progress
 from scc_analysis.analysis.models import AnalyzeRequest, AnalyzeResponse
 from scc_analysis.analysis.openai_analyzer import (
     AnalysisConfigurationError,
@@ -66,7 +67,17 @@ async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
         )
         return response
     finally:
+        progress.clear(request.job_id)
         current_job_id.reset(token)
+
+
+@router.get("/analysis-jobs/{job_id}/progress", dependencies=[Depends(require_service_token)])
+async def analysis_progress(job_id: str) -> dict[str, str]:
+    """처리 중인 작업이 지금 하고 있는 단계. 이 프로세스가 처리 중이 아니면 404 다."""
+    step = progress.get_step(job_id)
+    if step is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="job not in progress")
+    return {"job_id": job_id, "progress_step": step}
 
 
 async def _run(request: AnalyzeRequest) -> AnalyzeResponse:

@@ -1,11 +1,13 @@
 import base64
 import calendar
+from collections.abc import Callable
 from datetime import date
 
 import openai
 from openai import OpenAI
 from pydantic import ValidationError
 
+from scc_analysis.analysis import progress
 from scc_analysis.analysis.models import (
     CollectedReview,
     PersonaImage,
@@ -72,8 +74,13 @@ class OpenAiReviewAnalyzer:
         self.image_model = image_model
 
     def analyze(
-        self, reviews: list[CollectedReview]
+        self,
+        reviews: list[CollectedReview],
+        on_step: Callable[[str], None] | None = None,
     ) -> tuple[StructuredAnalysis, list[PersonaImage]]:
+        """on_step 은 각 단계의 일을 시작하기 직전에 그 단계 이름으로 불린다."""
+        report = on_step or (lambda step: None)
+        report(progress.ANALYZING)
         review_lines = "\n".join(
             f"[{index}] {review.normalized_content[:1200]}" for index, review in enumerate(reviews)
         )
@@ -89,6 +96,7 @@ class OpenAiReviewAnalyzer:
         analysis = response.output_parsed
         if analysis is None:
             raise AnalysisOutputInvalidError("OpenAI가 구조화된 분석 결과를 반환하지 않았습니다.")
+        report(progress.GENERATING_IMAGE)
         images = []
         for persona in analysis.personas:
             try:
