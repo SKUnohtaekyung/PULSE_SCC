@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
 import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 
-import { login } from '@/api/endpoints';
+import { login, loginWithGoogle } from '@/api/endpoints';
 import { resolveErrorMessage } from '@/api/errorMessage';
 import { ApiError } from '@/api/errors';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +15,7 @@ import { colors, radii, shadows, spacing, strokes } from '@/design/tokens';
 import { useSession } from '@/session/SessionProvider';
 
 import { SplitFlapLogo } from './components/SplitFlapLogo';
+import { requestGoogleIdToken } from './googleSignIn';
 
 const logo = require('../../../assets/images/brand/pulse-wordmark.png');
 let hasPlayedIntroThisLaunch = false;
@@ -28,6 +29,21 @@ const loginErrorCopy: Record<string, string> = {
   INVALID_REQUEST: '입력한 내용을 다시 확인해 주세요.',
 };
 
+// SCREEN_STATES §2.1의 Google 로그인 코드. 서버 문구는 MVP에 없는 계정 연결을 안내하므로 쓰지 않는다.
+const googleErrorCopy: Record<string, string> = {
+  INVALID_GOOGLE_ID_TOKEN: 'Google 계정을 확인하지 못했어요. 다시 시도해 주세요.',
+  GOOGLE_AUTH_NOT_CONFIGURED: 'Google 로그인이 아직 준비되지 않았어요. 이메일로 로그인해 주세요.',
+  ACCOUNT_LINK_REQUIRED: '이미 이메일로 가입한 계정이 있어요. 이메일과 비밀번호로 로그인해 주세요.',
+  ACCOUNT_NOT_ACTIVE: loginErrorCopy.ACCOUNT_NOT_ACTIVE,
+};
+
+const googleOutcomeCopy = {
+  notConfigured: googleErrorCopy.GOOGLE_AUTH_NOT_CONFIGURED,
+  unsupported: '이 앱에서는 Google 로그인을 쓸 수 없어요. 이메일로 로그인해 주세요.',
+  playServicesUnavailable: 'Google Play 서비스를 쓸 수 없어요. 업데이트한 뒤 다시 시도해 주세요.',
+  failed: 'Google로 로그인하지 못했어요. 잠시 뒤에 다시 시도해 주세요.',
+} as const;
+
 export function LoginScreen() {
   const router = useRouter();
   const { signIn, client, expired } = useSession();
@@ -36,6 +52,8 @@ export function LoginScreen() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
+  const [googleCancelled, setGoogleCancelled] = useState(false);
   const [shouldPlayIntro] = useState(() => {
     const shouldPlay = !hasPlayedIntroThisLaunch;
     hasPlayedIntroThisLaunch = true;
@@ -91,7 +109,9 @@ export function LoginScreen() {
   };
 
   const submit = async () => {
+    if (submitting || googlePending) return;
     setFormError(null);
+    setGoogleCancelled(false);
     if (!validate()) return;
 
     setSubmitting(true);
@@ -102,6 +122,37 @@ export function LoginScreen() {
       applyError(error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const submitGoogle = async () => {
+    if (submitting || googlePending) return;
+    setFormError(null);
+    setGoogleCancelled(false);
+    setFieldErrors({});
+
+    setGooglePending(true);
+    try {
+      const outcome = await requestGoogleIdToken();
+      if (outcome.type === 'cancelled') {
+        setGoogleCancelled(true);
+        return;
+      }
+      if (outcome.type !== 'success') {
+        setFormError(googleOutcomeCopy[outcome.type]);
+        return;
+      }
+      const session = await loginWithGoogle(client, outcome.idToken);
+      await signIn(session);
+    } catch (error) {
+      setFormError(
+        resolveErrorMessage(error, {
+          known: googleErrorCopy,
+          fallback: 'Google로 로그인하지 못했어요. 잠시 뒤에 다시 시도해 주세요.',
+        }),
+      );
+    } finally {
+      setGooglePending(false);
     }
   };
 
@@ -148,6 +199,14 @@ export function LoginScreen() {
 
         {formError ? <Notice alert title="로그인하지 못했어요" message={formError} tone="error" /> : null}
 
+        {googleCancelled ? (
+          <Notice
+            title="Google 로그인을 취소했어요"
+            message="다시 시도하거나 이메일로 로그인할 수 있어요."
+            tone="info"
+          />
+        ) : null}
+
         <View style={styles.formCard}>
           <TextField
             autoCapitalize="none"
@@ -182,19 +241,25 @@ export function LoginScreen() {
 
         <View style={styles.actions}>
           <Button
+            disabled={googlePending}
             label="로그인"
             loading={submitting}
             loadingLabel="로그인하는 중이에요"
             onPress={() => void submit()}
           />
-          <Button label="이메일로 회원가입" onPress={() => router.push('/signup')} variant="ghost" />
           <Button
-            accessibilityHint="Google OAuth 앱 식별자와 client ID 설정 후 사용할 수 있어요."
-            label="Google로 회원가입"
+            disabled={googlePending}
+            label="이메일로 회원가입"
+            onPress={() => router.push('/signup')}
+            variant="ghost"
+          />
+          <Button
+            disabled={submitting}
+            label="Google로 계속하기"
             leadingIcon={<GoogleIcon color={colors.text.brand} />}
-            onPress={() => {
-              setFormError('Google 회원가입은 Android 앱 식별자와 OAuth client ID 설정이 필요해요.');
-            }}
+            loading={googlePending}
+            loadingLabel="Google 계정을 확인하는 중이에요"
+            onPress={() => void submitGoogle()}
             variant="ghost"
           />
         </View>

@@ -12,6 +12,10 @@ Expo 기반 React Native·TypeScript Android 클라이언트다. 제품 요구�
 
 2026-09-21 기준 로컬 PC에는 Android SDK·`adb`와 `Medium_Phone` 에뮬레이터(Android 17/API 37)가 있고 Expo Go 실행을 확인했다. `android.package`·scheme이 정해지지 않아 development build와 실기기 검증은 아직 수행하지 않았다.
 
+2026-10-09 기준 `android.package`는 `kr.co.scc.pulse`, scheme은 `pulse-scc`로 정해졌다(`app.json`). `expo prebuild`로 만든 release APK를 빌드해 `Medium_Phone` 에뮬레이터에 설치하고 실행했다. development build와 실기기 검증은 여전히 수행하지 않았다.
+
+**`app.json`은 암호화되지 않은 http 접속을 허용한다**(`expo-build-properties`의 `usesCleartextTraffic: true`). 전시 시연에서 앱이 노트북의 `http://localhost:8080` 서버에 붙기 위한 설정이며, 이 저장소에서 만드는 모든 Android 빌드에 적용된다. 외부에 배포하는 빌드를 만들기 전에는 이 설정을 빼거나 빌드 종류별로 나눠야 한다.
+
 ## 명령
 
 ```powershell
@@ -78,6 +82,21 @@ npm run start
 
 `10.0.2.2`는 Android 에뮬레이터에서 PC의 `localhost`를 가리키는 주소다. 실기기는 PC의 LAN 주소를 쓴다.
 토큰은 `expo-secure-store`에 저장하고, 봉투 없는 401을 받으면 토큰을 한 번 갱신한 뒤 원래 요청을 다시 보낸다(SCREEN_STATES 공통 불변식 12).
+
+### Google 로그인
+
+`@react-native-google-signin/google-signin`으로 계정 선택 창을 띄워 ID 토큰을 받고, 서버 `POST /api/v1/auth/google`이 검증한다.
+네이티브 모듈이라 **Expo Go에서는 동작하지 않는다.** 모듈이 없으면 안내 문구를 띄우도록 했으나 Expo Go에서 직접 눌러 보지는 않았다(미확인). 설치용 빌드에서 확인한다.
+
+Google Cloud 콘솔의 같은 프로젝트에 OAuth 클라이언트 ID가 두 개 필요하다.
+
+| 유형 | 넣는 값 | 쓰는 곳 |
+|---|---|---|
+| 웹 애플리케이션 | 없음 | 앱 빌드의 `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`(또는 `expo.extra.googleWebClientId`)와 서버의 `GOOGLE_CLIENT_ID`. 두 값은 같아야 한다 |
+| Android | 패키지 이름 `kr.co.scc.pulse`, APK 서명 인증서의 SHA-1 | 코드에 넣지 않는다. 등록돼 있어야 Google이 이 앱에 토큰을 내준다 |
+
+웹 클라이언트 ID는 빌드할 때 번들에 들어가므로 바꾸면 다시 빌드한다. 값이 없으면 앱은 Google 로그인을 시작하지 않는다.
+패키지 이름이나 SHA-1이 등록과 다르면 계정을 고른 뒤 실패할 것으로 본다. 이때 앱은 `adb logcat`에 `Google 로그인 실패 <코드>`를 남기며 코드는 10일 것으로 예상한다(실패 경로는 실행해 보지 않았다).
 
 ## 코드 구조
 
