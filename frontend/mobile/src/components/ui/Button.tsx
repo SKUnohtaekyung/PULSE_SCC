@@ -100,8 +100,10 @@ const styles = StyleSheet.create({
     ...typography.buttonMain,
     textAlign: 'center',
   },
+  // 누르는 순간 살짝 눌려 들어가 반응이 손에 잡히게 한다.
   pressed: {
     opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   disabled: {
     backgroundColor: colors.background.emphasized,

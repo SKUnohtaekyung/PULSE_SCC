@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -70,7 +70,6 @@ export function AnalyzeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { client, user, setHasSavedAnalysis } = useSession();
-  const { fontScale } = useWindowDimensions();
 
   const [phase, setPhase] = useState<Phase>('input');
   const [name, setName] = useState('');
@@ -477,8 +476,6 @@ export function AnalyzeScreen() {
     resetToInput();
   };
 
-  const largeText = fontScale >= 1.5;
-
   return (
     <Screen
       compact
@@ -497,10 +494,7 @@ export function AnalyzeScreen() {
       <StatusBar style="dark" />
 
       {phase === 'input' ? (
-        <PageTitle
-          description="세 가지만 알려 주시면 네이버 리뷰를 읽고 정리해 드려요."
-          title="가게 정보를 알려 주세요"
-        />
+        <PageTitle title="가게 정보를 알려 주세요" />
       ) : (
         <PageTitle
           description={[name, category].filter(Boolean).join(' · ')}
@@ -592,7 +586,7 @@ export function AnalyzeScreen() {
           {prefilled ? (
             <Notice
               title="지난번 가게 정보를 불러왔어요"
-              message="그대로 다시 분석하면 지금 올라와 있는 리뷰로 새 결과를 만들어요. 다른 가게라면 고쳐 주세요."
+              message="다른 가게라면 고쳐 주세요."
             />
           ) : null}
 
@@ -701,9 +695,6 @@ export function AnalyzeScreen() {
         <Button label="입력 화면으로" onPress={resetToInput} variant="ghost" />
       ) : null}
 
-      <Text style={[styles.footnote, largeText && styles.footnoteLarge]}>
-        분석은 공개된 네이버 리뷰만 사용해요.
-      </Text>
     </Screen>
   );
 }
@@ -781,12 +772,5 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.9,
-  },
-  footnote: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
-  footnoteLarge: {
-    paddingBottom: spacing[4],
   },
 });

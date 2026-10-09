@@ -1,8 +1,9 @@
 import Constants from 'expo-constants';
+import { File, Paths } from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -20,6 +21,7 @@ import { BottomNavigation } from '@/components/ui/BottomNavigation';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingBlock } from '@/components/ui/LoadingBlock';
+import { Reveal, revealStagger } from '@/components/ui/Motion';
 import { Notice } from '@/components/ui/Notice';
 import {
   PersonaAvatar,
@@ -27,7 +29,7 @@ import {
   PersonaImageError,
   usePersonaImageRetry,
 } from '@/components/ui/PersonaAvatar';
-import { Screen } from '@/components/ui/Screen';
+import { Screen, usePagePadding } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ToggleRow } from '@/components/ui/ToggleRow';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -53,6 +55,10 @@ const formatDateTime = (value: string) => {
 export function MyPageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const pagePadding = usePagePadding();
+  const { width: windowWidth } = useWindowDimensions();
+  // 카드 한 장과 다음 카드의 가장자리가 함께 보이는 폭. 넓은 화면에서는 읽기 폭의 절반을 넘지 않는다.
+  const cardWidth = Math.min(windowWidth - pagePadding * 2 - spacing[12], layout.readingMaxWidth / 2);
   /** 크게 보고 있는 저장 이미지의 순서. 닫혀 있으면 null. */
   const [viewing, setViewing] = useState<number | null>(null);
   const { client, user, signOut } = useSession();
@@ -181,7 +187,11 @@ export function MyPageScreen() {
     savedResult.data?.podium
       .filter((slot) => slot.status === 'FILLED' && slot.persona)
       .sort((a, b) => a.rank - b.rank)
-      .map((slot) => ({ rank: slot.rank, persona: slot.persona! })) ?? [];
+      .map((slot) => ({
+        rank: slot.rank,
+        persona: slot.persona!,
+        topicReviewCount: slot.topicReviewCount,
+      })) ?? [];
   const personaSources = personaImages.map(({ persona }) => personaImageSource(client, persona.image));
 
   return (
@@ -255,7 +265,8 @@ export function MyPageScreen() {
         )}
       </View>
 
-      <View style={styles.card}>
+      {/* 저장된 손님 유형 이미지. 사진 피드처럼 카드 한 장에 한 사람씩 놓고 옆으로 넘겨 본다(2026-10-09 사용자 요청). */}
+      <View style={styles.feedSection}>
         <Text accessibilityRole="header" style={styles.sectionTitle}>
           저장된 결과의 손님 유형 이미지
         </Text>
@@ -264,30 +275,32 @@ export function MyPageScreen() {
         ) : savedResult.status === 'error' ? (
           <Notice alert title="저장된 결과를 불러오지 못했어요" message={savedResult.message} tone="error" />
         ) : personaImages.length > 0 ? (
-          <View style={styles.images}>
-            {/* 홈 시상대와 같은 고지 — 실제 이미지가 한 장이라도 있으면 AI 이미지라고, 없으면 자리표시라고 알린다. */}
+          <>
+            {/* 결과 화면 시상대와 같은 고지 — 실제 이미지가 한 장이라도 있으면 AI 이미지라고, 없으면 자리표시라고 알린다. */}
             <PersonaAvatarNotice anyRemote={personaSources.some((source) => source.kind === 'remote')} />
-            {/* 사진 피드처럼 정사각 3칸으로 놓는다(2026-10-05 팀 디자인 피드백 #3). 순위 순서는 왼쪽→오른쪽이다. */}
-            <View style={styles.imageGrid}>
-              {personaImages.map(({ rank, persona }, index) => (
-                <StoredPersonaTile
+            <ScrollView
+              contentContainerStyle={styles.feed}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              // 카드가 본문 좌우 여백 밖까지 흘러 다음 카드가 있다는 것을 보여 준다.
+              style={{ marginHorizontal: -pagePadding }}
+            >
+              <View style={{ width: pagePadding - spacing[3] }} />
+              {personaImages.map(({ rank, persona, topicReviewCount }, index) => (
+                <StoredPersonaCard
                   altText={persona.image.altText}
                   key={persona.id}
                   label={persona.label}
                   onOpen={() => setViewing(index)}
                   rank={rank}
                   source={personaSources[index]}
+                  topicReviewCount={topicReviewCount}
+                  width={cardWidth}
                 />
               ))}
-              {/* 부분 결과(1~2장)여도 칸 폭을 3등분으로 유지한다. */}
-              {Array.from({ length: Math.max(0, 3 - personaImages.length) }, (_, index) => (
-                <View key={`empty-${index}`} style={styles.imageCell} />
-              ))}
-            </View>
-            <Text style={styles.empty}>
-              읽기 전용이에요. 새 결과로 바꾸면 이미지도 함께 바뀌어요.
-            </Text>
-          </View>
+              <View style={{ width: pagePadding - spacing[3] }} />
+            </ScrollView>
+          </>
         ) : (
           <Text style={styles.empty}>지금 저장된 결과에는 보여드릴 이미지가 없어요.</Text>
         )}
@@ -324,8 +337,7 @@ export function MyPageScreen() {
           계정 탈퇴
         </Text>
         <Text style={styles.empty}>
-          계정 탈퇴는 아직 연결하지 않았어요. 서버에는 탈퇴 기능이 있지만 팀의 API 계약에는 아직 들어 있지
-          않아서, 계약이 정리되면 이 자리에 넣어요.
+          계정 탈퇴는 준비 중이에요.
         </Text>
       </View>
 
@@ -359,29 +371,71 @@ export function MyPageScreen() {
   );
 }
 
-// 저장된 결과의 손님 유형 한 칸(STORED-IMAGES-NORMAL). 결과 화면과 같은 그림·같은 실패 규칙을 쓴다(SCREEN_STATES §6.4).
-function StoredPersonaTile({
+type SaveState = 'idle' | 'saving' | 'saved' | 'denied' | 'error';
+
+const saveMessages: Record<Exclude<SaveState, 'idle' | 'saving'>, string> = {
+  saved: '사진 앱에 저장했어요.',
+  denied: '사진 저장 권한이 없어 저장하지 못했어요. 기기 설정에서 권한을 허용해 주세요.',
+  error: '저장하지 못했어요. 잠시 뒤에 다시 시도해 주세요.',
+};
+
+/**
+ * 인증 요청으로 이미지를 다시 받아 기기 사진 앱에 저장한다. 쓰기 권한만 요청한다.
+ * 저장 모듈은 누를 때 불러온다. Expo Go에는 expo-media-library의 새 네이티브 모듈이 없어,
+ * 파일 맨 위에서 불러오면 마이페이지 전체가 열리지 않는다(2026-10-09 에뮬레이터에서 확인).
+ */
+async function savePersonaImage(source: PersonaImageSource, fileName: string): Promise<SaveState> {
+  if (source.kind !== 'remote') return 'error';
+  const { requestPermissionsAsync, saveToLibraryAsync } = await import('expo-media-library/legacy');
+  const permission = await requestPermissionsAsync(true);
+  if (!permission.granted) return 'denied';
+  const bytes = await source.client.requestImage(source.path);
+  const file = new File(Paths.cache, fileName);
+  if (file.exists) file.delete();
+  file.create();
+  file.write(bytes);
+  await saveToLibraryAsync(file.uri);
+  return 'saved';
+}
+
+// 저장된 결과의 손님 유형 카드(STORED-IMAGES-NORMAL). 결과 화면과 같은 그림·같은 실패 규칙을 쓴다(SCREEN_STATES §6.4).
+function StoredPersonaCard({
   rank,
   label,
   altText,
   source,
+  topicReviewCount,
+  width,
   onOpen,
 }: {
   rank: number;
   label: string;
   altText: string;
   source: PersonaImageSource;
+  topicReviewCount?: number;
+  width: number;
   onOpen: () => void;
 }) {
   const image = usePersonaImageRetry(source);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+
+  const save = async () => {
+    setSaveState('saving');
+    try {
+      setSaveState(await savePersonaImage(source, `pulse-persona-${rank}.png`));
+    } catch {
+      setSaveState('error');
+    }
+  };
+
   return (
-    <View style={styles.imageCell}>
+    <Reveal delay={revealStagger * rank} style={[styles.feedCard, { width }]}>
       <Pressable
         // 그림과 이름을 한 번에 읽는다. 묶으면 그림 라벨이 가려지므로 서버 대체 텍스트를 함께 붙인다.
         accessibilityLabel={`${altText}. ${rank}위 ${label}. 크게 보기`}
         accessibilityRole="button"
         onPress={onOpen}
-        style={({ pressed }) => [styles.imageColumn, pressed && styles.pressed]}
+        style={({ pressed }) => pressed && styles.pressed}
       >
         <PersonaAvatar
           altText={altText}
@@ -391,15 +445,37 @@ function StoredPersonaTile({
           tile
           variant={rank - 1}
         />
-        <View style={styles.imageText}>
-          <Text style={styles.imageRank}>{rank}위 손님</Text>
-          <Text numberOfLines={2} style={styles.imageLabel}>
-            {label}
-          </Text>
-        </View>
       </Pressable>
-      {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
-    </View>
+      <View style={styles.feedBody}>
+        <View style={styles.feedMeta}>
+          <Text style={styles.feedRank}>{rank}위 손님</Text>
+          {topicReviewCount !== undefined ? (
+            <Text style={styles.imageRank}>리뷰 {topicReviewCount}건</Text>
+          ) : null}
+        </View>
+        <Text style={styles.imageLabel}>{label}</Text>
+        {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
+        {source.kind === 'remote' && !image.showError ? (
+          <>
+            <Button
+              label={saveState === 'saved' ? '다시 저장' : '이미지 저장'}
+              loading={saveState === 'saving'}
+              loadingLabel="저장하는 중이에요"
+              onPress={() => void save()}
+              variant="ghost"
+            />
+            {saveState !== 'idle' && saveState !== 'saving' ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={saveState === 'saved' ? styles.saveDone : styles.saveFailed}
+              >
+                {saveMessages[saveState]}
+              </Text>
+            ) : null}
+          </>
+        ) : null}
+      </View>
+    </Reveal>
   );
 }
 
@@ -481,18 +557,47 @@ const styles = StyleSheet.create({
   images: {
     gap: spacing[3],
   },
-  imageGrid: {
+  feedSection: {
+    gap: spacing[3],
+  },
+  feed: {
+    gap: spacing[3],
+    paddingVertical: spacing[1],
+  },
+  feedCard: {
+    backgroundColor: colors.background.surface,
+    borderColor: colors.border.default,
+    borderRadius: radii.panel,
+    borderWidth: strokes.hairline,
+    gap: spacing[3],
+    padding: spacing[3],
+  },
+  feedBody: {
+    gap: spacing[2],
+    paddingHorizontal: spacing[1],
+    paddingBottom: spacing[1],
+  },
+  feedMeta: {
+    alignItems: 'center',
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[2],
+    justifyContent: 'space-between',
   },
-  imageCell: {
-    flex: 1,
-    flexBasis: 0,
-    gap: spacing[2],
+  feedRank: {
+    ...typography.caption,
+    backgroundColor: colors.brand.tint,
+    borderRadius: radii.pill,
+    color: colors.text.brand,
+    overflow: 'hidden',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
   },
-  imageColumn: {
-    gap: spacing[2],
+  saveDone: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  saveFailed: {
+    ...typography.caption,
+    color: colors.status.errorText,
   },
   imageText: {
     gap: spacing[1],

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
+import { Reveal } from '@/components/ui/Motion';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
 
 // 분석 진행 목록. 받은 단계를 쌓아 보여준다(Step 5 합성, SCREEN_STATES §5).
@@ -107,7 +108,7 @@ export function ProgressList({
       </View>
       <View style={styles.rows}>
       {rows.map((row, index) => (
-        <View key={row.key} style={[styles.row, index > 0 && styles.rowDivided]}>
+        <Reveal key={row.key} style={[styles.row, index > 0 && styles.rowDivided]}>
           <View style={styles.marker}>
             {row.state === 'done' ? (
               <View style={styles.done}>
@@ -144,7 +145,7 @@ export function ProgressList({
             </View>
             {row.note ? <Text style={styles.note}>{row.note}</Text> : null}
           </View>
-        </View>
+        </Reveal>
       ))}
       </View>
       {hint ? (

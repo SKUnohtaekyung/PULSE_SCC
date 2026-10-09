@@ -106,7 +106,7 @@ const contrastChecks = [
     [`관점 아이콘(${name}) / 연한 바탕`, tone.accent, tone.tint, accessibility.contrast.nonText],
     [`관점 강조선(${name}) / 카드`, tone.accent, colors.background.surface, accessibility.contrast.nonText],
   ]),
-  ...Object.entries(colors.rank).map(([name, tone]) => [
+  ...Object.entries(colors.podium).map(([name, tone]) => [
     `순위 숫자(${name}) / 순위 단상`,
     tone.on,
     tone.background,

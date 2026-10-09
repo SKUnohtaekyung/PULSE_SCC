@@ -29,6 +29,7 @@ import {
   PersonaImageError,
   usePersonaImageRetry,
 } from '@/components/ui/PersonaAvatar';
+import { Grow, Reveal, revealStagger } from '@/components/ui/Motion';
 import { PodiumTop3 } from '@/components/ui/PodiumTop3';
 import { useBodyMaxWidth, useExpandedLayout } from '@/components/ui/Screen';
 import { colors, fontFamilies, layout, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -141,7 +142,8 @@ export function useResultNavigation(result: AnalysisResult | null) {
 export function ResultJumpBar({ navigation }: { navigation: ResultNavigation }) {
   if (!navigation.pastPodium || navigation.ranks.length === 0) return null;
   return (
-    <View accessibilityLabel="결과 바로가기" style={styles.jumpBar}>
+    <Reveal style={styles.jumpBar}>
+      <View accessibilityLabel="결과 바로가기">
       <ScrollView
         contentContainerStyle={styles.jumpItems}
         horizontal
@@ -182,7 +184,8 @@ export function ResultJumpBar({ navigation }: { navigation: ResultNavigation }) 
           <Text style={styles.jumpChipTextPlain}>맨 위로</Text>
         </Pressable>
       </ScrollView>
-    </View>
+      </View>
+    </Reveal>
   );
 }
 
@@ -225,7 +228,7 @@ export function ResultView({
       onLayout={(event) => nav.onRootLayout(event.nativeEvent.layout.y)}
       style={[styles.container, { maxWidth: bodyMaxWidth }]}
     >
-      <View style={styles.intro}>
+      <Reveal style={styles.intro}>
         <Text accessibilityRole="header" style={styles.storeName}>
           {result.store.name}
         </Text>
@@ -234,13 +237,10 @@ export function ResultView({
           <Text style={styles.introStrong}>{filled.length}개</Text>를 찾았어요.
         </Text>
         {/* AI가 만든 결과라는 사실은 결과를 읽기 전에 한 번 알린다(2026-10-05 팀 디자인 피드백 #12). */}
-        <Notice
-          title="AI가 리뷰를 읽고 정리한 결과예요"
-          message="해석과 제안은 추론이라 사실과 다를 수 있어요."
-        />
-      </View>
+        <Text style={styles.introNote}>AI가 리뷰를 읽고 정리한 결과라 사실과 다를 수 있어요.</Text>
+      </Reveal>
 
-      <View style={styles.section}>
+      <Reveal delay={revealStagger} style={styles.section}>
         <Text accessibilityRole="header" style={styles.sectionTitle}>
           리뷰에 많이 나온 손님 TOP3
         </Text>
@@ -255,7 +255,7 @@ export function ResultView({
           />
           <PersonaAvatarNotice anyRemote={anyRemoteImage} />
         </View>
-      </View>
+      </Reveal>
 
       {filled.length === 0 ? (
         <Notice
@@ -296,7 +296,9 @@ function AnalysisInfoBlock({ result }: { result: AnalysisResult }) {
         이 결과는 이렇게 만들었어요
       </Text>
       <View style={styles.metaCard}>
-        <Text style={styles.metaSource}>{platform} 공개 리뷰 기준</Text>
+        <Text style={styles.metaSource}>
+          {platform} 공개 리뷰 {result.metadata.collectedReviewCount}건을 모았어요
+        </Text>
         <View style={stacked ? styles.metaColumn : styles.metaRow}>
           <View style={styles.metaCell}>
             <Text style={styles.metaLabel}>분석한 리뷰</Text>
@@ -313,9 +315,6 @@ function AnalysisInfoBlock({ result }: { result: AnalysisResult }) {
             <Text style={styles.metaValue}>{formatDate(result.metadata.analyzedAt)}</Text>
           </View>
         </View>
-        <Text style={styles.metaLine}>
-          모은 리뷰 {result.metadata.collectedReviewCount}건 중 {result.metadata.validReviewCount}건을 분석했어요.
-        </Text>
       </View>
       <LimitationsBlock result={result} />
     </View>
@@ -347,7 +346,7 @@ function PersonaStatsCard({
   const image = usePersonaImageRetry(source);
 
   return (
-    <View style={styles.statsCard}>
+    <Reveal delay={revealStagger} style={styles.statsCard}>
       <View
         accessible
         // 그림과 숫자를 한 번에 읽게 묶는다. 묶으면 PersonaAvatar의 라벨이 가려지므로 서버 대체 텍스트를 여기서 함께 읽힌다.
@@ -374,7 +373,7 @@ function PersonaStatsCard({
             <>
               <View style={styles.track}>
                 {/* 100%를 넘는 값은 데이터가 이상하다는 뜻이다. 문장에는 그대로 보여 드러나게 하고, 막대만 카드 밖으로 나가지 않게 자른다. */}
-                <View style={[styles.statsBar, { width: `${Math.min(100, share)}%` }]} />
+                <Grow delay={revealStagger * 3} style={styles.statsBar} width={`${Math.min(100, share)}%`} />
               </View>
               <Text style={styles.statsShare}>
                 분석한 리뷰 {validReviewCount}건 중 {share}%
@@ -385,7 +384,7 @@ function PersonaStatsCard({
       </View>
 
       {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
-    </View>
+    </Reveal>
   );
 }
 
@@ -431,14 +430,13 @@ function PersonaDetail({
 
   return (
     <View style={styles.detail}>
-      <View style={styles.personaHead}>
+      <Reveal style={styles.personaHead}>
         <Text style={styles.personaRank}>{slot.rank}위 손님</Text>
         <Text accessibilityRole="header" style={styles.personaTitle}>
           {persona.label}
         </Text>
         <Text style={styles.personaSummary}>{persona.summary}</Text>
-        {persona.caveat ? <Text style={styles.personaCaveat}>{persona.caveat}</Text> : null}
-      </View>
+      </Reveal>
 
       {source ? (
         <PersonaStatsCard
@@ -456,7 +454,7 @@ function PersonaDetail({
         </Text>
         {arrangePerspectiveCards(
           expanded,
-          perspectiveOrder.map((item) => {
+          perspectiveOrder.map((item, index) => {
             const block = persona.perspectives[item.key];
             if (!block) return null;
             return (
@@ -465,6 +463,7 @@ function PersonaDetail({
                 inRow={expanded}
                 key={item.key}
                 label={item.label}
+                order={index}
                 onOpenEvidence={
                   onOpenEvidence
                     ? () =>
@@ -517,12 +516,15 @@ function PerspectiveCard({
   block,
   onOpenEvidence,
   inRow,
+  order,
 }: {
   perspective: PerspectiveKey;
   label: string;
   block: PerspectiveBlock;
   onOpenEvidence?: () => void;
   inRow: boolean;
+  /** 나타나는 차례. 위에서부터 하나씩 떠오른다. */
+  order: number;
 }) {
   const [open, setOpen] = useState(false);
   const tone = colors.perspective[perspective];
@@ -532,7 +534,7 @@ function PerspectiveCard({
   const hasMore = moreInterpretations.length + moreFacts.length + moreReviews.length > 0;
 
   return (
-    <View style={[styles.card, inRow && styles.cardInRow]}>
+    <Reveal delay={revealStagger * (order + 2)} style={[styles.card, inRow && styles.cardInRow]}>
       <View style={styles.cardHead}>
         <View style={[styles.cardIcon, { backgroundColor: tone.tint }]}>
           <PerspectiveIcon color={tone.accent} perspective={perspective} />
@@ -605,7 +607,7 @@ function PerspectiveCard({
           ) : null}
         </View>
       ) : null}
-    </View>
+    </Reveal>
   );
 }
 
@@ -615,7 +617,7 @@ function AdviceCard({ advice, order }: { advice: Advice; order: number }) {
   const [open, setOpen] = useState(false);
   const { aiInterpretation, knowledgeReferences } = advice.details;
   return (
-    <View style={styles.adviceGroup}>
+    <Reveal delay={revealStagger * order} style={styles.adviceGroup}>
       <View style={styles.adviceBlock}>
         <Text style={styles.adviceChip}>검토해 볼 행동 {order}</Text>
         <Text style={styles.adviceAction}>{advice.suggestedAction}</Text>
@@ -656,13 +658,20 @@ function AdviceCard({ advice, order }: { advice: Advice; order: number }) {
         <Text style={styles.tag}>리뷰에서 확인</Text>
         <Text style={styles.factText}>{advice.reviewFact}</Text>
       </View>
-    </View>
+    </Reveal>
   );
 }
 
 // 결과의 한계. 숨기지는 않되(PRD §12) 긴 문장이 화면을 채우지 않게, 분석마다 달라지는 한계 문장은 접어 둔다.
 function LimitationsBlock({ result }: { result: AnalysisResult }) {
   const [open, setOpen] = useState(false);
+  // 분석마다 달라지는 한계 문장과 손님 유형별 단서를 한곳에 모아 접어 둔다.
+  const notes = [
+    ...result.limitations.map((limitation) => limitation.message),
+    ...filledSlots(result).flatMap((slot) =>
+      slot.persona?.caveat ? [`${slot.rank}위 손님 · ${slot.persona.caveat}`] : [],
+    ),
+  ];
   return (
     <View style={styles.limitations}>
       <Notice
@@ -676,7 +685,7 @@ function LimitationsBlock({ result }: { result: AnalysisResult }) {
           tone="warning"
         />
       ) : null}
-      {result.limitations.length > 0 ? (
+      {notes.length > 0 ? (
         <>
           <Pressable
             accessibilityRole="button"
@@ -685,13 +694,13 @@ function LimitationsBlock({ result }: { result: AnalysisResult }) {
             style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
           >
             <Text style={styles.disclosureTextQuiet}>
-              {open ? '알아 둘 점 접기' : `알아 둘 점 ${result.limitations.length}가지 더 보기`}
+              {open ? '알아 둘 점 접기' : `알아 둘 점 ${notes.length}가지 더 보기`}
             </Text>
           </Pressable>
           {open
-            ? result.limitations.map((limitation, index) => (
-                <Text key={limitation.code + index} style={styles.limitation}>
-                  {limitation.message}
+            ? notes.map((note, index) => (
+                <Text key={index} style={styles.limitation}>
+                  {note}
                 </Text>
               ))
             : null}
@@ -717,6 +726,10 @@ const styles = StyleSheet.create({
   introLine: {
     ...typography.body2,
     color: colors.text.primary,
+  },
+  introNote: {
+    ...typography.body7,
+    color: colors.text.secondary,
   },
   introStrong: {
     fontFamily: fontFamilies.bold,
@@ -755,10 +768,6 @@ const styles = StyleSheet.create({
   personaSummary: {
     ...typography.body2,
     color: colors.text.primary,
-  },
-  personaCaveat: {
-    ...typography.body7,
-    color: colors.text.secondary,
   },
   statsCard: {
     backgroundColor: colors.background.surface,
@@ -963,10 +972,6 @@ const styles = StyleSheet.create({
     borderWidth: strokes.hairline,
     gap: spacing[2],
     padding: spacing[5],
-  },
-  metaLine: {
-    ...typography.body7,
-    color: colors.text.secondary,
   },
   metaSource: {
     ...typography.body6,

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 
 import type { PersonaImageSource } from '@/api/personaImages';
 import type { PodiumSlot } from '@/api/types';
+import { Grow, revealStagger } from '@/components/ui/Motion';
 import { PersonaAvatar } from '@/components/ui/PersonaAvatar';
 import { colors, radii, spacing, strokes, typography } from '@/design/tokens';
 
@@ -26,16 +27,6 @@ const blockHeights: Record<number, number> = {
  */
 function podiumBlockHeight(rank: number, fontScale: number) {
   return blockHeights[rank] + spacing[12] * Math.max(0, fontScale - 1);
-}
-
-/**
- * 순위가 높을수록 단상이 진하다(2026-10-05 팀 디자인 피드백 #14). 색만으로 순위를 알리지 않는다 —
- * 숫자와 단상 높이가 같은 뜻을 전한다. 지금 보는 유형은 `보는 중` 글자와 그림 테두리로 알린다.
- */
-function rankTone(rank: number) {
-  if (rank === 1) return colors.rank.first;
-  if (rank === 2) return colors.rank.second;
-  return colors.rank.third;
 }
 
 export function PodiumTop3({
@@ -69,15 +60,21 @@ export function PodiumTop3({
               <Text style={styles.emptyReason}>
                 {slot.reason?.message ?? '채우지 못한 자리예요.'}
               </Text>
-              <View style={[styles.block, styles.blockEmpty, { height: podiumBlockHeight(rank, fontScale) }]}>
+              <Grow
+                delay={revealStagger * rank}
+                height={podiumBlockHeight(rank, fontScale)}
+                style={[styles.block, styles.blockEmpty]}
+              >
                 <Text style={styles.blockRankEmpty}>{rank}</Text>
-              </View>
+              </Grow>
             </View>
           );
         }
 
         const persona = slot.persona;
         if (!persona) return <View key={rank} style={styles.column} />;
+        // 지금 보는 유형만 남색으로 세운다. 순위는 숫자와 단상 높이가 알린다(색만으로 구분하지 않는다).
+        const tone = selected ? colors.podium.selected : colors.podium.idle;
 
         return (
           <Pressable
@@ -97,17 +94,17 @@ export function PodiumTop3({
             />
             <Text style={styles.name}>{persona.label}</Text>
             <Text style={styles.count}>리뷰 {slot.topicReviewCount ?? 0}건</Text>
-            <View
-              style={[
-                styles.block,
-                { backgroundColor: rankTone(rank).background, height: podiumBlockHeight(rank, fontScale) },
-              ]}
+            {/* 1위부터 차례로 단상이 올라온다. 높이 차이가 순위를 알린다. */}
+            <Grow
+              delay={revealStagger * rank}
+              height={podiumBlockHeight(rank, fontScale)}
+              style={[styles.block, { backgroundColor: tone.background }]}
             >
-              <Text style={[styles.blockRank, { color: rankTone(rank).on }]}>{rank}</Text>
+              <Text style={[styles.blockRank, { color: tone.on }]}>{rank}</Text>
               {selected ? (
-                <Text style={[styles.blockState, { color: rankTone(rank).on }]}>보는 중</Text>
+                <Text style={[styles.blockState, { color: tone.on }]}>보는 중</Text>
               ) : null}
-            </View>
+            </Grow>
           </Pressable>
         );
       })}
@@ -143,6 +140,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radii.control,
     justifyContent: 'center',
     marginTop: spacing[1],
+    overflow: 'hidden',
     paddingHorizontal: spacing[1],
   },
   blockEmpty: {
