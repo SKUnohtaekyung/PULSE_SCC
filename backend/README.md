@@ -17,7 +17,7 @@ backend/
 ## 1. 환경 파일
 
 PowerShell에서 `backend/.env.example`을 `backend/.env`로 복사하고 로컬 전용 비밀번호와 공유 서비스 토큰을 변경한다. `.env`는 Git에 커밋하지 않는다.
-Spring과 Python을 각각 문서에 적힌 디렉터리에서 실행하면 두 서비스 모두 `backend/.env`를 읽는다. `ANALYSIS_SERVICE_TOKEN`과 `SCC_SERVICE_TOKEN`에는 같은 값을 넣는다. `AUTH_ACCESS_TOKEN_SECRET`에는 32바이트 이상의 예측 불가능한 값을, `GOOGLE_CLIENT_ID`에는 Android용 Google OAuth client ID를 넣는다. 법률 검토 전에는 `LEGAL_REGISTRATION_ENABLED=false`를 유지한다. 로컬에서 가입 흐름을 검증할 때만 `true`로 바꾼다.
+Spring과 Python을 각각 문서에 적힌 디렉터리에서 실행하면 두 서비스 모두 `backend/.env`를 읽는다. `ANALYSIS_SERVICE_TOKEN`과 `SCC_SERVICE_TOKEN`에는 같은 값을 넣는다. `AUTH_ACCESS_TOKEN_SECRET`에는 32바이트 이상의 예측 불가능한 값을, `GOOGLE_CLIENT_ID`에는 웹 애플리케이션 유형 Google OAuth client ID를 넣는다(앱 빌드의 `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`와 같은 값. Android 유형 ID가 아니다). 법률 검토 전에는 `LEGAL_REGISTRATION_ENABLED=false`를 유지한다. 로컬에서 가입 흐름을 검증할 때만 `true`로 바꾼다.
 
 ## 2. PostgreSQL
 

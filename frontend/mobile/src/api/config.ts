@@ -12,3 +12,16 @@ const readBaseUrl = () => {
 };
 
 export const apiBaseUrl = readBaseUrl();
+
+// Google 로그인에 쓰는 웹 애플리케이션 유형 OAuth 클라이언트 ID다. 비밀 값이 아니다.
+// 서버의 GOOGLE_CLIENT_ID와 같은 값이어야 한다. 없으면 Google 로그인을 시작하지 않는다.
+const readGoogleWebClientId = () => {
+  const fromEnv = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  if (typeof fromEnv === 'string' && fromEnv.trim()) return fromEnv.trim();
+  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
+  const fromExtra = extra?.googleWebClientId;
+  if (typeof fromExtra === 'string' && fromExtra.trim()) return fromExtra.trim();
+  return null;
+};
+
+export const googleWebClientId = readGoogleWebClientId();
