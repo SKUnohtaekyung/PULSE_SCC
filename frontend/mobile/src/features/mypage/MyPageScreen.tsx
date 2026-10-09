@@ -395,8 +395,12 @@ async function savePersonaImage(source: PersonaImageSource, fileName: string): P
   file.create();
   file.write(bytes);
   await saveToLibraryAsync(file.uri);
-  // 사진 앱에 복사됐으므로 캐시의 사본은 남기지 않는다.
-  file.delete();
+  // 사진 앱에 복사됐으므로 캐시의 사본은 남기지 않는다. 지우지 못해도 저장은 이미 끝났으므로 실패로 알리지 않는다.
+  try {
+    file.delete();
+  } catch {
+    // 캐시는 시스템이 나중에 비운다.
+  }
   return 'saved';
 }
 
