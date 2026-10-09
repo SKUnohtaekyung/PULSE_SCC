@@ -40,11 +40,11 @@ import { colors, fontFamilies, layout, radii, spacing, strokes, typography } fro
 // 사실과 해석은 표시(`AI 해석`·`리뷰에서 확인`)와 자리로 계속 구분한다(PRD FR-006).
 // 상태 판정은 SCREEN_STATES §6.1: FILLED 개수 3 / 1~2 / 0 = RESULT-NORMAL / PARTIAL / NO-PERSONA.
 
-const perspectiveOrder: { key: PerspectiveKey; label: string; why: string }[] = [
-  { key: 'priority', label: '먼저 볼 것', why: '리뷰에 가장 자주 나온 이야기예요.' },
-  { key: 'positive', label: '잘하고 있는 점', why: '손님이 좋게 본 경험이에요.' },
-  { key: 'negative', label: '손님이 불편해한 점', why: '아쉬움으로 남은 경험이에요.' },
-  { key: 'perception', label: '손님이 기억하는 모습', why: '가게를 어떤 곳으로 여기는지 보여줘요.' },
+const perspectiveOrder: { key: PerspectiveKey; label: string }[] = [
+  { key: 'priority', label: '먼저 볼 것' },
+  { key: 'positive', label: '잘하고 있는 점' },
+  { key: 'negative', label: '손님이 불편해한 점' },
+  { key: 'perception', label: '손님이 기억하는 모습' },
 ];
 
 const formatDate = (value: string) => {
@@ -236,17 +236,14 @@ export function ResultView({
         {/* AI가 만든 결과라는 사실은 결과를 읽기 전에 한 번 알린다(2026-10-05 팀 디자인 피드백 #12). */}
         <Notice
           title="AI가 리뷰를 읽고 정리한 결과예요"
-          message="해석과 제안은 추론이라 사실과 다를 수 있어요. 실제 리뷰와 함께 봐 주세요."
+          message="해석과 제안은 추론이라 사실과 다를 수 있어요."
         />
       </View>
 
       <View style={styles.section}>
-        <View style={styles.sectionHead}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>
-            리뷰에 많이 나온 손님 TOP3
-          </Text>
-          <Text style={styles.sectionAside}>리뷰 수 순서</Text>
-        </View>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          리뷰에 많이 나온 손님 TOP3
+        </Text>
         <View style={styles.podiumCard}>
           <PodiumTop3
             imageSource={(slot) =>
@@ -263,7 +260,7 @@ export function ResultView({
       {filled.length === 0 ? (
         <Notice
           title="채울 수 있는 손님 유형이 없었어요"
-          message="리뷰에서 되풀이되는 이야기를 충분히 찾지 못했어요. 리뷰가 더 쌓인 뒤 다시 분석해 볼 수 있어요."
+          message="리뷰가 더 쌓인 뒤 다시 분석해 볼 수 있어요."
           tone="warning"
         />
       ) : null}
@@ -317,8 +314,7 @@ function AnalysisInfoBlock({ result }: { result: AnalysisResult }) {
           </View>
         </View>
         <Text style={styles.metaLine}>
-          모은 리뷰 {result.metadata.collectedReviewCount}건 가운데 겹치거나 내용이 없는 리뷰를 빼고{' '}
-          {result.metadata.validReviewCount}건을 썼어요.
+          모은 리뷰 {result.metadata.collectedReviewCount}건 중 {result.metadata.validReviewCount}건을 분석했어요.
         </Text>
       </View>
       <LimitationsBlock result={result} />
@@ -458,9 +454,6 @@ function PersonaDetail({
         <Text accessibilityRole="header" style={styles.sectionTitle}>
           이 손님이 남긴 이야기
         </Text>
-        <Text style={styles.sectionNote}>
-          굵은 문장은 AI가 리뷰를 읽고 해석한 내용이에요. 추론이라 사실과 다를 수 있어요.
-        </Text>
         {arrangePerspectiveCards(
           expanded,
           perspectiveOrder.map((item) => {
@@ -484,8 +477,6 @@ function PersonaDetail({
                     : undefined
                 }
                 perspective={item.key}
-                topicReviewCount={slot.topicReviewCount}
-                why={item.why}
               />
             );
           }),
@@ -500,7 +491,7 @@ function PersonaDetail({
           // ADVICE-EMPTY — 근거 없는 제안을 지어내지 않았다는 사실을 적는다(SCREEN_STATES §6.5).
           <Notice
             title="검토해 볼 행동을 만들지 못했어요"
-            message="리뷰에서 뒷받침되는 제안을 찾지 못해서 비워 뒀어요. 억지로 만든 제안은 넣지 않아요."
+            message="리뷰에서 뒷받침되는 제안을 찾지 못했어요."
             tone="warning"
           />
         ) : (
@@ -523,17 +514,13 @@ function PersonaDetail({
 function PerspectiveCard({
   perspective,
   label,
-  why,
   block,
-  topicReviewCount,
   onOpenEvidence,
   inRow,
 }: {
   perspective: PerspectiveKey;
   label: string;
-  why: string;
   block: PerspectiveBlock;
-  topicReviewCount?: number;
   onOpenEvidence?: () => void;
   inRow: boolean;
 }) {
@@ -543,12 +530,6 @@ function PerspectiveCard({
   const [firstFact, ...moreFacts] = block.reviewFacts;
   const [firstReview, ...moreReviews] = dedupeEvidence(block.evidencePreview);
   const hasMore = moreInterpretations.length + moreFacts.length + moreReviews.length > 0;
-  // 이 관점에 연결된 리뷰가 이 손님 유형의 리뷰 가운데 얼마나 되는지. 앱이 계산한 값이다.
-  // 연결된 리뷰 수가 유형 리뷰 수보다 크게 오면 비율로 말할 수 없으므로 건수만 적는다.
-  const ratio =
-    topicReviewCount && block.evidenceCount <= topicReviewCount
-      ? block.evidenceCount / topicReviewCount
-      : null;
 
   return (
     <View style={[styles.card, inRow && styles.cardInRow]}>
@@ -556,10 +537,7 @@ function PerspectiveCard({
         <View style={[styles.cardIcon, { backgroundColor: tone.tint }]}>
           <PerspectiveIcon color={tone.accent} perspective={perspective} />
         </View>
-        <View style={styles.cardHeadText}>
-          <Text style={[styles.cardTitle, { color: tone.text }]}>{label}</Text>
-          <Text style={styles.cardWhy}>{why}</Text>
-        </View>
+        <Text style={[styles.cardTitle, { color: tone.text }]}>{label}</Text>
       </View>
 
       {lead ? (
@@ -569,23 +547,6 @@ function PerspectiveCard({
             <Text style={styles.tag}>AI 해석</Text>
             <Text style={styles.leadText}>{lead.text}</Text>
           </View>
-        </View>
-      ) : null}
-
-      {block.evidenceCount > 0 ? (
-        <View style={styles.ratio}>
-          {ratio !== null ? (
-            <View style={styles.track}>
-              <View
-                style={[styles.ratioBar, { backgroundColor: tone.accent, width: `${Math.round(ratio * 100)}%` }]}
-              />
-            </View>
-          ) : null}
-          <Text style={styles.ratioText}>
-            {ratio !== null
-              ? `이 손님 리뷰 ${topicReviewCount}건 중 ${block.evidenceCount}건에 나온 이야기예요.`
-              : `리뷰 ${block.evidenceCount}건에 나온 이야기예요.`}
-          </Text>
         </View>
       ) : null}
 
@@ -599,7 +560,6 @@ function PerspectiveCard({
 
       {firstReview ? (
         <View style={styles.evidence}>
-          <Text style={styles.tag}>실제 리뷰</Text>
           {[firstReview, ...(open ? moreReviews : [])].map((review, index) => (
             <View key={`${review.reviewId}-${index}`} style={styles.quote}>
               <Text style={styles.quoteText}>“{review.excerpt}”</Text>
@@ -609,7 +569,7 @@ function PerspectiveCard({
         </View>
       ) : (
         // INSIGHT-LIMITED — 없는 근거를 채워 넣지 않고 한계를 적는다(SCREEN_STATES §6.2).
-        <Text style={styles.ratioText}>여기에는 보여드릴 대표 리뷰가 없어요.</Text>
+        <Text style={styles.noEvidence}>여기에는 보여드릴 대표 리뷰가 없어요.</Text>
       )}
 
       {open
@@ -700,12 +660,14 @@ function AdviceCard({ advice, order }: { advice: Advice; order: number }) {
   );
 }
 
+// 결과의 한계. 숨기지는 않되(PRD §12) 긴 문장이 화면을 채우지 않게, 분석마다 달라지는 한계 문장은 접어 둔다.
 function LimitationsBlock({ result }: { result: AnalysisResult }) {
+  const [open, setOpen] = useState(false);
   return (
     <View style={styles.limitations}>
       <Notice
         title="이 결과를 읽을 때 알아 둘 것"
-        message="리뷰를 남긴 손님이 전체 손님을 대표하지는 않아요. AI가 정리한 내용이니 참고 자료로 봐 주세요."
+        message="리뷰를 남긴 손님이 전체 손님을 대표하지는 않아요."
       />
       {result.metadata.containsReviewsOlderThanTwoYears ? (
         <Notice
@@ -714,11 +676,27 @@ function LimitationsBlock({ result }: { result: AnalysisResult }) {
           tone="warning"
         />
       ) : null}
-      {result.limitations.map((limitation, index) => (
-        <Text key={limitation.code + index} style={styles.limitation}>
-          {limitation.message}
-        </Text>
-      ))}
+      {result.limitations.length > 0 ? (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: open }}
+            onPress={() => setOpen((value) => !value)}
+            style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
+          >
+            <Text style={styles.disclosureTextQuiet}>
+              {open ? '알아 둘 점 접기' : `알아 둘 점 ${result.limitations.length}가지 더 보기`}
+            </Text>
+          </Pressable>
+          {open
+            ? result.limitations.map((limitation, index) => (
+                <Text key={limitation.code + index} style={styles.limitation}>
+                  {limitation.message}
+                </Text>
+              ))
+            : null}
+        </>
+      ) : null}
     </View>
   );
 }
@@ -753,23 +731,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.head5,
     color: colors.text.strong,
-  },
-  sectionNote: {
-    ...typography.body7,
-    color: colors.text.secondary,
-  },
-  sectionHead: {
-    flexDirection: 'row',
-    // 글자를 키우면 옆 설명이 화면 밖으로 밀려난다. 자리가 모자라면 다음 줄로 내린다.
-    flexWrap: 'wrap',
-    alignItems: 'flex-end',
-    columnGap: spacing[3],
-    rowGap: spacing[1],
-    justifyContent: 'space-between',
-  },
-  sectionAside: {
-    ...typography.caption,
-    color: colors.text.secondary,
   },
   podiumCard: {
     backgroundColor: colors.background.surface,
@@ -865,15 +826,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: spacing[10],
   },
-  cardHeadText: {
-    flex: 1,
-  },
   cardTitle: {
     ...typography.body1,
-  },
-  cardWhy: {
-    ...typography.caption,
-    color: colors.text.secondary,
+    flex: 1,
   },
   // 해석은 상자에 넣지 않고 큰 글자와 관점 색 강조선으로 세운다(2026-10-05 팀 디자인 피드백 #6).
   lead: {
@@ -903,14 +858,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.semibold,
     color: colors.text.secondary,
   },
-  ratio: {
-    gap: spacing[1],
-  },
-  ratioBar: {
-    height: '100%',
-    borderRadius: radii.pill,
-  },
-  ratioText: {
+  noEvidence: {
     ...typography.caption,
     color: colors.text.secondary,
   },
@@ -1069,8 +1017,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: spacing[2],
     justifyContent: 'center',
+    paddingBottom: spacing[3],
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[1],
+    paddingTop: spacing[2],
   },
   jumpChip: {
     alignItems: 'center',
