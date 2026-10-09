@@ -37,6 +37,7 @@ import {
   writePendingAnalysis,
 } from '@/features/analysis/pendingAnalysisStorage';
 import { CategoryPicker } from '@/features/analysis/CategoryPicker';
+import { AnalysisProgressDialog } from '@/features/analysis/AnalysisProgressDialog';
 import { WaitingTips } from '@/features/analysis/WaitingTips';
 import { useSession } from '@/session/SessionProvider';
 
@@ -494,6 +495,19 @@ export function AnalyzeScreen() {
       header={<ScreenHeader label="분석하기" />}
     >
       <StatusBar style="dark" />
+
+      <AnalysisProgressDialog
+        offline={offline}
+        progress={displayedProgress}
+        reduceMotion={reduceMotion}
+        stepLabel={
+          phase === 'completing'
+            ? '결과 저장 중'
+            : (visibleRows[visibleRows.length - 1]?.label ?? '분석 요청을 보내는 중')
+        }
+        storeName={name}
+        visible={phase === 'creating' || phase === 'progress' || phase === 'completing'}
+      />
 
       {phase === 'input' ? (
         <PageTitle title="가게 정보를 알려 주세요" />
