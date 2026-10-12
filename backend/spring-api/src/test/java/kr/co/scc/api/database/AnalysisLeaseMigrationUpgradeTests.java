@@ -20,7 +20,7 @@ class AnalysisLeaseMigrationUpgradeTests {
             new PostgreSQLContainer("postgres:18.6-alpine3.23");
 
     @Test
-    void v4RequeuesRunningJobsThatPredateLeases() throws Exception {
+    void v6RequeuesOnlyPreleaseRunningJobsWithoutChangingV4Checksum() throws Exception {
         String schema = "upgrade_" + UUID.randomUUID().toString().replace("-", "");
         Flyway.configure()
                 .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
@@ -60,6 +60,27 @@ class AnalysisLeaseMigrationUpgradeTests {
                 statement.setObject(2, userId);
                 statement.setObject(3, storeId);
                 statement.executeUpdate();
+            }
+        }
+
+        Flyway.configure()
+                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .schemas(schema)
+                .defaultSchema(schema)
+                .target(MigrationVersion.fromVersion("4"))
+                .load()
+                .migrate();
+
+        try (var connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())) {
+            connection.createStatement().execute("SET search_path TO " + schema);
+            try (var statement = connection.prepareStatement(
+                    "SELECT status FROM analysis_jobs WHERE id = ?")) {
+                statement.setObject(1, jobId);
+                try (var result = statement.executeQuery()) {
+                    assertThat(result.next()).isTrue();
+                    assertThat(result.getString("status")).isEqualTo("RUNNING");
+                }
             }
         }
 

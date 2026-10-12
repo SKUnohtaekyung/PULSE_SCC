@@ -431,3 +431,5 @@ V3는 API 조회용 `analysis_result_documents` JSONB read model과 문서 종�
 V4는 작업 큐 임대 컬럼 `lease_expires_at`·`last_heartbeat_at` 과 부분 인덱스 2개를 추가했다([ADR-012](../decisions/ADR-012-durable-analysis-job-queue.md)).
 
 V5는 유효 리뷰가 기준보다 적어 실패한 작업의 현재 건수 `valid_review_count` 를 추가했다(기능명세 REVIEW-008). 실패한 작업은 `analyses` 행이 없어 작업에 남긴다.
+
+V6은 구조를 바꾸지 않는 데이터 보정이다. 임대가 도입되기 전에 RUNNING이던(`lease_expires_at`이 비어 있는) 작업을 QUEUED로 되돌린다. 그대로 두면 새 큐가 집지도 회수하지도 못한다.
