@@ -12,7 +12,7 @@ backend/
 └─ .env.example       커밋 가능한 환경변수 예시
 ```
 
-현재는 인증 API, 분석 작업 큐·리뷰 수집·분석 모델 호출·결과 저장, 마이페이지(저장 목록·알림·계정 탈퇴) API를 구현했다. 스키마는 Flyway V1~V5 다.
+현재는 인증 API, 분석 작업 큐·리뷰 수집·분석 모델 호출·결과 저장, 마이페이지(저장 목록·알림·계정 탈퇴) API를 구현했다. 스키마는 Flyway V1~V6 다.
 
 ## 1. 환경 파일
 
@@ -41,7 +41,7 @@ Set-Location backend/spring-api
 
 애플리케이션 실행에는 PostgreSQL, `POSTGRES_PASSWORD`, `AUTH_ACCESS_TOKEN_SECRET` 환경변수가 필요하다. Google 로그인에는 `GOOGLE_CLIENT_ID`도 필요하다. 공개 헬스 체크와 가입·로그인·갱신 endpoint 외 요청은 기본 거부하거나 Bearer Access Token을 요구한다.
 
-migration 은 `src/main/resources/db/migration/` 의 V1~V5 이며 테이블 설명은 [DATA_MODEL.md](../docs/architecture/DATA_MODEL.md) 가 정본이다. `gradlew test`는 Docker가 있으면 PostgreSQL 18.6 컨테이너에서 migration·제약 테스트(`InitialSchemaMigrationTests`, `AnalysisLeaseMigrationUpgradeTests`)와 분석·마이페이지 API 통합 테스트(`AnalysisApiIntegrationTests`)를 실행하고, Docker가 없으면 이 세 클래스를 명시적으로 건너뛴다. 나머지 테스트는 Docker 없이 돈다.
+migration 은 `src/main/resources/db/migration/` 의 V1~V6 이며 테이블 설명은 [DATA_MODEL.md](../docs/architecture/DATA_MODEL.md) 가 정본이다. `gradlew test`는 Docker가 있으면 PostgreSQL 18.6 컨테이너에서 migration·제약 테스트(`InitialSchemaMigrationTests`, `AnalysisLeaseMigrationUpgradeTests`)와 분석·마이페이지 API 통합 테스트(`AnalysisApiIntegrationTests`)를 실행하고, Docker가 없으면 이 세 클래스를 명시적으로 건너뛴다. 나머지 테스트는 Docker 없이 돈다.
 
 ## 4. Python 분석 서비스
 
