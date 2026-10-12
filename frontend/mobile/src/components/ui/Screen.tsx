@@ -1,5 +1,12 @@
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import type { ReactNode, RefObject } from 'react';
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, spacing } from '@/design/tokens';
@@ -9,6 +16,7 @@ import { colors, layout, spacing } from '@/design/tokens';
 //
 // - header: 화면 폭 전체를 쓰는 영역. 좌우 여백은 헤더가 직접 가진다.
 // - children: 읽기 폭(readingMaxWidth) 안에서 가운데 정렬되는 본문.
+//   wide를 켜면 expanded(1024dp 이상)에서만 contentMaxWidth까지 넓힌다. 열을 늘리는 결과 화면이 쓴다.
 // - footer: 스크롤에서 빠지는 하단 고정 영역(하단 내비게이션 등).
 // - scroll: false면 스크롤을 만들지 않는다. 목록(FlatList)을 담는 화면은 반드시 false로 둔다.
 //   FlatList를 ScrollView 안에 넣으면 가상화가 꺼지고 경고가 난다.
@@ -21,37 +29,66 @@ export function usePagePadding() {
   return layout.pagePadding.compact;
 }
 
+/** expanded 중단점 이상인가. 열 수를 늘리는 판단은 모두 이 값으로 한다(DESIGN_SYSTEM §7). */
+export function useExpandedLayout() {
+  const { width } = useWindowDimensions();
+  return width >= layout.breakpoint.expanded;
+}
+
+/** 본문 최대 폭. wide 화면만 expanded에서 contentMaxWidth를 쓴다. 헤더·본문이 같은 값을 써야 왼쪽 끝이 맞는다. */
+export function useBodyMaxWidth(wide: boolean) {
+  const expanded = useExpandedLayout();
+  return wide && expanded ? layout.contentMaxWidth : layout.readingMaxWidth;
+}
+
 export function Screen({
   children,
   header,
   footer,
   centered = false,
+  compact = false,
   scroll = true,
   verticalEdges = ['top'],
+  wide = false,
+  scrollRef,
+  onScroll,
+  onBodyLayout,
 }: {
   children: ReactNode;
   header?: ReactNode;
   footer?: ReactNode;
   /** 내용이 적은 화면을 세로 가운데 정렬한다(첫 저장 완료 화면 등). */
   centered?: boolean;
+  /** 입력·진행 화면처럼 연속된 요소가 많은 화면의 세로 간격을 한 단계 줄인다. */
+  compact?: boolean;
   /** 목록 화면처럼 자체 스크롤을 가진 내용이면 false로 둔다. */
   scroll?: boolean;
   /** 위·아래 SafeArea. 좌우는 컷아웃 때문에 항상 적용한다. */
   verticalEdges?: ('top' | 'bottom')[];
+  /** 넓은 화면에서 열을 늘리는 화면이면 true. expanded에서만 본문을 contentMaxWidth까지 넓힌다. */
+  wide?: boolean;
+  /** 화면이 스크롤 위치를 직접 옮겨야 할 때 준다(결과 화면의 순위 바로가기). */
+  scrollRef?: RefObject<ScrollView | null>;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  /** 본문이 스크롤 내용 안에서 시작하는 높이(헤더 높이). 본문 안의 위치를 스크롤 위치로 바꿀 때 쓴다. */
+  onBodyLayout?: (y: number) => void;
 }) {
   const horizontalPadding = usePagePadding();
+  const bodyMaxWidth = useBodyMaxWidth(wide);
 
   const body = (
     <>
       {header}
       <View
+        onLayout={onBodyLayout ? (event) => onBodyLayout(event.nativeEvent.layout.y) : undefined}
         style={[
           styles.body,
+          compact && styles.bodyCompact,
           centered && styles.bodyCentered,
           // 스크롤을 끄면 본문이 남은 높이를 모두 차지해야 한다.
           // 그래야 안에 넣은 목록(FlatList)이 스크롤 영역을 갖는다.
           !scroll && styles.bodyFill,
-          { paddingHorizontal: horizontalPadding },
+          { maxWidth: bodyMaxWidth, paddingHorizontal: horizontalPadding },
         ]}
       >
         {children}
@@ -74,6 +111,9 @@ export function Screen({
               centered && styles.contentCentered,
             ]}
             keyboardShouldPersistTaps="handled"
+            onScroll={onScroll}
+            ref={scrollRef}
+            scrollEventThrottle={onScroll ? 64 : undefined}
             showsVerticalScrollIndicator={false}
           >
             {body}
@@ -114,7 +154,6 @@ const styles = StyleSheet.create({
   },
   body: {
     width: '100%',
-    maxWidth: layout.readingMaxWidth,
     alignSelf: 'center',
     gap: spacing[5],
     paddingTop: spacing[6],
@@ -123,6 +162,10 @@ const styles = StyleSheet.create({
   bodyCentered: {
     paddingBottom: 0,
     paddingTop: 0,
+  },
+  bodyCompact: {
+    gap: spacing[3],
+    paddingTop: spacing[4],
   },
   bodyFill: {
     flex: 1,

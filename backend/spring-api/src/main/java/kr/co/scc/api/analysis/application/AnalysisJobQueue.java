@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository.ClaimedJob;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ public class AnalysisJobQueue {
 
     private final AnalysisRepository repository;
     private final AnalysisJobRunner runner;
+    private final AnalysisGateway gateway;
     private final TaskExecutor executor;
     private final int capacity;
 
@@ -64,18 +66,21 @@ public class AnalysisJobQueue {
     public AnalysisJobQueue(
             AnalysisRepository repository,
             AnalysisJobRunner runner,
+            AnalysisGateway gateway,
             TaskExecutor analysisTaskExecutor) {
-        this(repository, runner, analysisTaskExecutor, 2);
+        this(repository, runner, gateway, analysisTaskExecutor, 2);
     }
 
     /** 정원을 지정해 만드는 테스트용 생성자. */
     AnalysisJobQueue(
             AnalysisRepository repository,
             AnalysisJobRunner runner,
+            AnalysisGateway gateway,
             TaskExecutor executor,
             int capacity) {
         this.repository = repository;
         this.runner = runner;
+        this.gateway = gateway;
         this.executor = executor;
         this.capacity = capacity;
     }
@@ -108,6 +113,25 @@ public class AnalysisJobQueue {
                 }
             } catch (RuntimeException exception) {
                 log.warn("임대 연장 중 오류가 발생했습니다. jobId={} attempt={}",
+                        claim.jobId(), claim.attemptCount(), exception);
+            }
+        }
+    }
+
+    /**
+     * 처리 중인 작업이 지금 어느 단계인지 분석 서비스에 물어 작업 상태에 옮긴다.
+     *
+     * <p>분석 요청은 결과가 나올 때까지 몇 분 동안 응답이 없다. 이 조회가 없으면 사용자에게는
+     * 그동안 '리뷰 수집 중'만 보인다. 단계를 알아내지 못하면 마지막으로 확인한 단계를 그대로 둔다.
+     */
+    @Scheduled(fixedDelayString = "${scc.analysis-service.progress-interval-ms:3000}")
+    public void syncProgress() {
+        for (ClaimedJob claim : inFlight.keySet()) {
+            try {
+                gateway.fetchProgressStep(claim.jobId())
+                        .ifPresent(step -> repository.updateProgressStep(claim, step));
+            } catch (RuntimeException exception) {
+                log.warn("진행 단계를 옮기지 못했습니다. jobId={} attempt={}",
                         claim.jobId(), claim.attemptCount(), exception);
             }
         }

@@ -1,8 +1,12 @@
 package kr.co.scc.api.analysis.infrastructure;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import kr.co.scc.api.analysis.application.AnalysisException;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerRequest;
 import kr.co.scc.api.analysis.domain.AnalysisContracts.WorkerResponse;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -15,14 +19,17 @@ import tools.jackson.databind.ObjectMapper;
 public class AnalysisGateway {
 
     private final RestClient client;
+    private final RestClient progressClient;
     private final AnalysisServiceProperties properties;
     private final ObjectMapper objectMapper;
 
     public AnalysisGateway(
-            RestClient analysisRestClient,
+            @Qualifier("analysisRestClient") RestClient analysisRestClient,
+            @Qualifier("analysisProgressRestClient") RestClient analysisProgressRestClient,
             AnalysisServiceProperties properties,
             ObjectMapper objectMapper) {
         this.client = analysisRestClient;
+        this.progressClient = analysisProgressRestClient;
         this.properties = properties;
         this.objectMapper = objectMapper;
     }
@@ -51,6 +58,29 @@ public class AnalysisGateway {
                     error.validReviewCount());
         } catch (RestClientException exception) {
             throw unavailable("분석 서비스에 연결할 수 없습니다.");
+        }
+    }
+
+    /**
+     * 분석 서비스가 지금 처리 중인 단계를 묻는다.
+     *
+     * <p>알 수 없으면 비어 있다. 분석 서비스가 그 작업을 처리 중이 아니거나(404), 응답하지
+     * 않거나, 모르는 형식으로 답한 경우다. 진행 단계는 보조 정보라 실패를 예외로 올리지 않는다.
+     */
+    public Optional<String> fetchProgressStep(UUID jobId) {
+        try {
+            JsonNode body = progressClient.get()
+                    .uri("/internal/v1/analysis-jobs/{jobId}/progress", jobId)
+                    .header("X-SCC-Service-Token", properties.serviceToken())
+                    .retrieve()
+                    .body(JsonNode.class);
+            if (body == null) {
+                return Optional.empty();
+            }
+            String step = body.path("progress_step").asString("");
+            return step.isBlank() ? Optional.empty() : Optional.of(step);
+        } catch (RuntimeException exception) {
+            return Optional.empty();
         }
     }
 

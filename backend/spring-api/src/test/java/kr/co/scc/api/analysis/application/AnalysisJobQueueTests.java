@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import kr.co.scc.api.analysis.infrastructure.AnalysisGateway;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository;
 import kr.co.scc.api.analysis.infrastructure.AnalysisRepository.ClaimedJob;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,7 @@ class AnalysisJobQueueTests {
 
     private AnalysisRepository repository;
     private AnalysisJobRunner runner;
+    private AnalysisGateway gateway;
     private List<Runnable> submitted;
     private TaskExecutor executor;
 
@@ -35,12 +37,13 @@ class AnalysisJobQueueTests {
     void setUp() {
         repository = mock(AnalysisRepository.class);
         runner = mock(AnalysisJobRunner.class);
+        gateway = mock(AnalysisGateway.class);
         submitted = new CopyOnWriteArrayList<>();
         executor = submitted::add;
     }
 
     private AnalysisJobQueue queue(int capacity) {
-        return new AnalysisJobQueue(repository, runner, executor, capacity);
+        return new AnalysisJobQueue(repository, runner, gateway, executor, capacity);
     }
 
     private void queueHolds(UUID... jobIds) {
@@ -174,11 +177,59 @@ class AnalysisJobQueueTests {
             throw new IllegalStateException("executor full");
         };
 
-        AnalysisJobQueue queue = new AnalysisJobQueue(repository, runner, rejecting, 2);
+        AnalysisJobQueue queue = new AnalysisJobQueue(repository, runner, gateway, rejecting, 2);
         queue.poll();
 
         assertThat(queue.inFlightCount()).isZero();
         verify(repository).requeueForRetry(new ClaimedJob(jobId, 1), AnalysisJobQueue.MAX_ATTEMPTS);
+    }
+
+    @Test
+    void copiesTheStepTheAnalysisServiceReportsForInFlightJobsOnly() {
+        UUID jobId = UUID.randomUUID();
+        ClaimedJob claim = new ClaimedJob(jobId, 1);
+        queueHolds(jobId);
+        when(gateway.fetchProgressStep(jobId)).thenReturn(Optional.of("ANALYZING"));
+
+        AnalysisJobQueue queue = queue(2);
+        queue.poll();
+        queue.syncProgress();
+
+        verify(repository).updateProgressStep(claim, "ANALYZING");
+
+        submitted.forEach(Runnable::run);
+        queue.syncProgress();
+
+        // 끝난 작업의 단계는 더 묻지 않는다.
+        verify(gateway, times(1)).fetchProgressStep(jobId);
+    }
+
+    @Test
+    void keepsTheLastStepWhenTheAnalysisServiceDoesNotKnowTheJob() {
+        UUID jobId = UUID.randomUUID();
+        queueHolds(jobId);
+        when(gateway.fetchProgressStep(jobId)).thenReturn(Optional.empty());
+
+        AnalysisJobQueue queue = queue(2);
+        queue.poll();
+        queue.syncProgress();
+
+        verify(repository, never()).updateProgressStep(any(), any());
+    }
+
+    @Test
+    void aFailedProgressLookupDoesNotStopTheOtherJobs() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        queueHolds(first, second);
+        when(gateway.fetchProgressStep(first)).thenThrow(new IllegalStateException("boom"));
+        when(gateway.fetchProgressStep(second)).thenReturn(Optional.of("GENERATING_IMAGE"));
+
+        AnalysisJobQueue queue = queue(2);
+        queue.poll();
+        queue.syncProgress();
+
+        verify(repository).updateProgressStep(new ClaimedJob(second, 1), "GENERATING_IMAGE");
     }
 
     @Test

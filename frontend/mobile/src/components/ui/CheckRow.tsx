@@ -11,23 +11,41 @@ export function CheckRow({
   checked,
   onToggle,
   error,
+  invalid = Boolean(error),
 }: {
   label: string;
   description?: string;
   checked: boolean;
   onToggle: () => void;
+  /** 이 줄 아래에 보일 오류 문장. 여러 줄이 한 오류를 나눠 가지면 마지막 줄에만 준다. */
   error?: string;
+  /** 빨간 테두리. 오류 문장이 다른 줄에 있어도 이 칸이 원인이면 true를 준다. */
+  invalid?: boolean;
 }) {
   return (
     <View style={styles.wrap}>
       <Pressable
+        // 빨간 테두리는 색이라 화면 읽기에는 전해지지 않는다. TextField처럼 읽기 이름에 오류를 붙인다.
+        // 이름을 undefined로 되돌리면 Android에 이전 이름('오류: …')이 남으므로 늘 값을 준다.
+        accessibilityLabel={[label, description, invalid ? '오류: 동의가 필요해요' : undefined]
+          .filter(Boolean)
+          .join(', ')}
         accessibilityRole="checkbox"
         accessibilityState={{ checked }}
         onPress={onToggle}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
-        <View style={[styles.box, checked && styles.boxChecked, error && styles.boxError]}>
-          {checked ? <Text style={styles.mark}>✓</Text> : null}
+        <View style={[styles.box, checked && styles.boxChecked, invalid && styles.boxError]}>
+          {/* 체크 상태는 accessibilityState로 읽힌다. 표시 글자는 화면 읽기에서 뺀다. */}
+          {checked ? (
+            <Text
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={styles.mark}
+            >
+              ✓
+            </Text>
+          ) : null}
         </View>
         <View style={styles.copy}>
           <Text style={styles.label}>{label}</Text>

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { usePagePadding } from '@/components/ui/Screen';
+import { useBodyMaxWidth, usePagePadding } from '@/components/ui/Screen';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
 
 // 화면 위쪽 머리. 2026-09-26 발표 시안에 맞춰 흰 배경 + 얇은 아래 경계선으로 바꿨다.
@@ -10,26 +10,34 @@ import { colors, layout, radii, spacing, strokes, typography } from '@/design/to
 // - brand: 왼쪽에 PULSE 워드마크를 둔다. 결과를 보여 주는 화면에서 쓴다.
 // - label: 왼쪽에 지금 어느 화면인지 알리는 짧은 말. 작업 화면에서 쓴다.
 // - badge: 오른쪽 상태 칩. 화면의 큰 제목은 헤더가 아니라 본문 첫 줄이 맡는다.
+// - wide: Screen의 wide와 같이 켠다. 그래야 넓은 화면에서 워드마크와 본문 왼쪽 끝이 맞는다.
 
 export function ScreenHeader({
   brand = false,
   label,
   badge,
   right,
+  wide = false,
 }: {
   brand?: boolean;
   label?: string;
   badge?: string;
   right?: ReactNode;
+  wide?: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
   const horizontalPadding = usePagePadding();
+  const maxWidth = useBodyMaxWidth(wide);
   const largeText = fontScale >= 1.5;
 
   return (
     <View style={styles.header}>
       <View
-        style={[styles.inner, largeText && styles.innerLargeText, { paddingHorizontal: horizontalPadding }]}
+        style={[
+          styles.inner,
+          largeText && styles.innerLargeText,
+          { maxWidth, paddingHorizontal: horizontalPadding },
+        ]}
       >
         {brand ? (
           <Image
@@ -62,7 +70,6 @@ const styles = StyleSheet.create({
   },
   inner: {
     width: '100%',
-    maxWidth: layout.readingMaxWidth,
     alignItems: 'center',
     alignSelf: 'center',
     flexDirection: 'row',

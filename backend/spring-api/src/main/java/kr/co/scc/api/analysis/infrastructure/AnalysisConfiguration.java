@@ -1,6 +1,7 @@
 package kr.co.scc.api.analysis.infrastructure;
 
 import java.net.http.HttpClient;
+import java.time.Duration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,8 @@ import org.springframework.web.client.RestClient;
 @EnableScheduling
 public class AnalysisConfiguration {
 
+    private static final Duration PROGRESS_TIMEOUT = Duration.ofSeconds(2);
+
     @Bean
     RestClient analysisRestClient(AnalysisServiceProperties properties) {
         // JDK HttpClient 의 기본 버전은 HTTP/2 다. 그러면 평문 연결에서 Upgrade: h2c 로
@@ -28,6 +31,26 @@ public class AnalysisConfiguration {
                 .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(properties.readTimeout());
+        return RestClient.builder()
+                .baseUrl(properties.baseUrl().toString())
+                .requestFactory(requestFactory)
+                .build();
+    }
+
+    /**
+     * 진행 단계 조회용 클라이언트.
+     *
+     * <p>분석 요청용 클라이언트는 응답을 몇 분씩 기다린다. 진행 단계는 몇 초마다 묻는 가벼운
+     * 조회라, 분석 서비스가 응답하지 않을 때 폴링 스레드가 오래 묶이지 않게 짧게 끊는다.
+     */
+    @Bean
+    RestClient analysisProgressRestClient(AnalysisServiceProperties properties) {
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(PROGRESS_TIMEOUT)
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(PROGRESS_TIMEOUT);
         return RestClient.builder()
                 .baseUrl(properties.baseUrl().toString())
                 .requestFactory(requestFactory)

@@ -4,6 +4,8 @@ import type { JobStatus } from '@/api/types';
 // - 입력을 고쳐야 하는 실패는 가게 입력 화면으로 돌아간다(STORE-NOT-FOUND, STORE-UNSUPPORTED-URL).
 // - 그 밖의 실패는 작업의 retryable 값으로 재시도 가능·불가를 가른다.
 // - §2.1 표에 있는 코드는 앱 문구를 쓰고, 표에 없는 코드만 서버 error.message를 쓴다(공통 불변식 11).
+// - 작업 상태 조회 자체가 실패한 것(5xx 등)은 작업 실패가 아니다. 작업은 서버에서 계속 돌고 있을 수
+//   있으므로 새 작업을 만들지 않고 같은 작업을 다시 조회한다(불변식 11의 재시도 행동, #34).
 
 export type JobFailure =
   | { kind: 'storeNotFound' }
@@ -11,7 +13,13 @@ export type JobFailure =
   | { kind: 'insufficient' }
   | { kind: 'imageGenerationFailed'; message: string }
   | { kind: 'retryable'; message: string }
-  | { kind: 'fatal'; message: string };
+  | { kind: 'fatal'; message: string }
+  | { kind: 'statusUnavailable'; message: string };
+
+export const statusUnavailableFailure: JobFailure = {
+  kind: 'statusUnavailable',
+  message: '분석은 계속되고 있을 수 있어요. 진행 상태를 다시 확인해 주세요.',
+};
 
 const knownAnalysisCodes = [
   'REVIEW_COLLECTION_BLOCKED',
@@ -60,7 +68,25 @@ const progressLabels: Record<string, string> = {
   COMPLETED: '분석 완료',
 };
 
+const progressPercentages: Record<string, number> = {
+  QUEUED: 8,
+  RESOLVING_STORE: 18,
+  COLLECTING_REVIEWS: 36,
+  PREPROCESSING: 52,
+  ANALYZING: 68,
+  RETRIEVING_KNOWLEDGE: 74,
+  GENERATING_ADVICE: 82,
+  GENERATING_IMAGE: 90,
+  VALIDATING_RESULT: 96,
+  COMPLETED: 100,
+};
+
 /** 앱이 모르는 단계 값은 '분석 중'으로 표시한다(SCREEN_STATES §5). */
 export function progressLabel(step: string) {
   return progressLabels[step] ?? '분석 중';
+}
+
+/** 서버가 확인해 준 단계의 위치다. 경과 시간이나 완료 예상 시간을 뜻하지 않는다. */
+export function progressPercent(step: string) {
+  return progressPercentages[step] ?? 8;
 }

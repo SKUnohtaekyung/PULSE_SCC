@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, date, datetime
 
+from scc_analysis.analysis import progress
 from scc_analysis.analysis.models import AnalyzeRequest, AnalyzeResponse
 from scc_analysis.analysis.openai_analyzer import OpenAiReviewAnalyzer, contains_old_reviews
 from scc_analysis.collection.naver import NaverPublicReviewCollector
@@ -18,6 +19,7 @@ async def run_analysis(request: AnalyzeRequest) -> AnalyzeResponse:
         timeout_seconds=settings.review_collection_timeout_seconds,
     )
     collected_at = datetime.now(UTC)
+    progress.set_step(request.job_id, progress.COLLECTING_REVIEWS)
     collection = await collector.collect(request.naver_place_url)
     reviews = collection.reviews
     if len(reviews) < MINIMUM_VALID_REVIEWS:
@@ -27,7 +29,11 @@ async def run_analysis(request: AnalyzeRequest) -> AnalyzeResponse:
         analysis_model=settings.openai_analysis_model,
         image_model=settings.openai_image_model,
     )
-    analysis, images = await asyncio.to_thread(analyzer.analyze, reviews)
+    analysis, images = await asyncio.to_thread(
+        analyzer.analyze,
+        reviews,
+        on_step=lambda step: progress.set_step(request.job_id, step),
+    )
     return AnalyzeResponse(
         job_id=request.job_id,
         collected_review_count=collection.collected_review_count,

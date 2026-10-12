@@ -235,7 +235,7 @@ Content-Type: application/json
   "jobId": "6af9a900-...",
   "status": "RUNNING",
   "progressStep": "ANALYZING",
-  "message": "손님 유형과 리뷰 특징을 분석하고 있습니다.",
+  "message": "리뷰에서 반복되는 손님 경험을 분석하고 있습니다.",
   "retryable": false,
   "analysisId": null,
   "error": null,
@@ -267,6 +267,8 @@ FAILED
 ```
 
 근거 없는 퍼센트 진행률은 계약하지 않는다. 앱은 단계와 메시지를 표시한다.
+
+2026-10-09 기준 서버가 실제로 기록하는 단계는 `QUEUED → COLLECTING_REVIEWS → ANALYZING → GENERATING_IMAGE → COMPLETED | FAILED`다. 나머지 enum 값은 계약에만 있고 오지 않는다. 처리 중 단계는 Spring이 분석 서비스에 3초 간격(`scc.analysis-service.progress-interval-ms`)으로 물어 옮기므로 실제 전환보다 그만큼 늦게 보일 수 있고, 재시도로 다시 큐에 들어간 작업은 `QUEUED`로 돌아간다. 분석과 검토할 행동 정리는 모델 호출 한 번으로 함께 만들어져 `GENERATING_ADVICE`를 따로 기록하지 않는다.
 
 실패한 작업은 `error` 에 `code`·`message` 를 준다. 유효 리뷰가 기준보다 적어 실패하면(`INSUFFICIENT_VALID_REVIEWS`) 현재 건수와 기준도 함께 준다(기능명세 REVIEW-008). 그 밖의 실패에는 두 필드가 없다.
 
@@ -508,10 +510,13 @@ GET /api/v1/analyses/{analysisId}/evidence?personaId={personaId}&perspective=POS
 
 전송 방식은 내부 HTTP로 확정했다. Python은 `GET /internal/v1/health`와 서비스 토큰으로 보호된 `POST /internal/v1/analysis-jobs`를 구현한다. Spring은 이 요청이 반환한 완성 결과를 검증·저장하고 공개 작업을 완료한다.
 
+분석 요청은 결과가 나올 때까지 응답하지 않는다. 그동안의 진행 단계는 Spring이 서비스 토큰으로 보호된 `GET /internal/v1/analysis-jobs/{jobId}/progress`로 묻는다(2026-10-09). 응답은 `{ "job_id", "progress_step" }`이고, 그 프로세스가 처리 중인 작업이 아니면 `404`다. Python은 단계를 프로세스 메모리에만 두며 작업이 끝나면 지운다. Spring은 조회에 실패하면 마지막으로 확인한 단계를 그대로 둔다.
+
 | Spring Boot | Python 후보 |
 |---|---|
 | `POST /api/v1/analysis-jobs` | `POST /internal/v1/analysis-jobs` |
 | 이후 상태·결과 조회 | Spring이 PostgreSQL에서 직접 조회 |
+| (공개 endpoint 없음) 처리 중 진행 단계 옮기기 | `GET /internal/v1/analysis-jobs/{jobId}/progress` |
 
 내부 HTTP는 다음을 요구한다.
 

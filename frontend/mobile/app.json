@@ -2,6 +2,7 @@
   "expo": {
     "name": "PULSE",
     "slug": "pulse-scc",
+    "scheme": "pulse-scc",
     "version": "1.0.0",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
@@ -11,7 +12,8 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      }
+      },
+      "package": "kr.co.scc.pulse"
     },
     "web": {
       "output": "static",
@@ -20,7 +22,21 @@
     "plugins": [
       "expo-router",
       "expo-splash-screen",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "손님 유형 이미지를 사진 앱에 저장하려면 권한이 필요해요."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

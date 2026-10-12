@@ -45,7 +45,7 @@ SCC는 15주짜리 프로젝트이고 산출물의 상당 부분이 문서다. �
 | 언어 | TypeScript 6.0.3, Java 21, Python 3.13 |
 | 이미지 생성 | OpenAI API |
 | 패키지 매니저 | 백엔드: Gradle Wrapper, Python venv + pip / 프론트엔드: npm + `package-lock.json` |
-| 테스트 러너 | 백엔드: JUnit Platform, Testcontainers 2.0.5, pytest / 프론트엔드: 단위 테스트 미도입, ESLint·TypeScript·Expo Android export 검증 |
+| 테스트 러너 | 백엔드: JUnit Platform, Testcontainers 2.0.5, pytest / 프론트엔드: 단위 테스트·E2E·visual regression 미도입(2026-09-27 사용자 결정, 재검토 시점 TBD), ESLint·TypeScript·Expo Android export·디자인 토큰 대비 검증 |
 
 로컬에서 실제 실행 확인된 도구:
 

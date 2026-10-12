@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import kr.co.scc.api.analysis.domain.AnalysisContracts.JobContext;
@@ -40,6 +41,10 @@ public class AnalysisRepository {
 
     /** 자동 재시도를 모두 쓴 실패의 메시지 코드이자 앱에 보내는 공개 오류 코드. */
     public static final String RETRY_EXHAUSTED = "ANALYSIS_RETRY_EXHAUSTED";
+
+    /** 분석 서비스가 실제로 기록하는 진행 단계. Python {@code analysis/progress.py} 와 같다. */
+    private static final Set<String> REPORTED_PROGRESS_STEPS =
+            Set.of("COLLECTING_REVIEWS", "ANALYZING", "GENERATING_IMAGE");
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
@@ -191,6 +196,33 @@ public class AnalysisRepository {
                 .query((rs, rowNum) -> new ClaimedJob(
                         rs.getObject("id", UUID.class), rs.getInt("attempt_count")))
                 .optional();
+    }
+
+    /**
+     * 처리 중인 작업의 진행 단계를 분석 서비스가 알려 준 값으로 바꾼다.
+     *
+     * <p>분석 서비스가 실제로 기록하는 단계만 받는다. 그 밖의 값은 무시한다. 이 시도가 아직
+     * 작업을 소유하고 있을 때만 바꾸며, 값이 같으면 건드리지 않는다.
+     *
+     * @return 단계를 바꿨으면 true
+     */
+    public boolean updateProgressStep(ClaimedJob claim, String progressStep) {
+        if (!REPORTED_PROGRESS_STEPS.contains(progressStep)) {
+            return false;
+        }
+        return jdbc.sql("""
+                        UPDATE analysis_jobs
+                        SET progress_step = :progressStep,
+                            message_code = :progressStep,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :jobId AND status = 'RUNNING'
+                          AND attempt_count = :attemptCount
+                          AND progress_step <> :progressStep
+                        """)
+                .param("progressStep", progressStep)
+                .param("jobId", claim.jobId())
+                .param("attemptCount", claim.attemptCount())
+                .update() == 1;
     }
 
     /** 처리 중인 작업의 임대를 연장한다. 워커가 살아 있다는 신호다. */
@@ -876,7 +908,9 @@ public class AnalysisRepository {
         return switch (String.valueOf(messageCode)) {
             // 재시도로 다시 큐에 들어간 작업은 message_code 가 QUEUED 다.
             case "ANALYSIS_QUEUED", "QUEUED" -> "분석 작업을 준비하고 있습니다.";
-            case "COLLECTING_REVIEWS" -> "공개 리뷰를 수집하고 분석하고 있습니다.";
+            case "COLLECTING_REVIEWS" -> "공개 리뷰를 수집하고 있습니다.";
+            case "ANALYZING" -> "리뷰에서 반복되는 손님 경험을 분석하고 있습니다.";
+            case "GENERATING_IMAGE" -> "손님 유형 이미지를 만들고 있습니다.";
             case "ANALYSIS_COMPLETED" -> "리뷰 분석이 완료되었습니다.";
             default -> "분석 상태를 확인하고 있습니다.";
         };

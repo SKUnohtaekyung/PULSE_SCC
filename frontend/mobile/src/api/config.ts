@@ -1,18 +1,27 @@
 import Constants from 'expo-constants';
 
-// 실행 모드. 백엔드가 아직 병합·배포되지 않아 기본값은 fixture다(SCREEN_STATES §10).
-// 실제 서버에 붙일 때는 EXPO_PUBLIC_API_BASE_URL을 주면 http 모드로 바뀐다.
-export type ApiMode = 'fixture' | 'http';
-
 const readBaseUrl = () => {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (typeof fromEnv === 'string' && fromEnv.trim()) return fromEnv.trim().replace(/\/+$/, '');
   const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
   const fromExtra = extra?.apiBaseUrl;
   if (typeof fromExtra === 'string' && fromExtra.trim()) return fromExtra.trim().replace(/\/+$/, '');
-  return null;
+  // Android 에뮬레이터의 10.0.2.2는 개발 PC의 localhost다.
+  // 배포 빌드는 반드시 EXPO_PUBLIC_API_BASE_URL 또는 expo.extra.apiBaseUrl을 제공해야 한다.
+  return __DEV__ ? 'http://10.0.2.2:8080' : null;
 };
 
 export const apiBaseUrl = readBaseUrl();
-export const apiMode: ApiMode = apiBaseUrl ? 'http' : 'fixture';
-export const isFixtureMode = apiMode === 'fixture';
+
+// Google 로그인에 쓰는 웹 애플리케이션 유형 OAuth 클라이언트 ID다. 비밀 값이 아니다.
+// 서버의 GOOGLE_CLIENT_ID와 같은 값이어야 한다. 없으면 Google 로그인을 시작하지 않는다.
+const readGoogleWebClientId = () => {
+  const fromEnv = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  if (typeof fromEnv === 'string' && fromEnv.trim()) return fromEnv.trim();
+  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
+  const fromExtra = extra?.googleWebClientId;
+  if (typeof fromExtra === 'string' && fromExtra.trim()) return fromExtra.trim();
+  return null;
+};
+
+export const googleWebClientId = readGoogleWebClientId();

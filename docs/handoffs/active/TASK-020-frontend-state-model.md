@@ -2,7 +2,7 @@
 
 ## Status
 
-발표 시안·디자인 리뷰 반영 진행 중 (2026-09-27). 그 앞 Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
+워크플로 0~12단계 완료 (2026-09-28). 마지막 세션에서 가입 비밀번호 확인 칸과 Step 12 Spec Update를 마쳤고, 이어서 사용자 요청 디자인 수정 3건(손님 캐릭터 교체, 결과 화면 선택 유형 요약 카드, 마이페이지 저장 이미지)을 마쳤다 — 모두 독립 Reviewer PASS. Figma 보드 10장은 사용자가 직접 넣었다(결과는 사용자 보고, 리뷰 대상 아님). 그 앞 발표 시안·디자인 리뷰 반영 완료 (2026-09-27, 8차 PASS). 그 앞 Step 10 독립 검토 반영 완료 (1차 2026-09-24, 2차·3차 2026-09-27) — 독립 리뷰를 다섯 번 받았다. 1차 FAIL 16건(P2 6·P3 10), 2차 FAIL 9건(P2 2·P3 7 — 1차 수정이 만든 회귀), 3차 FAIL 6건(P2 1·P3 5 — 2차 수정이 만든 회귀), 4차 FAIL 4건(P3만 — 코드는 P2 0건, 문서가 코드와 어긋남), 5차 **PASS**. 모두 반영했다. 새 화면은 만들지 않았다. Step 9 전체 구현 완료 (2026-09-23) — 가입·새 결과 저장 선택·마이페이지·근거 목록. Step 8 Architecture Validation 완료 (2026-09-23). Step 7 첫 Vertical Slice 구현 완료 (2026-09-22). `frontend/mobile`에 API 계층·세션·화면을 만들고 Android에서 첫 분석 흐름과 실패 경계를 확인했다. 백엔드가 병합·배포 전이라 **가상(fixture) 서버**로 동작한다. 작업은 TASK-019 브랜치에서 수행
 
 ## Owner
 
@@ -16,11 +16,14 @@
 | `docs/design/**`(DESIGN_SYSTEM·evidence·synthesis·figma) | `role:design-system` | Step 3~8 토큰·컴포넌트·검증 기록 |
 | `frontend/mobile/src/design/**`·`src/components/ui/**` | `role:design-system` | 토큰과 공용 컴포넌트 |
 | `docs/product/requirements/SCREEN_STATES.md` | `role:product` | 상태 모델 갱신과 Step 7·9 검증 기록 |
-| `frontend/mobile/src/components/ui/**`(Step 9 신설 4종 포함) | `role:design-system` | CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock |
+| `frontend/mobile/src/components/ui/**`(Step 9 신설 4종 포함) | `role:design-system` | CheckRow·ToggleRow·ConfirmDialog·PersonaImageBlock(2026-09-28 삭제) |
+| `docs/product/requirements/RESULT_IA.md`·`USER_FLOW.md`·`GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` | `role:product` | Step 12 결과 화면 순서 반영(2026-09-28) |
+| `frontend/mobile/scripts/verify-design-tokens.mjs`·`src/components/icons/**` | `role:design-system` | 일러스트 색 대비 검사, 손님 캐릭터 교체(2026-09-28). icons는 공용 컴포넌트 경로가 TBD라 보수적으로 넣음 |
+| `AGENTS.md`(공용) | 공용 — PR 리뷰 | Step 12 테스트 러너 행 갱신(2026-09-28) |
 
 ## Branch
 
-`docs/TASK-020-frontend-state-model`
+`feat/TASK-020-design-followup` — PR #38(2026-09-28 생성, 열림). 앞선 작업은 로컬 `docs/TASK-019-step0-rebaseline`(원격 `feat/TASK-020-frontend-mobile`, PR #35로 2026-09-28 squash 병합 — 원격 브랜치는 병합 뒤 지워짐)에서 했다. 이 절의 처음 값 `docs/TASK-020-frontend-state-model`은 2026-09-18까지 쓴 로컬 브랜치다(마지막 커밋 `9734ffb`, 그 커밋들은 모두 `docs/TASK-019-step0-rebaseline`에 들어 있다).
 
 ## Goal
 
@@ -47,6 +50,19 @@
 - PRD·기능명세·User Flow·Result IA를 다시 대조해 회원가입, 새 결과 미리보기, 저장 오류, 결과 한계, 마이페이지 상태 누락을 보완했다.
 
 ## Changed
+
+- (반응형·태블릿 크기, 2026-10-01) **TASK-028로 따로 진행했다** — 브랜치 `feat/TASK-028-responsive-tablet`(PR #38 head `8a34b96`에서 분기). 공용 골격 `Screen`·`ScreenHeader`·`BottomNavigation`과 홈·미리보기·마이페이지를 고쳤다. 변경·검증·남은 것의 정본은 [TASK-028-responsive-tablet.md](TASK-028-responsive-tablet.md), 배치 규칙은 DESIGN_SYSTEM §7.1. 이 문서의 Last Verified Commit은 TASK-020 브랜치 기준이라 바꾸지 않았다
+- (가입 약관 오류 표시, 2026-09-28) `components/ui/CheckRow.tsx`(`invalid` — 빨간 테두리만 따로, 읽기 이름에 `오류: 동의가 필요해요`, 읽기 이름은 늘 값을 줌(Android에 이전 이름이 남는 문제), `✓` 글자는 화면 읽기에서 뺌), `features/auth/SignupScreen.tsx`(체크하지 않은 약관 칸마다 `invalid`). PR #35부터 둘째 칸만 빨갛던 것. evidence `consent-*` 2장
+- (글자 크기 200% 확인, 2026-09-28) `features/result/ResultView.tsx`(`sectionHead` — 자리가 모자라면 `리뷰 수 순서`를 다음 줄로), `components/ui/PodiumTop3.tsx`(`podiumBlockHeight` — 세 단상에 `spacing[12] × (fontScale − 1)`을 똑같이 더해(두 줄 줄높이 합 46 × 배율보다 3위 단상 48 × 배율이 늘 큼) 3위 단상의 `보는 중` 잘림을 막음, 100%에서는 그대로). 둘 다 PR #35부터 있던 결함. evidence `font200-*` 11장
+- (마이페이지 저장 이미지, 2026-09-28) `features/mypage/MyPageScreen.tsx`(`StoredPersonaRow` — 동그란 그림 + 순위·유형 이름, 순위 순 정렬), `components/ui/PersonaAvatar.tsx`(`usePersonaImageRetry`·`PersonaImageError` — 홈 카드와 공유), `features/result/ResultView.tsx`(공유 도구로 교체), `components/ui/PersonaImageBlock.tsx` 삭제, 보드 `generate.mjs`·`svg/10`(MyPage-Images 화면 추가), `SCREEN_STATES` §8 `STORED-IMAGES-NORMAL`, `DESIGN_SYSTEM` §3.6, evidence `mypage-images-*` 2장. 독립 Reviewer PASS(차단 0·P3 3 — 주석, Unresolved 16 서술, 생성기의 안 쓰는 줄 → 반영)
+
+- (선택 유형 요약 카드, 2026-09-28) 결과 화면의 큰 이미지 칸을 사용자가 고른 F안 카드로 바꿨다 — 손님 그림·순위·리뷰 수·분석 리뷰 대비 비율 막대·관점별 근거 수 칩. `features/result/ResultView.tsx`(`PersonaStatsCard`, 이미지 실패 시 다시 불러오기), `components/ui/PersonaAvatar.tsx`(`compact` 크기, `onLoadError`), 보드 `generate.mjs`·`svg/08`(Image-States 화면), `SCREEN_STATES` §6.1·§6.4·§11, `DESIGN_SYSTEM` §3.6·§6 SC-007, `RESULT_IA` 구조도·트리, evidence `stats-card-*` 3장. 독립 Reviewer 1차 FAIL(P1 — 카드 묶음 라벨이 서버 대체 텍스트를 가림, P2 1·P3 5) → 반영 후 2차 PASS(P3 3 — 주석 위치 반영, altText 형식·가상 서버 대체 텍스트가 음식을 설명하는 차이는 실제 서버 연결 때 확인)
+
+- (손님 캐릭터 교체, 2026-09-28) 사용자 선택으로 자리표시 캐릭터를 서로 다른 세 사람(얼굴 있음, 1번은 안경다리까지)으로 바꿨다. 하단 바 아이콘은 바꾸지 않았다(사용자 결정). `components/icons/guestCharacterShapes.ts` 신설(앱·보드 생성기가 함께 읽는 도형 정의), `GuestCharacter.tsx` 교체, `design/tokens/foundation.ts` 그림 색 추가(`skinShade` 값 변경 포함), `scripts/verify-design-tokens.mjs` 그림 대비 검사 교체, 보드 `generate.mjs`와 svg 5장(03·05·07·08·10), `DESIGN_SYSTEM` §3.6, 보드 README, evidence `guest-v2-*` 2장. 독립 Reviewer PASS(차단 0·P3 3 — 주석 두 곳, 눈썹 색 대비 검사 누락 → 반영, `verify:tokens`·`lint`·`typecheck` 종료 0)
+
+- (Step 12 Spec Update, 2026-09-28) 홈 결과 순서(TOP3 먼저·분석 정보와 한계는 맨 아래, 2026-09-27 디자인 리뷰 #3)가 `RESULT_IA` §3.1 구조도 아래 본문과 `DESIGN_SYSTEM` §4.1·§6 SC-006 행에는 들어가 있었다. 옛 순서가 남은 곳을 grep으로 찾아 고쳤다: `RESULT_IA.md` §3.1 구조도·§3.2 계층 트리·D7·홈 행, `USER_FLOW.md` 9번·흐름도·기본 흐름 행, `GUEST_ANALYSIS_FUNCTIONAL_SPEC.md` RESULT-001. `SCREEN_STATES.md` §6.1에 빈 슬롯 사유 위치와 한계·2년 경고 위치를 적었다. `AGENTS.md` 2장 테스트 러너 행에 E2E·visual regression 미도입과 재검토 시점을 더했다. 남색·주황 사용처는 `DESIGN_SYSTEM` §2.2·§3.3·§5.4에 이미 있어 바꾸지 않았다
+
+- (가입 비밀번호 확인 칸, 2026-09-28) `features/auth/SignupScreen.tsx` 확인 칸·검증 / `SCREEN_STATES.md` §3.2 세 행·§13 9차 / `DESIGN_SYSTEM.md` §5.3 CredentialForm 행 / 보드 `generate.mjs`·`svg/09-final-auth.svg` / evidence `signup-confirm-*` 5장과 README. `PRD.md`·기능명세는 "필수로 받는 정보"(서버에 보내는 값)를 말하므로 바꾸지 않았다
 
 - (Step 10) `frontend/mobile/src/components/ui/BottomNavigation.tsx`(활성 탭 가드)·`ConfirmDialog.tsx`(배경 초점 제외, 본문은 터치 삼킴)·`Screen.tsx`(footer 좌우 SafeArea — 배경색은 주지 않는다. 주면 세로 모드에서 둥근 모서리를 가진 footer의 radius 뒤를 채운다) / `features/analysis/AnalyzeScreen.tsx`(멱등 키 입력 비교, polling `inFlight`, 탭 `navigate`) / `features/auth/SignupScreen.tsx`(약관 변경 안내 유지, 비밀번호 삭제 고지) / `features/result/HomeScreen.tsx`·`features/mypage/MyPageScreen.tsx`(탭 `navigate`) / `features/result/ResultView.tsx`(rank 정렬, `ADVICE-EMPTY`) / `session/SessionProvider.tsx`(`useCallback`)·`session/storage.ts`(주석·미사용 export 제거) / `api/fixtures/server.ts`(미사용 export 제거)
 - (Step 10) `docs/product/requirements/SCREEN_STATES.md` §13 8차 기록 정정 / `docs/architecture/FRONTEND_STRUCTURE.md` `미이행` 표기·리터럴 개수·§3 제목 / `docs/design/evidence/TASK-020/README.md` Step 10 섹션 / evidence `step10-01`~`step10-07` 7장
@@ -112,11 +128,12 @@
 26. (Step 9) 알림 설정 토글은 스위치 옆에 `켜짐`·`꺼짐` 글자를 함께 둔다. 색만으로 상태를 알리지 않는다.
 27. (Step 9) 계정 탈퇴는 구현하지 않는다. 원격 백엔드에는 `DELETE /api/v1/me/account`가 있으나 이 저장소 API.md §3.3이 계약에서 제외했다. 계약을 맞출지는 `role:platform`이 정한다(FRONTEND_STRUCTURE §2.3).
 28. (Step 9) Google 로그인은 앱 식별자·scheme·OAuth client id가 정해진 뒤에 만든다. 로그인 화면에 그 사실을 적는다.
-29. (Step 9, 리뷰 반영) 페르소나 이미지는 `components/ui/PersonaImageBlock` 하나로 그린다. 결과 화면과 마이페이지가 같은 고지·로딩·실패 규칙을 쓴다.
+29. (Step 9, 리뷰 반영) 페르소나 이미지는 `components/ui/PersonaImageBlock` 하나로 그린다. 결과 화면과 마이페이지가 같은 고지·로딩·실패 규칙을 쓴다. — **2026-09-28 대체:** 두 화면 모두 동그란 `PersonaAvatar` + `usePersonaImageRetry`·`PersonaImageError`로 바꾸고 `PersonaImageBlock`은 지웠다(같은 규칙을 한 곳에서 쓴다는 뜻은 유지).
 30. (Step 9, 리뷰 반영) 입력 검증은 서버 규칙보다 좁히지 않는다. 전화번호는 숫자 8~15자리와 국가번호를 허용하고, 보낼 때만 숫자로 정리한다.
 
 ## Verification
 
+- (2026-10-01, TASK-028) 태블릿 크기 Visual QA와 자동 검증 5개는 [TASK-028 인계](TASK-028-responsive-tablet.md) Verification에 있다. 이 TASK-020 브랜치의 코드는 그 작업으로 바뀌지 않았다
 - `SC-AUTH`, `SC-001`~`SC-012` 추적: PASS — 13/13
 - 저장소 Markdown 상대 링크: PASS — 문서 55개, 링크 150개, 깨진 링크 0개
 - `git diff --check`: PASS
@@ -159,6 +176,13 @@
 - (발표 시안 반영) 사용자 제보 버그: 시상대에서 선택되지 않은 순위의 캐릭터가 사라짐 → `PersonaAvatar`의 둥근 클리핑을 원격 사진일 때만 쓰고 선택 테두리를 겹친 링으로 바꿨다. Android(Expo Go 강제 종료 후 재실행)에서 1·2·3위 선택을 캡처로 확인(evidence `fix-podium-*`). `verify:tokens`·`lint`·`typecheck` PASS, `export:android` 미실행
 - (발표 시안 반영) 6차 독립 Reviewer: PASS(차단 0·권고 5). R1(원 테두리 두께)·R2(README 사각지대)·R4(캐릭터 어깨가 원 밖으로 나옴 → SVG ClipPath)를 반영하고 Expo Go 재실행 뒤 다시 캡처했다. 7차 리뷰: FAIL(차단 1 — R1 정규식 오타로 두께가 늘 1로 읽힘) → 오타를 고치고 민감도 실험으로 확인. 권고(`</G>` 들여쓰기, 입 Path fill 누락, handoff 리뷰 요청 절 낡음, "R1 반영" 문구가 사실과 다름)도 반영했다. 8차 독립 Reviewer: PASS(차단 0·권고 3 — Last Verified Commit 설명, evidence README 캡처 방법 두 줄 모순, 불릿 붙음) → 문서만 정리했다. R3(보드 유형 2개 화면에 상세 섹션 없음·유형 0개 이미지 고지 문구)는 이번 변경 전부터 있던 차이로 남긴다. R5는 Last Verified Commit 갱신으로 반영
 - (Step 11 자동 검증, 2026-09-27, `40a1c4a` 기준) `verify:tokens` PASS · `lint` 경고·오류 0 · `typecheck` 오류 0 · `export:android` PASS(모듈 1423개, Android 번들 3.2MB, 약 14초) · `npm ls --depth=0` 누락·불일치 없음 · 보드 `check.mjs` 0건. 모두 종료 코드 0. 단위 테스트·E2E·visual regression은 **없음** — 도구 미도입(AGENTS 2장). 사용자 결정(2026-09-27): 지금은 도입하지 않는다. install은 이미 설치돼 있고 Metro가 실행 중이라 미실행
+- (가입 비밀번호 확인 칸, 2026-09-28) `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, 보드 `check.mjs` 0건. Android에서 불일치·누락·약관 변경(임시 fixture 분기로 재현 후 되돌림)·일치 → 가입 성공을 캡처 5장으로 확인(`signup-confirm-*`, SCREEN_STATES §13 9차). 200%·TalkBack·실기기 미실행. 독립 Reviewer PASS(차단 0·P3 4 반영)
+- (손님 캐릭터 교체, 2026-09-28) `verify:tokens`(그림 옷/배경·눈썹/얼굴 대비 포함)·`lint`·`typecheck`·`export:android` 종료 0, 보드 `check.mjs` 0건, Android 캡처 `guest-v2-*` 2장, 독립 Reviewer PASS. 200%·TalkBack·실기기 미실행
+- (선택 유형 요약 카드, 2026-09-28) 같은 4종 종료 0, `check.mjs` 0건, Android 캡처 `stats-card-*` 3장(1위·2위·이미지 조회 실패), 독립 Reviewer 1차 FAIL → 2차 PASS. 원격 이미지 로딩·다시 불러오기·TalkBack 실제 낭독 미확인
+- (마이페이지 저장 이미지, 2026-09-28) 같은 4종 종료 0, `check.mjs` 0건, Android 캡처 `mypage-images-*` 2장(정상·실패), 독립 Reviewer PASS. 원격 이미지·200%·TalkBack 미확인
+- (글자 크기 200% 확인, 2026-09-28) `font_scale 2.0`에서 가입(빈 칸·불일치 오류)·홈 TOP3·1위/3위 요약 카드·이미지 조회 실패·마이페이지 저장 이미지를 Android로 확인. 결함 2건(제목 줄 밀림, 3위 단상 글자 잘림)을 고쳐 다시 확인했고, `1.0`으로 되돌려 회귀 없음 확인. 요약 카드 3위 선택도 이때 확인(24%). `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, `check.mjs` 0건. 근거는 [evidence README](../../design/evidence/TASK-020/README.md) "글자 크기 200%·요약 카드 3위 선택"
+- (가입 약관 오류 표시·TalkBack, 2026-09-28) 앱을 완전히 다시 실행한 뒤 네 단계(처음·둘 다 비움·하나 체크·다시 가입하기)의 체크 칸 읽기 이름을 `uiautomator`로 확인, 캡처 2장. `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0. TalkBack은 켜서 초점 표시까지만 확인했고, 항목 이동 순서·실제 소리는 미확인(`adb` 쓸기·키가 TalkBack 동작으로 인식되지 않음). TalkBack은 꺼서 원래대로 되돌렸고, 그때 뜬 TalkBack 알림 권한은 거부 상태로 남았다. 근거는 [evidence README](../../design/evidence/TASK-020/README.md) "가입 약관 오류 표시·TalkBack 확인"
+- (Figma, 2026-09-28) 보드 반영은 사용자 보고만 있다 — 에이전트는 MCP 한도로 파일을 보지 못했다(보드 README "Import 결과 (2026-09-28)")
 - 2차 자체 교차 검토: 수정 완료 — 회원가입/Google 취소/미저장 새 결과/저장 실패/대표성 한계/알림 설정/로그아웃 전이 보완
 
 ## Unresolved
@@ -175,8 +199,12 @@
 10. 확인 대화상자가 열렸다는 사실을 TalkBack에 알리는 수단이 없다(`accessibilityLiveRegion`·`announceForAccessibility` 모두 없음). Android 네이티브 `Modal`의 윈도 전환 안내에 기대고 있다. DESIGN_SYSTEM §8이 지원 기기·TalkBack 조합 미확정을 이유로 네이티브 접근성 완료 판정을 보류했으므로 그 결정과 함께 정한다.
 11. `HomeScreen`의 `첫 분석 시작하기`는 `router.replace('/analyze')`다. 저장본이 없는 홈은 돌아갈 화면이 없어 의도한 단방향 전환이지만, 스택 깊이 가정이 걸린 지점이라 기록해 둔다(Step 10 5차 리뷰).
 12. `StepIndicator`의 끝난 단계에 붙인 `✓`가 라벨 본문에 섞여 있다. TalkBack이 기호를 그대로 읽을 수 있는데 실행하지 못해 미확인이다. 보조기술 검증을 할 때 함께 본다.
-13. **Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)이 2026-09-22 보드 8장 그대로다.** 2026-09-27 갱신분과 새 보드 2장을 넣지 못했다. Figma MCP가 Starter 플랜 호출 한도에 걸린다. 한도가 풀리거나 플랜을 올리면 import한다. 그때까지 디자인 정본은 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
+13. ~~Figma 파일(`lIEsVWuCpKr2SzvYeu2EzZ`)이 2026-09-22 보드 8장 그대로다~~ — 2026-09-28 해소. 사용자가 새 페이지 `TASK-020 Vertical Slice (2026-09-28)`에 보드 10장을 직접 넣었고, 사용자 보고로 Pretendard로 표시된다(에이전트 미확인, 보드 README "Import 결과 (2026-09-28)"). 남은 것: Figma MCP는 여전히 Starter 한도라 에이전트가 파일을 검사하지 못한다 — 잘림·굵기·팀원 PC 글꼴은 미확인. 디자인 정본은 여전히 `docs/design/figma/TASK-020/svg/`와 앱 코드다.
 14. **브랜치와 TASK가 어긋나 있다.** 이 문서의 `Branch`는 `docs/TASK-020-frontend-state-model`이지만 Step 3~10 작업은 전부 `docs/TASK-019-step0-rebaseline` 브랜치에서 했다. PR을 TASK-019와 TASK-020으로 나눌지, 한 PR로 낼지 사용자가 정한다(AGENTS 6.2 — PR은 TASK 1개에 대응).
+
+15. **`docs/architecture/API.md` 272줄이 옛 결과 순서다**(`분석 메타정보 → 3칸 포디움 → …`). Step 12 독립 리뷰(2026-09-28)가 찾았다. `role:platform` 소유라 이 TASK에서 고치지 않았다. 화살표를 빼고 데이터 구성으로 적거나 RESULT_IA D7로 링크하도록 `role:platform`에 넘긴다(PR 본문에도 적는다).
+
+16. **`docs/architecture/FRONTEND_STRUCTURE.md` 58줄의 공용 컴포넌트 목록(18종, `PersonaImageBlock` 포함)과 "9단계에서 PersonaImageBlock을 더했다"는 설명이 2026-09-28부터 사실과 다르다.** `PersonaImageBlock`은 지웠다(17종). 같은 줄의 "페르소나 이미지는 결과 화면과 마이페이지가 같은 컴포넌트를 쓴다"는 여전히 맞다 — 두 화면은 이제 `PersonaAvatar`와 그 옆의 `usePersonaImageRetry`·`PersonaImageError`를 함께 쓴다. `role:platform` 소유라 이 TASK에서 고치지 않았다 — Unresolved 15와 함께 넘긴다(PR 본문에도 적는다).
 
 ## Do Not Assume
 
@@ -188,10 +216,22 @@
 
 ## Next Action
 
-발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다(위 검증 기록). 다음은 Step 12(Spec Update) — 이번에 새로 정한 것을 정본에 다시 반영한다. 단위 테스트·E2E·visual regression 도입 시점은 실제 백엔드 연결 뒤 다시 정한다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
+워크플로 0~12단계와 그 뒤 디자인 수정 3건이 끝났다(2026-09-28). 2026-10-01 반응형·태블릿 크기 작업은 [TASK-028](TASK-028-responsive-tablet.md)로 따로 진행 중이다. 그 밖에 정해진 다음 작업은 없다 — 사용자가 고른다. 후보: Unresolved 15·16(platform 문서 2건), SCREEN_STATES §11의 리뷰 중복 계산 확인(role:feature), PR #38 리뷰 대응(리뷰어는 사용자가 요청, 병합도 사용자가 한다), 실제 백엔드 연결, Unresolved 1~6·8~12·14. TalkBack 실제 읽기(항목 이동 순서·소리) 확인은 사용자가 이번 작업에서 뺐다(2026-09-28, 다시 할 시점 미정). 단위 테스트·E2E·visual regression은 도입하지 않기로 했고(2026-09-27) 다시 정할 시점은 TBD다. 인계는 [TASK-020-session-handover.md](TASK-020-session-handover.md).
+
+(이전 기록) 발표 시안·디자인 리뷰 반영은 8차 독립 Reviewer PASS로 검토를 마쳤고, Step 11(자동 검증)을 실행했다. Step 10 게이트는 5차 독립 Reviewer PASS로 통과했다.
 
 2026-09-27에 한 것: 2026-09-26 최종 발표 시안과 Figma 디자인 리뷰 댓글 9건을 반영해 화면을 다시 만들었고(주요 버튼 남색, 흰 헤더, TOP3 시상대, 홈 순서 변경, 입력 3단계 표시), PULSE 로고·SVG 아이콘·손님 캐릭터를 넣었으며, Figma 보드를 새 디자인으로 다시 뽑고 인증·로딩 보드 2장을 더했다. Figma MCP는 Starter 플랜 호출 한도에 걸려 파일을 직접 고치지 못했고, 기존과 같은 SVG import 방식으로 만들었다. Step 9~10에서 남은 것: 실제 백엔드 연결(§11 공백 해소 후), Google 로그인과 계정 탈퇴(결정 대기), 실패 상태 재현, 오프라인·키보드·TalkBack·실기기 확인. 팀 Figma 공용 파일로 옮길지, Pretendard를 각 PC에 설치할지는 사용자가 정한다. SCREEN_STATES §11의 백엔드 공백은 2026-09-24 오해서와의 회의에서 전달한다(요청 목록: https://claude.ai/artifact/3DSab1M4q4qaLbAKqzxghc — 비공개 페이지, 정본은 SCREEN_STATES §11).
 
 ## Last Verified Commit
 
-`ea6ea03` — 7차 리뷰 반영 커밋(check.mjs 테두리 두께 정규식 `[\d.]`, 캐릭터 입 `fill="none"`). 그 앞 `88fdfda`는 R2·R4를 반영했지만 R1 정규식이 `[d.]` 오타라 R1은 실제로 동작하지 않았다. 8차 독립 Reviewer PASS(권고 3 — 문서 정합성, 이 절과 evidence README로 반영). 이 뒤 커밋은 문서만 바꾼다.
+> 2026-09-28 브랜치 이동: 아래 첫 네 문단의 커밋 번호는 `feat/TASK-020-design-followup`(PR #38)의 번호다. 옮기기 전 옛 로컬 브랜치 `docs/TASK-019-step0-rebaseline`의 번호(예: `af1b6c2` ← `3891823`, `a547871` ← `974e0a3`)는 원격에 없다. `10161ab` 뒤 옛 커밋 22개와 새 커밋 22개를 순서대로 짝지어 `git diff --stat <옛> <새>`가 모두 비어 있음(내용 같음)을 확인했다. 다섯 번째 문단부터의 옛 번호(`10161ab` 이하)는 PR #35 head에 들어 있다. 원격 브랜치 `feat/TASK-020-frontend-mobile`은 병합 뒤 지워져, GitHub에서는 `git fetch origin pull/35/head`로 닿는다(2026-09-28 `git ls-remote origin`에 `refs/pull/35/head` = `10161ab`만 있음).
+
+`7297ca6` (2026-09-28) — 마지막으로 코드를 바꾸고 검증한 커밋. 가입 약관 오류 표시(`CheckRow.tsx`·`SignupScreen.tsx`)를 고쳤고 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, 앱을 완전히 다시 실행해 읽기 이름 네 단계와 캡처 2장 확인. TalkBack 항목 이동·소리는 미확인. 그 뒤 커밋은 문서만 바꾼다.
+
+이전 값: `ca6aebc` (2026-09-28) — 마지막으로 코드를 바꾸고 검증한 커밋. 글자 크기 200% 확인에서 찾은 결함 2건을 `6a319a6`에서 고쳤고(`ResultView.tsx` 제목 줄, `PodiumTop3.tsx` 단상 높이), 독립 Reviewer 1차 FAIL(이 절이 낡음 — 코드는 문제없음, 권고: 선형 글자 확대 기기에서 3위 단상 여유 부족) 뒤 `ca6aebc`에서 더하는 값을 `spacing[12]`로 바꿨다. `ca6aebc`에서 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, `check.mjs` 0건, `font_scale 2.0` Android 재캡처(`font200-06`), `1.0` 복원 확인. 그 뒤 커밋은 문서만 바꾼다.
+
+이전 값: `af1b6c2` (2026-09-28) — 마지막으로 코드·보드를 바꾸고 검증한 커밋. 이 커밋은 `PersonaAvatar.tsx` 주석과 `generate.mjs`의 안 쓰는 줄만 바꿨고 `lint`·`typecheck` 종료 0, 보드를 다시 뽑아 `check.mjs` 0건. 바로 앞 `50f061a`(마이페이지 저장 이미지)에서 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 2장, 독립 Reviewer PASS. 그 뒤 `25d1b61`과 인계 정리는 문서만 바꾼다. 이 세션의 코드 변경은 손님 캐릭터(`5a76bd9`·`51d6298`), 요약 카드(`4a70c4e`·`09931b6`·`badc58e`), 마이페이지(`50f061a`·`af1b6c2`)이고 각각 독립 Reviewer PASS다.
+
+이전 값: `a547871` (2026-09-28) — 마지막으로 코드·보드를 검증한 커밋. 앱 코드는 `8e3f853`의 `SignupScreen.tsx`가 마지막 변경이고 `verify:tokens`·`lint`·`typecheck`·`export:android` 종료 0, Android 캡처 5장, 독립 Reviewer PASS. `a547871`은 보드 `generate.mjs`를 고치고 `check.mjs` 0건을 다시 확인했다. 그 뒤 커밋(`22ef259`·`8df630e`·`0226ba7`·`b753c91`·인계 정리)은 문서만 바꾼다.
+
+이전 값: `ea6ea03` — 7차 리뷰 반영 커밋(check.mjs 테두리 두께 정규식 `[\d.]`, 캐릭터 입 `fill="none"`). 그 앞 `88fdfda`는 R2·R4를 반영했지만 R1 정규식이 `[d.]` 오타라 R1은 실제로 동작하지 않았다. 8차 독립 Reviewer PASS(권고 3 — 문서 정합성, 이 절과 evidence README로 반영). 이 뒤 커밋은 문서만 바꾼다.
