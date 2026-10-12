@@ -80,4 +80,4 @@ role:design-system — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 
 ## Last Verified Commit
 
-이 문서를 담은 커밋(base `6ad8b14`). 화면 확인에 쓴 APK는 커밋 전 작업 폴더에서 빌드했고, `MyPageScreen.tsx`는 그 뒤 주석 한 줄만 바뀌었다.
+`e2bce48`(base `6ad8b14`). 화면 확인에 쓴 APK는 커밋 전 작업 폴더에서 빌드했고, `MyPageScreen.tsx`는 그 뒤 주석 한 줄만 바뀌었다.
