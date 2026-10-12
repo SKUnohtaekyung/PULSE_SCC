@@ -33,6 +33,7 @@ import { Screen, useExpandedLayout, usePagePadding } from '@/components/ui/Scree
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ToggleRow } from '@/components/ui/ToggleRow';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
+import { PersonaIdCard } from '@/features/mypage/PersonaIdCard';
 import { useSession } from '@/session/SessionProvider';
 
 // SC-012 마이페이지. 상태 정본은 SCREEN_STATES §8이다.
@@ -201,14 +202,23 @@ export function MyPageScreen() {
       })) ?? [];
   const personaSources = personaImages.map(({ persona }) => personaImageSource(client, persona.image));
 
+  const analyzedReviewCount = savedResult.data?.metadata.validReviewCount ?? 0;
   const feedCards = personaImages.map(({ rank, persona, topicReviewCount }, index) => (
     <StoredPersonaCard
       altText={persona.image.altText}
+      analyzedOn={formatDateTime(savedResult.data?.metadata.analyzedAt ?? '')}
       key={persona.id}
       label={persona.label}
       onOpen={() => setViewing(index)}
       rank={rank}
+      // 결과 화면의 요약 카드와 같은 계산값이다(SCREEN_STATES §6.1).
+      share={
+        topicReviewCount !== undefined && analyzedReviewCount > 0
+          ? Math.round((topicReviewCount / analyzedReviewCount) * 100)
+          : undefined
+      }
       source={personaSources[index]}
+      storeName={savedResult.data?.store.name ?? ''}
       topicReviewCount={topicReviewCount}
       width={cardWidth}
     />
@@ -423,12 +433,16 @@ async function savePersonaImage(source: PersonaImageSource, fileName: string): P
 }
 
 // 저장된 결과의 손님 유형 카드(STORED-IMAGES-NORMAL). 결과 화면과 같은 그림·같은 실패 규칙을 쓴다(SCREEN_STATES §6.4).
+// 카드 자체는 누르면 뒤집히는 신분증 모양이고(PersonaIdCard), 크게 보기와 저장은 카드 아래 버튼으로 한다.
 function StoredPersonaCard({
   rank,
   label,
   altText,
   source,
   topicReviewCount,
+  share,
+  storeName,
+  analyzedOn,
   width,
   onOpen,
 }: {
@@ -437,6 +451,9 @@ function StoredPersonaCard({
   altText: string;
   source: PersonaImageSource;
   topicReviewCount?: number;
+  share?: number;
+  storeName: string;
+  analyzedOn: string;
   width: number;
   onOpen: () => void;
 }) {
@@ -454,33 +471,25 @@ function StoredPersonaCard({
 
   return (
     <Reveal delay={revealStagger * rank} style={[styles.feedCard, { width }]}>
-      <Pressable
-        // 그림과 이름을 한 번에 읽는다. 묶으면 그림 라벨이 가려지므로 서버 대체 텍스트를 함께 붙인다.
-        accessibilityLabel={`${altText}. ${rank}위 ${label}. 크게 보기`}
-        accessibilityRole="button"
-        onPress={onOpen}
-        style={({ pressed }) => pressed && styles.pressed}
-      >
-        <PersonaAvatar
-          altText={altText}
-          key={image.attempt}
-          onLoadError={image.onLoadError}
-          source={source}
-          tile
-          variant={rank - 1}
-        />
-      </Pressable>
+      <PersonaIdCard
+        altText={altText}
+        analyzedOn={analyzedOn}
+        generated={source.kind === 'remote' && !image.showError}
+        imageKey={image.attempt}
+        label={label}
+        onLoadError={image.onLoadError}
+        rank={rank}
+        share={share}
+        source={source}
+        storeName={storeName}
+        topicReviewCount={topicReviewCount}
+        width={width}
+      />
       <View style={styles.feedBody}>
-        <View style={styles.feedMeta}>
-          <Text style={styles.feedRank}>{rank}위 손님</Text>
-          {topicReviewCount !== undefined ? (
-            <Text style={styles.imageRank}>리뷰 {topicReviewCount}건</Text>
-          ) : null}
-        </View>
-        <Text style={styles.imageLabel}>{label}</Text>
         {image.showError ? <PersonaImageError canRetry={image.canRetry} onRetry={image.retry} /> : null}
         {source.kind === 'remote' && !image.showError ? (
           <>
+            <Button label="그림 크게 보기" onPress={onOpen} variant="ghost" />
             <Button
               label={saveState === 'saved' ? '다시 저장' : '이미지 저장'}
               loading={saveState === 'saving'}
@@ -590,32 +599,12 @@ const styles = StyleSheet.create({
     gap: spacing[3],
     paddingVertical: spacing[1],
   },
+  // 카드 틀은 PersonaIdCard가 그린다. 여기서는 카드와 그 아래 버튼을 세로로 놓기만 한다.
   feedCard: {
-    backgroundColor: colors.background.surface,
-    borderColor: colors.border.default,
-    borderRadius: radii.panel,
-    borderWidth: strokes.hairline,
     gap: spacing[3],
-    padding: spacing[3],
   },
   feedBody: {
     gap: spacing[2],
-    paddingHorizontal: spacing[1],
-    paddingBottom: spacing[1],
-  },
-  feedMeta: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  feedRank: {
-    ...typography.caption,
-    backgroundColor: colors.brand.tint,
-    borderRadius: radii.pill,
-    color: colors.text.brand,
-    overflow: 'hidden',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
   },
   saveDone: {
     ...typography.caption,
@@ -650,9 +639,6 @@ const styles = StyleSheet.create({
     ...typography.head5,
     color: colors.text.strong,
   },
-  pressed: {
-    opacity: 0.9,
-  },
   imageRank: {
     ...typography.caption,
     color: colors.text.secondary,
@@ -660,10 +646,6 @@ const styles = StyleSheet.create({
   logoutActions: {
     gap: spacing[2],
     paddingTop: spacing[2],
-  },
-  imageLabel: {
-    ...typography.body6,
-    color: colors.text.primary,
   },
   infoRow: {
     ...typography.body7,

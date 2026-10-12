@@ -215,7 +215,7 @@ MVP는 라이트 테마 하나만 제공한다. `app.json`의 `userInterfaceStyl
 - 아이콘과 로고는 이미지 생성으로 대체하지 않는다. 일관된 벡터·코드 자산을 사용하고 아이콘 버튼에는 접근 가능한 이름을 제공한다.
 - 페르소나 이미지는 사진풍 상반신 인물과 단색 배경으로 만든다(2026-10-05 결정, [PRD](../product/PRD.md) §7 페르소나 취급 규칙 6). 실제 손님 사진으로 오인하지 않게 생성 사실을 이미지 가까이에 항상 고지하고, 기능 중심 대체 텍스트·로딩·실패 대체 상태를 함께 제공한다.
 - 이미지가 없어도 유형명, 관찰 특성, 근거 리뷰, 결과 한계를 이해할 수 있어야 한다.
-- 이미지 로딩·로드 실패·생성 실패(`IMAGE-LOADING`, `IMAGE-LOAD-ERROR`, `IMAGE-GENERATION-FAILED`)의 대체 표현은 생성 이미지가 아니라 코드로 그린다. 같은 크기의 `background.emphasized` 영역에 상태 문장을 두어 레이아웃이 흔들리지 않게 하고, 실패 대체 표현을 정상 이미지처럼 보이게 하지 않는다. 결과 화면의 선택 유형 요약 카드(2026-09-28)는 그림이 작아 영역 안에 문장을 넣지 않는다 — 로딩은 같은 크기의 회색 원, 실패는 자리표시 캐릭터 + 카드 안 원인 문장·다시 불러오기로 표현한다([SCREEN_STATES §6.4](../product/requirements/SCREEN_STATES.md)). 마이페이지 저장 이미지는 2026-10-09부터 옆으로 넘기는 카드 피드로 놓고, 누르면 크게 보며 카드마다 기기에 저장하는 버튼을 둔다(그 전에는 2026-10-05의 정사각 3칸 격자, 2026-09-28의 동그란 그림 한 줄이었다). 로딩·실패 규칙은 요약 카드와 같다. 두 화면은 `components/ui/PersonaAvatar`의 `usePersonaImageRetry`·`PersonaImageError`를 함께 쓰고, 큰 칸을 그리던 `PersonaImageBlock`은 쓰는 곳이 없어 지웠다.
+- 이미지 로딩·로드 실패·생성 실패(`IMAGE-LOADING`, `IMAGE-LOAD-ERROR`, `IMAGE-GENERATION-FAILED`)의 대체 표현은 생성 이미지가 아니라 코드로 그린다. 같은 크기의 `background.emphasized` 영역에 상태 문장을 두어 레이아웃이 흔들리지 않게 하고, 실패 대체 표현을 정상 이미지처럼 보이게 하지 않는다. 결과 화면의 선택 유형 요약 카드(2026-09-28)는 그림이 작아 영역 안에 문장을 넣지 않는다 — 로딩은 같은 크기의 회색 원, 실패는 자리표시 캐릭터 + 카드 안 원인 문장·다시 불러오기로 표현한다([SCREEN_STATES §6.4](../product/requirements/SCREEN_STATES.md)). 마이페이지 저장 이미지는 2026-10-09부터 옆으로 넘기는 카드 피드로 놓고, 카드마다 크게 보는 버튼과 기기에 저장하는 버튼을 둔다(2026-10-12부터 카드는 누르면 뒤집히는 신분증 모양이고, 그림을 눌러 크게 보던 것은 버튼으로 옮겼다. 실제 이미지가 아닐 때는 카드에 `AI 가상 인물` 대신 `자리표시 그림`이라고 적는다)(그 전에는 2026-10-05의 정사각 3칸 격자, 2026-09-28의 동그란 그림 한 줄이었다). 로딩·실패 규칙은 요약 카드와 같다. 두 화면은 `components/ui/PersonaAvatar`의 `usePersonaImageRetry`·`PersonaImageError`를 함께 쓰고, 큰 칸을 그리던 `PersonaImageBlock`은 쓰는 곳이 없어 지웠다.
 - 에셋 폴더의 기록(README)에는 출처·버전·라이선스·해시와 함께 **사용처와 사용 금지 조건**을 적는다. 프로토타입 전용 에셋은 제품 화면에 쓰지 않는다는 사실을 금지 조건으로 적는다.
 - 아이콘은 `react-native-svg`로 그린다. 제품 공용 아이콘은 `frontend/mobile/src/components/icons/**`에 두고, 24×24 격자에 굵기 2, 둥근 끝·둥근 모서리를 공유한다. 색은 토큰으로 맞추고 아이콘 버튼에는 접근 가능한 이름을 준다.
   2026-09-22 Step 7에는 `View` 도형으로 그리기로 했으나, 도형을 겹치는 방식은 아이콘마다 굵기와 모서리가 달라져 급조한 인상을 줬다. 2026-09-27 디자인 리뷰 #4에서 이 결정을 뒤집었다.
@@ -328,7 +328,7 @@ loading / empty / error / normal
 | ResultJumpBar | 결과를 아래로 내린 뒤 다른 순위·검토할 행동·맨 위로 한 번에 옮긴다. 시상대가 화면 위로 사라진 뒤에만 하단 내비게이션 위에 나타난다(2026-10-05 팀 디자인 피드백 #15) | `frontend/mobile/src/features/result/ResultView.tsx` |
 | WaitingTips | 분석을 기다리는 동안 결과 읽는 법을 알린다. 진행 단계와 무관하게 넘어가고 남은 시간을 말하지 않는다 | `frontend/mobile/src/features/analysis/WaitingTips.tsx` |
 | BottomNavigation | `분석 결과 → 분석하기 → 마이페이지` 이동. 가운데 분석하기를 주요 행동으로 강조. 분석하기가 현재 화면이면 가운데 원을 `brand.primary`와 흰 아이콘으로 바꿔 지금 그 화면에 있다는 사실을 알린다([Step 6 결정](synthesis/TASK-020/README.md#step-6-decisions)) | `frontend/mobile/src/components/ui/BottomNavigation.tsx` |
-| PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 카드 피드로 표시하고 결과 교체 시 함께 교체. 카드마다 기기 사진 앱에 저장할 수 있다(2026-10-09) | `frontend/mobile/src/features/mypage/MyPageScreen.tsx` |
+| PersonaImageStorage | 현재 저장 결과의 이미지 최대 3개를 카드 피드로 표시하고 결과 교체 시 함께 교체. 카드마다 기기 사진 앱에 저장할 수 있다(2026-10-09). 카드는 누르면 뒤집히는 신분증 모양이다(2026-10-12) — 앞면은 그림과 리뷰에서 나온 값, 뒷면은 PULSE 로고. 사람의 신상으로 읽힐 칸(연령·성별)과 장식(지문·서명)은 두지 않고 실제 이미지일 때 그림 아래에 `AI 가상 인물`을 적는다 | `frontend/mobile/src/features/mypage/MyPageScreen.tsx`, `PersonaIdCard.tsx` |
 | ErrorState | 오류 이유와 재시도 가능 행동 표시 | `frontend/mobile/src/components/ui/Notice.tsx` + 화면별 버튼 |
 
 ### 5.4 버튼
@@ -447,6 +447,7 @@ loading / empty / error / normal
 - 로딩 스피너만 보여주지 말고 현재 처리 단계를 문장으로 함께 표시한다.
 - 화면 조각은 나타날 때 한 번만 움직인다(2026-10-09, `components/ui/Motion.tsx`): 카드와 문단은 살짝 떠오르며 또렷해지고(`reveal` 300ms, 조각 사이 시차 75ms), 시상대 단상과 비율 막대는 0에서 제 길이까지 자란다. 손님 유형을 바꾸면 아래 내용이 같은 방식으로 다시 나타난다. 되풀이하지 않으며 모션 감소 설정에서는 바로 최종 모습을 보여 준다. 버튼은 누르는 동안 살짝 눌려 들어간다.
 - 분석 진행 막대는 채워진 구간 안에서만 빛이 지나간다(2026-10-05 팀 디자인 피드백 #11). 막대 길이는 서버가 확인해 준 단계에서만 바뀐다. 분석이 진행 중일 때만 돌고 모션 감소 설정에서는 끈다.
+- 마이페이지의 손님 유형 카드는 누를 때마다 한 번 뒤집힌다(2026-10-12, `features/mypage/PersonaIdCard.tsx`). `reveal` 300ms 동안 세로축으로 반 바퀴 돌고, 절반 지점에서 앞뒤를 바꿔 보여 준다. 사용자가 누른 것에 대한 반응이며 스스로 되풀이하지 않는다. 모션 감소 설정에서는 돌지 않고 바로 바뀐다.
 
 ---
 

@@ -4,8 +4,8 @@
 
 | 파일 | 크기 | 쓰는 곳 | SHA-256 |
 |---|---|---|---|
-| `pulse-wordmark.png` | 1740×673 | 화면 머리(`components/ui/ScreenHeader`)의 `brand` 표시 | `d8f2b91b20d71467ed0066fc381ce4c947fd6b472cd72511fa58482cda6a9efe` |
-| `pulse-symbol.png` | 565×458 | **아직 쓰는 곳이 없다.** 앱 아이콘·스플래시·좁은 화면 머리처럼 워드마크가 들어가지 않는 자리를 위해 받아 두었다 | `dcec1d8b1a54ffacd826f9fe2f15b109b4a0ad17641e2a020302be411ffce524` |
+| `pulse-wordmark.png` | 1740×673 | 화면 머리(`components/ui/ScreenHeader`)의 `brand` 표시, 마이페이지 손님 유형 카드의 뒷면(`features/mypage/PersonaIdCard`, 2026-10-12) | `d8f2b91b20d71467ed0066fc381ce4c947fd6b472cd72511fa58482cda6a9efe` |
+| `pulse-symbol.png` | 565×458 | 마이페이지 손님 유형 카드 앞면의 오른쪽 위(`features/mypage/PersonaIdCard`, 2026-10-12). 앱 아이콘·스플래시·좁은 화면 머리처럼 워드마크가 들어가지 않는 자리를 위해 받아 두었다 | `dcec1d8b1a54ffacd826f9fe2f15b109b4a0ad17641e2a020302be411ffce524` |
 
 - Source: 팀 내부 제작. 2026-09-27에 사용자가 전달했다.
 - Version: 전달본 그대로다. 크기를 줄이거나 색을 바꾸지 않았다.
@@ -22,4 +22,4 @@
 
 ## 미결
 
-`pulse-symbol.png`를 어디에 쓸지 정하지 않았다. 앱 아이콘(`assets/images/icon.png`, `android-icon-*.png`)은 아직 Expo 기본값이다. 앱 식별자·빌드 프로파일을 정할 때 함께 결정한다(`docs/architecture/FRONTEND_STRUCTURE.md` §2.4).
+`pulse-symbol.png`를 앱 아이콘에 쓸지 정하지 않았다(손님 유형 카드에는 2026-10-12부터 쓴다). 앱 아이콘(`assets/images/icon.png`, `android-icon-*.png`)은 아직 Expo 기본값이다. 앱 식별자·빌드 프로파일을 정할 때 함께 결정한다(`docs/architecture/FRONTEND_STRUCTURE.md` §2.4).
