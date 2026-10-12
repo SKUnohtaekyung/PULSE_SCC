@@ -79,4 +79,4 @@ role:platform — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 
 ## Last Verified Commit
 
-이 문서를 담은 커밋(base `ca0d16c`). 위 실행은 커밋 전 작업 폴더의 스크립트로 했다.
+`7514510`(base `ca0d16c`). 위 실행은 커밋 전 작업 폴더의 스크립트로 했고, 마지막 전체 실행 뒤에 결과 문구 한 줄을 고쳤다.
