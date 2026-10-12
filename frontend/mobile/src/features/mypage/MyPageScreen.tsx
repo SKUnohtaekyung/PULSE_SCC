@@ -29,7 +29,7 @@ import {
   PersonaImageError,
   usePersonaImageRetry,
 } from '@/components/ui/PersonaAvatar';
-import { Screen, usePagePadding } from '@/components/ui/Screen';
+import { Screen, useExpandedLayout, usePagePadding } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ToggleRow } from '@/components/ui/ToggleRow';
 import { colors, layout, radii, spacing, strokes, typography } from '@/design/tokens';
@@ -57,8 +57,15 @@ export function MyPageScreen() {
   const insets = useSafeAreaInsets();
   const pagePadding = usePagePadding();
   const { width: windowWidth } = useWindowDimensions();
-  // 카드 한 장과 다음 카드의 가장자리가 함께 보이는 폭. 넓은 화면에서는 읽기 폭의 절반을 넘지 않는다.
-  const cardWidth = Math.min(windowWidth - pagePadding * 2 - spacing[12], layout.readingMaxWidth / 2);
+  // 좁은 화면: 카드 한 장과 다음 카드의 가장자리가 함께 보이는 폭.
+  // 넓은 화면(expanded)에서는 본문을 넓히고 카드 세 장을 넘기지 않고 한 줄에 놓는다(DESIGN_SYSTEM §7.1).
+  const expanded = useExpandedLayout();
+  // 본문 폭은 화면 여백과 좌우 안전 영역을 뺀 값이라 계산하지 않고 잰다. 재기 전에는 여백만 뺀 값으로 둔다.
+  const [feedWidth, setFeedWidth] = useState(0);
+  const bodyWidth = feedWidth || Math.min(windowWidth, layout.contentMaxWidth) - pagePadding * 2;
+  const cardWidth = expanded
+    ? (bodyWidth - spacing[3] * 2) / 3
+    : Math.min(windowWidth - pagePadding * 2 - spacing[12], layout.readingMaxWidth / 2);
   /** 크게 보고 있는 저장 이미지의 순서. 닫혀 있으면 null. */
   const [viewing, setViewing] = useState<number | null>(null);
   const { client, user, signOut } = useSession();
@@ -194,6 +201,19 @@ export function MyPageScreen() {
       })) ?? [];
   const personaSources = personaImages.map(({ persona }) => personaImageSource(client, persona.image));
 
+  const feedCards = personaImages.map(({ rank, persona, topicReviewCount }, index) => (
+    <StoredPersonaCard
+      altText={persona.image.altText}
+      key={persona.id}
+      label={persona.label}
+      onOpen={() => setViewing(index)}
+      rank={rank}
+      source={personaSources[index]}
+      topicReviewCount={topicReviewCount}
+      width={cardWidth}
+    />
+  ));
+
   return (
     <Screen
       footer={
@@ -204,7 +224,8 @@ export function MyPageScreen() {
           onHome={() => router.navigate('/home')}
         />
       }
-      header={<ScreenHeader brand badge="마이페이지" />}
+      header={<ScreenHeader brand badge="마이페이지" wide />}
+      wide
     >
       <StatusBar style="dark" />
 
@@ -265,8 +286,12 @@ export function MyPageScreen() {
         )}
       </View>
 
-      {/* 저장된 손님 유형 이미지. 사진 피드처럼 카드 한 장에 한 사람씩 놓고 옆으로 넘겨 본다(2026-10-09 사용자 요청). */}
-      <View style={styles.feedSection}>
+      {/* 저장된 손님 유형 이미지. 사진 피드처럼 카드 한 장에 한 사람씩 놓고 옆으로 넘겨 본다(2026-10-09 사용자 요청).
+          넓은 화면에서는 넘기지 않고 세 장을 한 줄에 놓는다(2026-10-12). */}
+      <View
+        onLayout={(event) => setFeedWidth(event.nativeEvent.layout.width)}
+        style={styles.feedSection}
+      >
         <Text accessibilityRole="header" style={styles.sectionTitle}>
           저장된 결과의 손님 유형 이미지
         </Text>
@@ -278,28 +303,21 @@ export function MyPageScreen() {
           <>
             {/* 결과 화면 시상대와 같은 고지 — 실제 이미지가 한 장이라도 있으면 AI 이미지라고, 없으면 자리표시라고 알린다. */}
             <PersonaAvatarNotice anyRemote={personaSources.some((source) => source.kind === 'remote')} />
-            <ScrollView
-              contentContainerStyle={styles.feed}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              // 카드가 본문 좌우 여백 밖까지 흘러 다음 카드가 있다는 것을 보여 준다.
-              style={{ marginHorizontal: -pagePadding }}
-            >
-              <View style={{ width: pagePadding - spacing[3] }} />
-              {personaImages.map(({ rank, persona, topicReviewCount }, index) => (
-                <StoredPersonaCard
-                  altText={persona.image.altText}
-                  key={persona.id}
-                  label={persona.label}
-                  onOpen={() => setViewing(index)}
-                  rank={rank}
-                  source={personaSources[index]}
-                  topicReviewCount={topicReviewCount}
-                  width={cardWidth}
-                />
-              ))}
-              <View style={{ width: pagePadding - spacing[3] }} />
-            </ScrollView>
+            {expanded ? (
+              <View style={styles.feedRow}>{feedCards}</View>
+            ) : (
+              <ScrollView
+                contentContainerStyle={styles.feed}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                // 카드가 본문 좌우 여백 밖까지 흘러 다음 카드가 있다는 것을 보여 준다.
+                style={{ marginHorizontal: -pagePadding }}
+              >
+                <View style={{ width: pagePadding - spacing[3] }} />
+                {feedCards}
+                <View style={{ width: pagePadding - spacing[3] }} />
+              </ScrollView>
+            )}
           </>
         ) : (
           <Text style={styles.empty}>지금 저장된 결과에는 보여드릴 이미지가 없어요.</Text>
@@ -362,7 +380,7 @@ export function MyPageScreen() {
           },
           { label: '취소', onPress: () => setDialog(null) },
         ]}
-        message="다시 이용하려면 이메일과 비밀번호로 로그인해요."
+        message="다시 이용하려면 로그인해야 해요."
         onDismiss={() => setDialog(null)}
         title="로그아웃할까요?"
         visible={dialog === 'logout'}
@@ -564,6 +582,11 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   feed: {
+    gap: spacing[3],
+    paddingVertical: spacing[1],
+  },
+  feedRow: {
+    flexDirection: 'row',
     gap: spacing[3],
     paddingVertical: spacing[1],
   },
