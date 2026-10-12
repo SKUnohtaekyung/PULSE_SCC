@@ -89,4 +89,4 @@ role:design-system — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 
 ## Last Verified Commit
 
-이 문서를 담은 커밋(base `ca0d16c`). 마지막 화면 확인에 쓴 APK는 커밋 전 작업 폴더에서 빌드했고, 그 뒤 import 한 줄의 순서만 바뀌었다. 태블릿 폭과 글자 200% 확인은 reviewer 지적을 반영하기 전 빌드로 했다.
+`2752fad`(base `ca0d16c`). 마지막 화면 확인에 쓴 APK는 커밋 전 작업 폴더에서 빌드했고, 그 뒤 import 한 줄의 순서만 바뀌었다. 태블릿 폭과 글자 200% 확인은 reviewer 지적을 반영하기 전 빌드로 했다.
