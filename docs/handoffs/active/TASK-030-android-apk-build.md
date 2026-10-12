@@ -99,6 +99,8 @@ role:platform — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 
 저장소 루트 기준이다. PostgreSQL은 Windows 서비스(`postgresql-x64-18`)로 떠 있다.
 
+시연 당일에는 `scripts\demo-start.ps1`(또는 `scripts\demo-start.cmd` 더블클릭)이 아래의 서버 두 개 띄우기와 `adb reverse`를 한 번에 한다(2026-10-12, [TASK-034](TASK-034-demo-start-script.md)). 아래 명령은 직접 할 때의 참고다.
+
 ```bash
 # 서버 (각각 따로 실행). 신규 가입이 필요하면 Spring 앞에 LEGAL_REGISTRATION_ENABLED=true 를 붙인다
 cd backend/spring-api && ./gradlew.bat bootRun

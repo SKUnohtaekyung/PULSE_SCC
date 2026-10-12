@@ -5,3 +5,6 @@
 # 공식 글꼴 배포물을 원본 바이트 그대로 보존한다.
 *.otf binary
 frontend/mobile/assets/fonts/OFL.txt -whitespace
+
+# Windows 배치 파일은 CRLF여야 cmd.exe가 안정적으로 읽는다.
+*.cmd text eol=crlf
