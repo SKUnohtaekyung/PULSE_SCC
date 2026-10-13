@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     service_token: SecretStr | None = None
     openai_api_key: SecretStr | None = None
     openai_analysis_model: str = "gpt-6-astra"
+    # 분석 모델이 답을 쓰기 전에 추론에 들이는 정도. 지원하는 값은 모델마다 다르다
+    # (OpenAI 문서는 gpt-6-astra 가 none 을 받지 않는다고 적는다). 2026-10-13 같은 리뷰
+    # 120건으로 한 번씩 잰 값은 medium(모델 기본값) 115초, low 68초였고 손님 유형과 근거
+    # 수준은 비슷했다.
+    openai_analysis_reasoning_effort: Literal[
+        "none", "minimal", "low", "medium", "high", "xhigh", "max"
+    ] = "low"
     openai_image_model: str = "gpt-image-2.5-sunburst"
     review_collection_limit: int = 120
     review_collection_timeout_seconds: int = 45

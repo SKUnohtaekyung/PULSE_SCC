@@ -2,12 +2,15 @@ import asyncio
 import json
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from scc_analysis.analysis.openai_analyzer import contains_old_reviews
 from scc_analysis.collection.naver import (
     AUTHOR_FIELDS,
+    REVIEW_SELECTORS,
+    NaverPublicReviewCollector,
     ReviewCollectionError,
     ReviewDateIndex,
     _guard_collection_navigation,
@@ -252,6 +255,35 @@ def test_external_navigation_is_aborted_before_it_can_continue() -> None:
     assert blocked.code == "INVALID_NAVER_PLACE_URL"
     assert route.aborted is True
     assert route.continued is False
+
+
+def test_review_texts_are_read_once_per_selector_and_capped() -> None:
+    class Locator:
+        def __init__(self, texts: list[str]) -> None:
+            self.texts = texts
+
+        async def all_inner_texts(self) -> list[str]:
+            return self.texts
+
+    class Frame:
+        def __init__(self) -> None:
+            self.selectors: list[str] = []
+
+        def locator(self, selector: str) -> Locator:
+            self.selectors.append(selector)
+            texts = ["첫 리뷰", "", "둘째 리뷰"] if selector == ".pui__vn15t2" else []
+            return Locator(texts)
+
+    frame = Frame()
+    page = SimpleNamespace(main_frame=frame, frames=[frame])
+    collector = NaverPublicReviewCollector(limit=1, timeout_seconds=1)
+
+    texts = asyncio.run(collector._extract_review_texts(page))
+
+    # 상한은 셀렉터마다 limit 의 두 배(2건)이고 빈 글은 버린다. main_frame 은 frames 에도
+    # 들어 있어 두 번 읽히며, 겹친 본문은 build_review_batch 가 거른다.
+    assert texts == ["첫 리뷰", "첫 리뷰"]
+    assert frame.selectors == [*REVIEW_SELECTORS, *REVIEW_SELECTORS]
 
 
 def _review_node(body: str, iso: str | None) -> dict:
