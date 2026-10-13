@@ -1,7 +1,11 @@
 import base64
 import calendar
-from collections.abc import Callable
+import logging
+import time
+from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
+from typing import Any
 
 import openai
 from openai import OpenAI
@@ -11,8 +15,12 @@ from scc_analysis.analysis import progress
 from scc_analysis.analysis.models import (
     CollectedReview,
     PersonaImage,
+    PersonaOutput,
     StructuredAnalysis,
+    validate_evidence,
 )
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """당신은 음식점 공개 리뷰를 근거로 손님 사용 상황을 구조화하는 분석가입니다.
 반드시 제공된 리뷰만 근거로 사용하세요. 연령, 성별, 직업 같은 인구통계를 추정하지 마세요.
@@ -66,12 +74,21 @@ class ModelServiceUnavailableError(RuntimeError):
 
 
 class OpenAiReviewAnalyzer:
-    def __init__(self, *, api_key: str | None, analysis_model: str, image_model: str) -> None:
+    def __init__(
+        self,
+        *,
+        api_key: str | None,
+        analysis_model: str,
+        image_model: str,
+        reasoning_effort: str | None = None,
+    ) -> None:
         if not api_key:
             raise AnalysisConfigurationError("OPENAI_API_KEY가 설정되지 않았습니다.")
         self.client = OpenAI(api_key=api_key)
         self.analysis_model = analysis_model
         self.image_model = image_model
+        # None 이면 요청에 넣지 않아 모델 기본값으로 돈다.
+        self.reasoning_effort = reasoning_effort
 
     def analyze(
         self,
@@ -84,6 +101,7 @@ class OpenAiReviewAnalyzer:
         review_lines = "\n".join(
             f"[{index}] {review.normalized_content[:1200]}" for index, review in enumerate(reviews)
         )
+        started = time.monotonic()
         try:
             response = self._parse(review_lines)
         except ValidationError as error:
@@ -93,19 +111,32 @@ class OpenAiReviewAnalyzer:
             ) from error
         except openai.APIError as error:
             raise ModelServiceUnavailableError("분석 모델을 호출하지 못했습니다.") from error
+        _log_model_call(response, time.monotonic() - started)
         analysis = response.output_parsed
         if analysis is None:
             raise AnalysisOutputInvalidError("OpenAI가 구조화된 분석 결과를 반환하지 않았습니다.")
+        # 근거 연결은 이미지를 만들기 전에 확인한다. 응답을 조립할 때만 확인하면 어긋난
+        # 결과에도 이미지 시간과 비용을 다 쓴 뒤에야 버리게 된다.
+        try:
+            validate_evidence(analysis, reviews)
+        except ValueError as error:
+            raise AnalysisOutputInvalidError(
+                "분석 결과의 근거가 수집한 리뷰와 맞지 않습니다."
+            ) from error
         report(progress.GENERATING_IMAGE)
-        images = []
-        for persona in analysis.personas:
-            try:
-                images.append(self._generate_image(persona.rank, persona.image_prompt))
-            except (openai.APIError, ValueError, RuntimeError) as error:
-                raise ImageGenerationError("손님 유형 이미지를 만들지 못했습니다.") from error
+        started = time.monotonic()
+        images = self._generate_images(analysis.personas)
+        logger.info(
+            "손님 유형 이미지 %d장을 만들었습니다 (%.0f초)",
+            len(images),
+            time.monotonic() - started,
+        )
         return analysis, images
 
     def _parse(self, review_lines: str):
+        options: dict[str, Any] = {}
+        if self.reasoning_effort is not None:
+            options["reasoning"] = {"effort": self.reasoning_effort}
         return self.client.responses.parse(
             model=self.analysis_model,
             input=[
@@ -113,7 +144,20 @@ class OpenAiReviewAnalyzer:
                 {"role": "user", "content": f"다음 리뷰를 분석하세요.\n{review_lines}"},
             ],
             text_format=StructuredAnalysis,
+            **options,
         )
+
+    def _generate_images(self, personas: Sequence[PersonaOutput]) -> list[PersonaImage]:
+        # 이미지는 서로를 기다릴 이유가 없어 한꺼번에 요청한다. 결과는 손님 유형 순서로 돌려준다.
+        with ThreadPoolExecutor(max_workers=len(personas) or 1) as pool:
+            pending = [
+                pool.submit(self._generate_image, persona.rank, persona.image_prompt)
+                for persona in personas
+            ]
+            try:
+                return [future.result() for future in pending]
+            except (openai.APIError, ValueError, RuntimeError) as error:
+                raise ImageGenerationError("손님 유형 이미지를 만들지 못했습니다.") from error
 
     def _generate_image(self, rank: int, prompt: str) -> PersonaImage:
         response = self.client.images.generate(
@@ -144,6 +188,22 @@ class OpenAiReviewAnalyzer:
             raise RuntimeError("OpenAI 이미지 응답에 base64 데이터가 없습니다.")
         base64.b64decode(item.b64_json, validate=True)
         return PersonaImage(rank=rank, content_base64=item.b64_json)
+
+
+def _log_model_call(response: Any, seconds: float) -> None:
+    """분석 호출에 든 시간과 토큰을 남긴다. 추론 토큰은 출력 토큰에 포함돼 청구된다."""
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        logger.info("분석 모델이 응답했습니다 (%.0f초)", seconds)
+        return
+    details = getattr(usage, "output_tokens_details", None)
+    logger.info(
+        "분석 모델이 응답했습니다: 입력 %d토큰, 출력 %d토큰(그중 추론 %d) (%.0f초)",
+        usage.input_tokens,
+        usage.output_tokens,
+        details.reasoning_tokens if details is not None else 0,
+        seconds,
+    )
 
 
 def contains_old_reviews(reviews: list[CollectedReview], today: date) -> bool:

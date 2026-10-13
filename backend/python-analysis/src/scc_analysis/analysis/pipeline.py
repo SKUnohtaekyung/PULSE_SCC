@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import time
 from datetime import UTC, date, datetime
 
 from scc_analysis.analysis import progress
@@ -6,6 +8,8 @@ from scc_analysis.analysis.models import AnalyzeRequest, AnalyzeResponse
 from scc_analysis.analysis.openai_analyzer import OpenAiReviewAnalyzer, contains_old_reviews
 from scc_analysis.collection.naver import NaverPublicReviewCollector
 from scc_analysis.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 # 분석에 필요한 최소 유효 리뷰 수(PRD FR-009).
 # Spring AnalysisRepository.MINIMUM_VALID_REVIEWS 와 같다.
@@ -20,14 +24,22 @@ async def run_analysis(request: AnalyzeRequest) -> AnalyzeResponse:
     )
     collected_at = datetime.now(UTC)
     progress.set_step(request.job_id, progress.COLLECTING_REVIEWS)
+    started = time.monotonic()
     collection = await collector.collect(request.naver_place_url)
     reviews = collection.reviews
+    logger.info(
+        "리뷰를 수집했습니다: 후보 %d건, 유효 %d건 (%.0f초)",
+        collection.collected_review_count,
+        len(reviews),
+        time.monotonic() - started,
+    )
     if len(reviews) < MINIMUM_VALID_REVIEWS:
         raise ValueError(f"INSUFFICIENT_VALID_REVIEWS:{len(reviews)}")
     analyzer = OpenAiReviewAnalyzer(
         api_key=settings.openai_api_key.get_secret_value() if settings.openai_api_key else None,
         analysis_model=settings.openai_analysis_model,
         image_model=settings.openai_image_model,
+        reasoning_effort=settings.openai_analysis_reasoning_effort,
     )
     analysis, images = await asyncio.to_thread(
         analyzer.analyze,
