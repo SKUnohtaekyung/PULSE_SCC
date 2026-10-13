@@ -186,6 +186,22 @@ class StructuredAnalysis(BaseModel):
         ]
 
 
+def validate_evidence(analysis: StructuredAnalysis, reviews: list[CollectedReview]) -> None:
+    """Raise ValueError unless every count and quote is backed by the collected reviews."""
+    review_count = len(reviews)
+    for persona in analysis.personas:
+        if persona.topic_review_count > review_count:
+            raise ValueError("Persona topic review count exceeds the review collection")
+        for item in [*persona.insights, *persona.advice]:
+            for reference in item.evidence:
+                if reference.review_index >= review_count:
+                    raise ValueError("Evidence reference points outside the review collection")
+                review = _normalized_quote(reviews[reference.review_index].normalized_content)
+                excerpt = _normalized_quote(reference.excerpt)
+                if not excerpt or excerpt not in review:
+                    raise ValueError("Evidence excerpt is not quoted from the referenced review")
+
+
 class PersonaImage(BaseModel):
     rank: int
     content_base64: str
@@ -212,21 +228,9 @@ class AnalyzeResponse(BaseModel):
             raise ValueError("Valid review count must equal the returned review collection")
         if self.collected_review_count < self.valid_review_count:
             raise ValueError("Collected review count cannot be smaller than valid review count")
-        for persona in self.analysis.personas:
-            if persona.topic_review_count > review_count:
-                raise ValueError("Persona topic review count exceeds the review collection")
-            for item in [*persona.insights, *persona.advice]:
-                for reference in item.evidence:
-                    if reference.review_index >= review_count:
-                        raise ValueError("Evidence reference points outside the review collection")
-                    review = _normalized_quote(
-                        self.reviews[reference.review_index].normalized_content
-                    )
-                    excerpt = _normalized_quote(reference.excerpt)
-                    if not excerpt or excerpt not in review:
-                        raise ValueError(
-                            "Evidence excerpt is not quoted from the referenced review"
-                        )
+        # 분석기가 이미지를 만들기 전에 같은 검사를 한다. 여기서는 Spring 에 내보내는 응답이
+        # 어떤 경로로 만들어졌든 근거 연결이 맞는지 한 번 더 확인한다.
+        validate_evidence(self.analysis, self.reviews)
         if {item.rank for item in self.images} != {item.rank for item in self.analysis.personas}:
             raise ValueError("Every persona must have exactly one generated image")
         return self

@@ -1,11 +1,16 @@
+import asyncio
+import logging
 import socket
+import threading
+import time
 from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, SecretStr, ValidationError
 
-from scc_analysis.analysis import progress
+from scc_analysis.analysis import pipeline, progress
+from scc_analysis.analysis.models import AnalyzeRequest, CollectedReview
 from scc_analysis.analysis.openai_analyzer import (
     AnalysisOutputInvalidError,
     ImageGenerationError,
@@ -14,7 +19,8 @@ from scc_analysis.analysis.openai_analyzer import (
 )
 from scc_analysis.api import analysis as analysis_api
 from scc_analysis.collection import naver
-from scc_analysis.collection.naver import ReviewCollectionError
+from scc_analysis.collection.naver import CollectedReviewBatch, ReviewCollectionError
+from scc_analysis.core.config import Settings
 from scc_analysis.main import app
 
 _BODY = {
@@ -273,7 +279,7 @@ def test_the_analyzer_reports_each_step_just_before_doing_it(
 ) -> None:
     analyzer = OpenAiReviewAnalyzer(api_key="test", analysis_model="m", image_model="i")
     events: list[str] = []
-    persona = SimpleNamespace(rank=1, image_prompt="prompt")
+    persona = _fake_persona(1)
 
     def parse(review_lines: str) -> SimpleNamespace:
         events.append("parse")
@@ -286,6 +292,165 @@ def test_the_analyzer_reports_each_step_just_before_doing_it(
     monkeypatch.setattr(analyzer, "_parse", parse)
     monkeypatch.setattr(analyzer, "_generate_image", generate_image)
 
-    analyzer.analyze([], on_step=events.append)
+    analyzer.analyze(_REVIEWS, on_step=events.append)
 
     assert events == ["ANALYZING", "parse", "GENERATING_IMAGE", "image"]
+
+
+# ---------- 분석기: 근거 확인 순서, 이미지 동시 생성, 추론 강도 ----------
+
+_REVIEWS = [
+    CollectedReview(content="정말 맛있어요", normalized_content="정말 맛있어요", content_hash="h")
+]
+
+
+def _fake_persona(rank: int, excerpt: str = "맛있어요") -> SimpleNamespace:
+    evidence = [SimpleNamespace(review_index=0, excerpt=excerpt)]
+    return SimpleNamespace(
+        rank=rank,
+        image_prompt=f"prompt-{rank}",
+        topic_review_count=1,
+        insights=[SimpleNamespace(evidence=evidence)],
+        advice=[],
+    )
+
+
+def _analyzer_returning(
+    monkeypatch: pytest.MonkeyPatch, personas: list[SimpleNamespace], usage: object = None
+) -> OpenAiReviewAnalyzer:
+    analyzer = OpenAiReviewAnalyzer(api_key="test", analysis_model="m", image_model="i")
+    response = SimpleNamespace(output_parsed=SimpleNamespace(personas=personas), usage=usage)
+    monkeypatch.setattr(analyzer, "_parse", lambda review_lines: response)
+    return analyzer
+
+
+def test_a_quote_that_is_not_in_the_review_stops_before_any_image_is_made(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # 2026-10-13 실측에서 모델이 두 구절을 "..." 로 이어 붙여 인용했다.
+    analyzer = _analyzer_returning(monkeypatch, [_fake_persona(1, excerpt="정말 ... 맛있어요")])
+    made: list[int] = []
+    events: list[str] = []
+    monkeypatch.setattr(analyzer, "_generate_image", lambda rank, prompt: made.append(rank))
+
+    with pytest.raises(AnalysisOutputInvalidError):
+        analyzer.analyze(_REVIEWS, on_step=events.append)
+
+    assert made == []
+    assert events == ["ANALYZING"]
+
+
+def test_images_are_requested_together_and_returned_in_persona_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    analyzer = _analyzer_returning(monkeypatch, [_fake_persona(rank) for rank in (1, 2, 3)])
+    together = threading.Barrier(3, timeout=5)
+
+    def generate_image(rank: int, prompt: str) -> str:
+        together.wait()  # 세 요청이 함께 떠 있어야 풀린다. 차례로 부르면 시간 초과로 실패한다.
+        time.sleep(0.05 * (3 - rank))  # 1순위가 가장 늦게 끝난다.
+        return f"{prompt}-image"
+
+    monkeypatch.setattr(analyzer, "_generate_image", generate_image)
+
+    _, images = analyzer.analyze(_REVIEWS)
+
+    assert images == ["prompt-1-image", "prompt-2-image", "prompt-3-image"]
+
+
+def test_one_image_that_cannot_be_made_fails_the_whole_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    analyzer = _analyzer_returning(monkeypatch, [_fake_persona(rank) for rank in (1, 2)])
+
+    def generate_image(rank: int, prompt: str) -> str:
+        if rank == 2:
+            raise RuntimeError("OpenAI 이미지 응답에 base64 데이터가 없습니다.")
+        return "image"
+
+    monkeypatch.setattr(analyzer, "_generate_image", generate_image)
+
+    with pytest.raises(ImageGenerationError):
+        analyzer.analyze(_REVIEWS)
+
+
+@pytest.mark.parametrize(
+    ("effort", "expected"), [("low", {"reasoning": {"effort": "low"}}), (None, {})]
+)
+def test_the_reasoning_effort_is_sent_only_when_it_is_set(
+    effort: str | None, expected: dict[str, object]
+) -> None:
+    analyzer = OpenAiReviewAnalyzer(
+        api_key="test", analysis_model="m", image_model="i", reasoning_effort=effort
+    )
+    sent: dict[str, object] = {}
+    analyzer.client = SimpleNamespace(
+        responses=SimpleNamespace(parse=lambda **options: sent.update(options))
+    )
+
+    analyzer._parse("[0] 리뷰")
+
+    assert sent["model"] == "m"
+    assert {key: value for key, value in sent.items() if key == "reasoning"} == expected
+
+
+def test_the_pipeline_hands_the_configured_reasoning_effort_to_the_analyzer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class Collector:
+        def __init__(self, **options: object) -> None:
+            pass
+
+        async def collect(self, url: str) -> CollectedReviewBatch:
+            return CollectedReviewBatch(collected_review_count=50, reviews=_REVIEWS * 50)
+
+    class Analyzer:
+        def __init__(self, **options: object) -> None:
+            captured.update(options)
+
+        def analyze(self, reviews: object, on_step: object = None) -> None:
+            raise AnalysisOutputInvalidError("여기까지만 본다")
+
+    monkeypatch.delenv("SCC_OPENAI_ANALYSIS_REASONING_EFFORT", raising=False)
+    monkeypatch.setattr(pipeline, "NaverPublicReviewCollector", Collector)
+    monkeypatch.setattr(pipeline, "OpenAiReviewAnalyzer", Analyzer)
+    monkeypatch.setattr(
+        pipeline, "get_settings", lambda: Settings(_env_file=None, openai_api_key="key")
+    )
+    # run_analysis 는 단계를 기록만 한다. 지우는 것은 API 핸들러라 여기서 직접 지운다.
+    request = AnalyzeRequest(**{**_BODY, "job_id": "job-pipeline"})
+
+    try:
+        with pytest.raises(AnalysisOutputInvalidError):
+            asyncio.run(pipeline.run_analysis(request))
+    finally:
+        progress.clear(request.job_id)
+
+    assert captured["reasoning_effort"] == "low"
+
+
+def test_a_reasoning_effort_outside_the_known_values_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, openai_analysis_reasoning_effort="fast")
+
+
+def test_the_model_call_log_carries_token_counts_but_no_review_text(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    usage = SimpleNamespace(
+        input_tokens=10210,
+        output_tokens=3476,
+        output_tokens_details=SimpleNamespace(reasoning_tokens=680),
+    )
+    analyzer = _analyzer_returning(monkeypatch, [_fake_persona(1)], usage=usage)
+    monkeypatch.setattr(analyzer, "_generate_image", lambda rank, prompt: "image")
+
+    with caplog.at_level(logging.INFO, logger="scc_analysis.analysis.openai_analyzer"):
+        analyzer.analyze(_REVIEWS)
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("입력 10210토큰, 출력 3476토큰(그중 추론 680)" in message for message in messages)
+    assert any("이미지 1장" in message for message in messages)
+    assert not any("맛있어요" in message for message in messages)
