@@ -62,12 +62,12 @@ role:design-system — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 - 팝업 뒤에서 안내 카드의 타이머와 진행 목록의 애니메이션이 보이지 않는 채 계속 돈다.
 - **분석 중에는 다른 탭으로 갈 수 없다.** 전에는 하단 탭으로 나갔다 돌아올 수 있었다. 앱을 껐다 켜면 진행 중인 분석을 이어서 보여 주는 동작(TASK-027)은 그대로다.
 - `docs/product/requirements/SCREEN_STATES.md` §5는 진행 화면을 "받은 단계를 쌓는 목록"이라고 적는다. 팝업을 반영하지 않았다(`role:product` 소유). `docs/design/DESIGN_SYSTEM.md`에도 이 팝업 규칙을 적지 않았다.
-- 작업 폴더에 TASK-030에서 넘어온 V4·V6 마이그레이션 임시 파일이 있다. 커밋하면 안 된다([TASK-030](TASK-030-android-apk-build.md) Unresolved).
+- 작업 폴더에 TASK-030에서 넘어온 V4·V6 마이그레이션 임시 파일이 있다. 커밋하면 안 된다([TASK-030](../active/TASK-030-android-apk-build.md) Unresolved).
 
 ## Do Not Assume
 
 - lint와 typecheck가 통과했다고 화면이 의도대로 보인다고 가정하지 않는다.
-- `EXPO_PUBLIC_*` 값이나 소스를 바꾼 뒤에는 번들을 강제로 다시 만들어야 APK에 들어간다([TASK-030](TASK-030-android-apk-build.md) Do Not Assume).
+- `EXPO_PUBLIC_*` 값이나 소스를 바꾼 뒤에는 번들을 강제로 다시 만들어야 APK에 들어간다([TASK-030](../active/TASK-030-android-apk-build.md) Do Not Assume).
 
 ## Next Action
 
