@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
-import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { demoAccount } from '@/api/config';
 import { login, loginWithGoogle } from '@/api/endpoints';
 import { resolveErrorMessage } from '@/api/errorMessage';
 import { ApiError } from '@/api/errors';
@@ -11,7 +12,7 @@ import { GoogleIcon } from '@/components/icons/GoogleIcon';
 import { Notice } from '@/components/ui/Notice';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
-import { colors, radii, shadows, spacing, strokes } from '@/design/tokens';
+import { colors, layout, radii, shadows, spacing, strokes, typography } from '@/design/tokens';
 import { useSession } from '@/session/SessionProvider';
 
 import { SplitFlapLogo } from './components/SplitFlapLogo';
@@ -37,6 +38,14 @@ const googleErrorCopy: Record<string, string> = {
   ACCOUNT_NOT_ACTIVE: loginErrorCopy.ACCOUNT_NOT_ACTIVE,
 };
 
+// 테스트 계정 버튼은 아무것도 입력하지 않으므로 "입력한 내용을 확인하라"는 안내를 쓰지 않는다.
+// 서버는 계정이 없는 경우와 비밀번호가 틀린 경우를 구분하지 않으므로 원인을 단정하지 않는다
+// (서버 DB에 시연 계정이 없거나, 다른 값으로 빌드한 경우).
+const demoErrorCopy: Record<string, string> = {
+  INVALID_CREDENTIALS: '이 서버에서 테스트 계정으로 로그인하지 못했어요. 시연 계정과 빌드 값을 확인해 주세요.',
+  ACCOUNT_NOT_ACTIVE: '테스트 계정을 지금 사용할 수 없어요. 시연 계정을 확인해 주세요.',
+};
+
 const googleOutcomeCopy = {
   notConfigured: googleErrorCopy.GOOGLE_AUTH_NOT_CONFIGURED,
   unsupported: '이 앱에서는 Google 로그인을 쓸 수 없어요. 이메일로 로그인해 주세요.',
@@ -54,6 +63,8 @@ export function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
   const [googleCancelled, setGoogleCancelled] = useState(false);
+  const [demoPending, setDemoPending] = useState(false);
+  const busy = submitting || googlePending || demoPending;
   const [shouldPlayIntro] = useState(() => {
     const shouldPlay = !hasPlayedIntroThisLaunch;
     hasPlayedIntroThisLaunch = true;
@@ -109,7 +120,7 @@ export function LoginScreen() {
   };
 
   const submit = async () => {
-    if (submitting || googlePending) return;
+    if (busy) return;
     setFormError(null);
     setGoogleCancelled(false);
     if (!validate()) return;
@@ -125,8 +136,30 @@ export function LoginScreen() {
     }
   };
 
+  const submitDemo = async () => {
+    if (!demoAccount || busy) return;
+    setFormError(null);
+    setGoogleCancelled(false);
+    setFieldErrors({});
+
+    setDemoPending(true);
+    try {
+      const session = await login(client, demoAccount.email, demoAccount.password);
+      await signIn(session);
+    } catch (error) {
+      setFormError(
+        resolveErrorMessage(error, {
+          known: demoErrorCopy,
+          fallback: '테스트 계정으로 들어가지 못했어요. 잠시 뒤에 다시 시도해 주세요.',
+        }),
+      );
+    } finally {
+      setDemoPending(false);
+    }
+  };
+
   const submitGoogle = async () => {
-    if (submitting || googlePending) return;
+    if (busy) return;
     setFormError(null);
     setGoogleCancelled(false);
     setFieldErrors({});
@@ -241,20 +274,20 @@ export function LoginScreen() {
 
         <View style={styles.actions}>
           <Button
-            disabled={googlePending}
+            disabled={googlePending || demoPending}
             label="로그인"
             loading={submitting}
             loadingLabel="로그인하는 중이에요"
             onPress={() => void submit()}
           />
           <Button
-            disabled={googlePending}
+            disabled={googlePending || demoPending}
             label="이메일로 회원가입"
             onPress={() => router.push('/signup')}
             variant="ghost"
           />
           <Button
-            disabled={submitting}
+            disabled={submitting || demoPending}
             label="Google로 계속하기"
             leadingIcon={<GoogleIcon color={colors.text.brand} />}
             loading={googlePending}
@@ -263,6 +296,26 @@ export function LoginScreen() {
             variant="ghost"
           />
         </View>
+
+        {/* 시연용 빌드에만 나온다(api/config.ts demoAccount). 주요 행동을 가리지 않게 작은 글자로 맨 아래에 둔다.
+            공용 Button은 넓은 버튼뿐이라 이 화면 안에서만 쓰는 글자 버튼으로 만들었다. */}
+        {demoAccount ? (
+          <Pressable
+            accessibilityHint="미리 분석해 둔 시연용 계정으로 바로 로그인해요"
+            accessibilityRole="button"
+            accessibilityState={{ busy: demoPending, disabled: busy }}
+            disabled={busy}
+            onPress={() => void submitDemo()}
+            style={({ pressed }) => [styles.demoAction, pressed && !busy && styles.demoActionPressed]}
+          >
+            <View style={styles.demoInner}>
+              {demoPending ? <ActivityIndicator color={colors.text.secondary} size="small" /> : null}
+              <Text style={[styles.demoLabel, busy && !demoPending && styles.demoLabelDisabled]}>
+                {demoPending ? '테스트 계정으로 들어가는 중이에요' : '테스트 계정으로 로그인'}
+              </Text>
+            </View>
+          </Pressable>
+        ) : null}
       </Animated.View>
     </Screen>
   );
@@ -300,5 +353,33 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing[3],
+  },
+  demoAction: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    justifyContent: 'center',
+    minHeight: layout.touchTargetMin,
+    paddingHorizontal: spacing[3],
+  },
+  // 공용 Button과 같은 눌림 표현(Button.tsx pressed).
+  demoActionPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  demoInner: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing[2],
+    justifyContent: 'center',
+  },
+  demoLabel: {
+    ...typography.body7,
+    color: colors.text.secondary,
+    flexShrink: 1,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  demoLabelDisabled: {
+    color: colors.text.disabled,
   },
 });
