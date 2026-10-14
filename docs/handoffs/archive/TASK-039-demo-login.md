@@ -83,12 +83,12 @@ role:feature — 오해서 (`role` 배정은 미정, `AGENTS.md` 5장)
 - **시연 계정은 이 PC의 로컬 DB에만 있다.** `scripts\reset-db.ps1`로 DB를 초기화하면 계정과 결과도 사라진다. 다시 만들려면 서버를 `-AllowSignup`으로 띄워 같은 이메일·비밀번호로 가입하고(값은 `.env.local`), 그 계정으로 바람난 얼큰 수제비를 다시 분석한다. 이것을 하는 스크립트는 저장소에 넣지 않았다. 다른 PC에서 시연하려면 그 PC의 DB에도 같은 계정과 결과가 있어야 한다.
 - 시연 계정의 가입 전화번호는 실제 번호가 아닌 `01000000000`이다.
 - 화면 상태 정본(`docs/product/requirements/SCREEN_STATES.md`)과 디자인 원칙(`docs/design/DESIGN_SYSTEM.md`)에 이 버튼이 없다. 시연용이라 정본에 넣을지는 `role:product`·`role:design-system`이 정할 일이다. 고치지 않았다.
-- 시연 계정의 결과에서도 손님 유형 이름 "생각나서 다시 온 손님"이 포디움에서 "손/님"으로 갈린다(이미 알려진 문제, [TASK-030](TASK-030-android-apk-build.md) "분석에 대해 알아 둘 것").
+- 시연 계정의 결과에서도 손님 유형 이름 "생각나서 다시 온 손님"이 포디움에서 "손/님"으로 갈린다(이미 알려진 문제, [TASK-030](../active/TASK-030-android-apk-build.md) "분석에 대해 알아 둘 것").
 - 에뮬레이터의 앱은 시연 계정으로 로그인된 상태로 두었다. 사용자가 원래 쓰던 계정은 에뮬레이터에서 로그아웃됐다(계정 자체는 그대로다).
 
 ## Do Not Assume
 
-- 버튼은 빌드할 때 두 값이 있어야 나온다. `EXPO_PUBLIC_*` 값을 바꾼 뒤에는 `:app:createBundleReleaseJsAndAssets --rerun`으로 번들을 다시 만들어야 APK에 들어간다([TASK-030](TASK-030-android-apk-build.md) Do Not Assume).
+- 버튼은 빌드할 때 두 값이 있어야 나온다. `EXPO_PUBLIC_*` 값을 바꾼 뒤에는 `:app:createBundleReleaseJsAndAssets --rerun`으로 번들을 다시 만들어야 APK에 들어간다([TASK-030](../active/TASK-030-android-apk-build.md) Do Not Assume).
 - 버튼이 보여도 서버에 그 계정과 저장 결과가 없으면 결과 화면이 열리지 않는다(로그인 실패 또는 빈 홈).
 - 이 APK의 웹 클라이언트 ID는 이전 APK에서 꺼낸 값이다. 서버의 `GOOGLE_CLIENT_ID`가 바뀌었다면 다시 맞춰야 한다. 새 APK로 Google 로그인은 눌러 보지 않았다.
 
