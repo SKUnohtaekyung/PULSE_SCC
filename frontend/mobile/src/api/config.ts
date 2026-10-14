@@ -25,3 +25,15 @@ const readGoogleWebClientId = () => {
 };
 
 export const googleWebClientId = readGoogleWebClientId();
+
+// 전시 시연에서 미리 분석해 둔 계정으로 바로 들어가는 테스트 계정이다. 시연용 APK를 빌드할 때만
+// 두 값을 넣는다. 넣은 값은 APK 안에 그대로 들어가므로 시연 전용 계정에만 쓴다. 둘 중 하나라도
+// 없으면 로그인 화면에 테스트 계정 버튼을 그리지 않는다.
+const readDemoAccount = () => {
+  const email = process.env.EXPO_PUBLIC_DEMO_LOGIN_EMAIL?.trim();
+  const password = process.env.EXPO_PUBLIC_DEMO_LOGIN_PASSWORD;
+  if (!email || !password?.trim()) return null;
+  return { email, password };
+};
+
+export const demoAccount = readDemoAccount();
