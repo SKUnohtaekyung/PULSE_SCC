@@ -11,7 +11,7 @@ ui/TASK-040-demo-web
 
 ## Goal
 결과물을 보는 사람이 서버 없이 브라우저에서 PULSE 앱을 그대로 써 볼 수 있게 한다. 데이터는 목 데이터, 디자인은 발표 시안에 최대한 맞춰 강화한다.
-관련 이슈: 미생성
+관련 이슈: #60
 관련 요구사항: PRD §5 Non-Goals 범위 안에서 기존 MVP 화면 흐름 그대로
 
 ## Completed
@@ -92,7 +92,7 @@ ui/TASK-040-demo-web
 - 결과 화면 디자인은 시연 앱에만 있다. Android 앱은 이전 디자인 그대로다.
 
 ## Next Action
-3단계 독립 리뷰 PASS 후 커밋·PR(사진 원본 PNG와 `docs/presentation/발표대본_중간발표_5분.md`는 빼고).
+PR 리뷰·병합 후 handoff를 archive로 옮긴다. GitHub Pages 배포(Unresolved 2)는 별도로 진행한다.
 
 ## Last Verified Commit
-커밋 전 — 복제 기준 `c1515af`, 위 Verification은 2026-11-15 작업 트리 기준(1·2단계 Visual QA 행은 그 당시 기록)
+`7f44952` — 복제 기준 `c1515af`. 위 Verification은 이 커밋의 작업 트리 기준(2026-11-15, 1·2단계 Visual QA 행은 그 당시 기록)
