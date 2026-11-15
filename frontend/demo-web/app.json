@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "PULSE 시연",
+    "slug": "pulse-scc-demo",
+    "scheme": "pulse-scc-demo",
+    "version": "1.0.0",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png",
+      "name": "PULSE 시연 — 리뷰로 손님을 읽는 앱",
+      "lang": "ko"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-splash-screen"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true,
+      "baseUrl": "/PULSE_SCC"
+    },
+    "platforms": [
+      "web"
+    ]
+  }
+}
