@@ -1,7 +1,7 @@
 # TASK-040 — 결과물 제출용 시연 앱(demo-web)
 
 ## Status
-진행중 — 1단계(목 데이터로 전체 흐름) 완료·독립 리뷰 PASS. 2단계(발표 시안 기반 디자인·Remotion 맥박 스플래시·"앱 그 자체" 구조) 독립 리뷰 PASS. 3단계(결과 화면 나누기·데이터 정합성·AI 가상 인물 사진) 구현 완료, 독립 리뷰 대기
+진행중 — 1단계(목 데이터로 전체 흐름) 완료·독립 리뷰 PASS. 2단계(발표 시안 기반 디자인·Remotion 맥박 스플래시·"앱 그 자체" 구조) 독립 리뷰 PASS. 3단계(결과 화면 나누기·데이터 정합성·AI 가상 인물 사진) 독립 리뷰 PASS. PR #61 리뷰 대기. GitHub Pages에 배포함(`gh-pages` 브랜치 방식, 2026-11-15) — https://skunohtaekyung.github.io/PULSE_SCC/
 
 ## Owner
 role:design-system — 담당자 미정 (프론트엔드 화면·시연 자료)
@@ -39,11 +39,14 @@ ui/TASK-040-demo-web
 
 - 팝업을 앱 기둥 안으로(2026-11-15): 확인 대화상자·마이페이지 크게 보기·분석 진행 화면이 PC에서 브라우저 창 전체를 덮고 휴대폰 폭보다 넓게 뜨던 것을 `ModalColumn`으로 가운데 기둥 안에만 그리게 함. PC 1280×800·휴대폰 390×844 캡처로 확인
 
+- GitHub Pages 배포(2026-11-15): 빌드 결과를 `gh-pages` 브랜치에 올려 공개. 없는 주소는 Expo 기본 영어 안내 대신 `src/app/+not-found.tsx`가 앱 처음으로 넘긴다. 다시 배포하는 순서는 README "GitHub Pages 배포"
+
 세부 차이 표·시연 데이터 표시 자리·시연 시나리오는 [frontend/demo-web/README.md](../../../frontend/demo-web/README.md)가 정본이다.
 
 ## Changed
 - `frontend/demo-web/**` — 신규(원본 복제 + 위 변경). `node_modules`·`dist`는 `.gitignore` 대상
 - `docs/handoffs/active/TASK-040-demo-web.md` — 이 문서
+- 원격 `gh-pages` 브랜치 — 빌드 결과만(소스 아님). 저장소 Pages 소스가 이 브랜치 `/`
 
 원본 `frontend/mobile/**`은 수정하지 않았다.
 
@@ -59,25 +62,27 @@ ui/TASK-040-demo-web
 - **"먼저 볼 것" 아이콘 색은 컴포넌트에서**: 시안의 남색 칸 위 흰 아이콘을 토큰(`colors.perspective.priority`)에 넣으면 `verify:tokens`의 "강조선 / 카드" 검사(흰색 1:1)가 실패한다. 강조선은 시연 앱에서 쓰지 않으므로 토큰은 그대로 두고 `PerspectiveCard`에서 `colors.brand.*`로 칠한다.
 - **결과 화면 나누기**(사용자 결정): 한 화면 긴 스크롤 대신 실제 앱처럼 누르면 넘어가게. PRD FR-002(선택한 유형 아래 4관점 모두, 대표 근거 기본 노출) 때문에 관점은 손님 유형 화면 한 장에 압축해 두고 따로 쪼개지 않았다. 원본 앱은 미리보기에서 다른 화면으로 나가지 않지만(SCREEN_STATES §7) 시연 앱은 jobId로 하위 화면을 연다.
 - **이름 짧게**: 단상 칸(약 110px)에서 "평일 점심 한 끼 손님"이 글자 중간에서 끊겨 짧게 줄였다.
+- **배포는 `gh-pages` 브랜치 방식**(2026-11-15, 사용자 요청 "깃페이지 배포 진행"): Actions 워크플로는 `.github/**`(`role:platform`) 수정과 `main` 병합이 먼저 필요하다. 브랜치 방식은 둘 다 없이 지금 올릴 수 있다. 대가로 `main`에 병합해도 자동 반영되지 않고 수동으로 다시 올려야 한다.
 - **Remotion 라이선스 미확인**: 팀이 무료 대상인지 확인하지 않아 `acknowledgeRemotionLicense`를 넣지 않았다.
 
 ## Verification
 | 검증 | 명령 | 결과 |
 |---|---|---|
-| lint | `npm --prefix frontend/demo-web run lint` | PASS (오류·경고 0, 2026-11-15 3단계 리뷰 반영 뒤) |
-| typecheck | `npm --prefix frontend/demo-web run typecheck` | PASS (오류 0, 2026-11-15) |
+| lint | `npm --prefix frontend/demo-web run lint` | PASS (오류·경고 0, 2026-11-15 `2a8ce91`) |
+| typecheck | `npm --prefix frontend/demo-web run typecheck` | PASS (오류 0, 2026-11-15 `2a8ce91`) |
 | 토큰 대비 | `npm --prefix frontend/demo-web run verify:tokens` | `Design token verification: PASS` (2026-11-15) |
 | test | 없음 — 프론트엔드 단위 테스트 미도입(AGENTS.md 2장) | 없음 |
 | build | `npm --prefix frontend/demo-web run export:web` | `Exported: dist`, JS 번들 1.8MB, dist 8.9MB(사진 WebP 3장 포함, 2026-11-15) |
 | Visual QA(부분, 1단계) | 로컬 정적 서버(`/PULSE_SCC/`)에서 내장 브라우저 | 로그인 → 입력 → 진행 → 첫 저장 → 홈 → 근거 → 마이페이지 → 미리보기 → 교체, `fail`·`notfound`·`리뷰부족`, 콘솔 오류 없음 |
 | Visual QA(부분, 2단계 최종) | 같은 서버에서 Playwright(시스템 Python, 헤드리스 Chromium)로 PC 1280×800·모바일 390×844 캡처 | 두 크기 모두 스플래시 → 로그인 → 테스트 계정 → 가게 입력 → "가게 분석 시작하기" → 진행 스플래시 → 첫 저장 → 홈(머리·기준 카드·TOP3·먼저 살펴볼 것·관점 카드·AI 해석 상자) → 근거 목록 → 마이페이지를 자동으로 끝까지 진행, `pageerror` 0건. PC는 가운데 430px 기둥 확인 |
 | Visual QA(부분, 3단계, 2026-11-15) | Playwright 390×844, 스크롤 영역 전체 캡처, 리뷰 반영 뒤 다시 실행 | 분석 → 첫 저장(TOP3) → 홈(1.3화면 길이) → 1위 손님 화면(사진·4관점·펄스의 분석·행동 바로가기) → 검토해 볼 행동(펄스의 분석 펼침) → 뒤로 → 분석 기준, 마이페이지 사진 카드, `pageerror` 0건 |
+| 배포 사이트(2026-11-15) | Playwright로 https://skunohtaekyung.github.io/PULSE_SCC/ 를 PC 1280×800·모바일 390×844에서 실행 | 두 크기 모두 스플래시 → 로그인 → 테스트 계정 → 분석 → 첫 저장 → 홈, `/home`·`/persona?rank=1`·`/advice?rank=1`·`/mypage` 주소 직접 열기 정상, `pageerror` 0건, 400 이상 응답 0건(없는 주소 확인용 요청 제외). 배포 커밋 `8ee795a`(소스 `2a8ce91`)에서 다시 실행: 없는 주소 `/no-such-page`는 404 응답 뒤 앱 화면(로그인 상태면 홈)으로 넘어감. 주소창은 `/no-such-page`로 남는다 |
 
 미실행: 미리보기(저장 선택) 화면의 새 머리 문구 캡처, 모션 감소 설정의 멈춘 한 컷, 키보드만으로 조작, 태블릿 폭, 회원가입·Google·로그아웃, "시연 데이터 처음부터" 확인 창, 그림 다운로드. visual-qa 스킬 전체 절차는 아직 수행하지 않았다.
 
 ## Unresolved
 1. 회원가입·마이페이지는 시안에 없어 기존 모양
-2. GitHub Pages 배포 워크플로 없음 — `.github/**`는 `role:platform` 소유. 저장소 Settings › Pages에서 GitHub Actions 소스를 켜는 것은 사용자가 직접 해야 한다. 브랜치 방식 배포면 `.nojekyll` 필요(`_expo/` 폴더)
+2. GitHub Pages 자동 배포 없음 — `gh-pages` 브랜치에 수동으로 올렸다. `main` 병합·화면 수정이 사이트에 자동 반영되지 않는다. 자동화하려면 `.github/workflows/`(`role:platform`) 추가와 Pages 소스를 GitHub Actions로 바꾸는 설정 변경이 필요하다
 3. 웹 폰트 6.1MB(OTF 4종) 그대로 — 서브셋 woff2로 줄여야 첫 화면이 빨라진다
 4. 원본 앱 변경을 demo-web에 옮기는 절차 없음 — 복제 기준은 `c1515af`
 5. `docs/architecture/ARCHITECTURE.md`와 AGENTS.md 3장 명령표에 demo-web이 없다 — `role:platform`·공용 파일이라 별도 PR
@@ -90,9 +95,10 @@ ui/TASK-040-demo-web
 - 원본 `frontend/mobile`과 동기화되지 않는다. `c1515af` 이후 원본 변경은 반영되지 않는다.
 - `baseUrl`이 `/PULSE_SCC`라서 `dist/index.html`을 파일로 바로 열면 자산을 못 찾는다.
 - 결과 화면 디자인은 시연 앱에만 있다. Android 앱은 이전 디자인 그대로다.
+- 없는 주소에서 앱 처음으로 넘어가도 주소창은 그 주소로 남는다. 그 뒤 뒤로가기·하위 화면 이동은 확인하지 않았다. Expo 기본 `/_sitemap` 페이지(영어, 앱 기둥 밖)도 배포돼 열린다.
 
 ## Next Action
-PR 리뷰·병합 후 handoff를 archive로 옮긴다. GitHub Pages 배포(Unresolved 2)는 별도로 진행한다.
+PR #61 리뷰·병합 후 handoff를 archive로 옮긴다(화면을 더 고치면 README "GitHub Pages 배포" 순서로 다시 올린다. 사이트가 이미 공개됐으므로 Remotion 라이선스 대상 확인(Unresolved 8)이 급하다).
 
 ## Last Verified Commit
-`7f44952` — 복제 기준 `c1515af`. 위 Verification은 이 커밋의 작업 트리 기준(2026-11-15, 1·2단계 Visual QA 행은 그 당시 기록)
+`2a8ce91` — 복제 기준 `c1515af`. lint·typecheck·export:web과 배포 사이트 확인은 이 커밋 기준(2026-11-15). 그 밖의 행은 `7f44952` 기준이고 1·2단계 Visual QA 행은 그 당시 기록

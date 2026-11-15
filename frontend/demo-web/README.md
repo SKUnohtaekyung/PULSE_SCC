@@ -23,6 +23,27 @@
 
 `app.json`의 `experiments.baseUrl`이 `/PULSE_SCC`라서 사이트는 `https://<계정>.github.io/PULSE_SCC/` 경로를 전제로 빌드된다. 로컬에서 `dist`를 열 때도 `/PULSE_SCC/` 아래에서 제공해야 자산 경로가 맞는다. 저장소 이름이 바뀌면 이 값과 `src/demo/appFrame.ts`의 `siteBase`를 함께 바꾼다.
 
+## GitHub Pages 배포
+
+- 주소: https://skunohtaekyung.github.io/PULSE_SCC/ (2026-11-15 첫 배포)
+- 방식: **`gh-pages` 브랜치**에 빌드 결과(`dist`)만 올리고, 저장소 Pages 소스를 그 브랜치 `/`로 둔다. 배포 워크플로(`.github/workflows/`)는 `role:platform` 소유 영역이라 쓰지 않았다. 그래서 `main`에 병합해도 **자동으로 다시 배포되지 않는다.** 화면을 고치면 아래 순서로 다시 올린다.
+- `gh-pages` 브랜치는 빌드 결과만 담는다. 소스는 이 폴더가 정본이다. 배포 커밋 메시지에 빌드한 소스 커밋을 적는다.
+
+다시 배포하는 순서(Git Bash, 저장소 루트). **작업 트리가 깨끗하고 push한 커밋에서만** 올린다 — 배포 커밋에 적는 소스 해시를 GitHub에서 찾을 수 있어야 한다. 2026-11-15 두 번의 배포는 같은 단계를 임시 폴더에서 손으로 실행했고, 아래 한 줄은 그 단계를 묶은 것이다(이 형태 그대로는 아직 실행하지 않음):
+
+```bash
+npm --prefix frontend/demo-web run export:web
+```
+
+```bash
+OUT="$(mktemp -d)" && git clone --branch gh-pages --single-branch https://github.com/SKUnohtaekyung/PULSE_SCC.git "$OUT" && git -C "$OUT" rm -rq . && cp -r frontend/demo-web/dist/. "$OUT/" && cp "$OUT/+not-found.html" "$OUT/404.html" && touch "$OUT/.nojekyll" && git -C "$OUT" add -A && git -C "$OUT" commit -m "deploy: 시연 앱 정적 빌드 (source $(git rev-parse --short HEAD))" && git -C "$OUT" push origin gh-pages && rm -rf "$OUT"
+```
+
+- `.nojekyll`: 없으면 GitHub Pages(Jekyll)가 밑줄로 시작하는 `_expo/` 폴더를 버려 앱이 뜨지 않는다.
+- `404.html`: GitHub Pages는 없는 경로에 `404.html`을 돌려준다. `+not-found.html`을 복사해 두면 앱의 `src/app/+not-found.tsx`가 처음 화면으로 넘긴다.
+- 강제 push(`--force`)를 쓰지 않는다(AGENTS.md 6.3). 위 순서는 기존 `gh-pages` 위에 새 커밋을 쌓는다.
+- push 뒤 1분 안팎에 반영된다. 상태는 `gh api repos/SKUnohtaekyung/PULSE_SCC/pages/builds/latest --jq .status`(`built`면 끝).
+
 ## 맥박 장면(Remotion)
 
 앱을 켤 때(최소 2.4초)와 분석 결과를 기다리는 동안에만 나온다(2026-11-11 사용자 결정). `remotion`·`@remotion/player` **4.0.535**(2026-10-12 배포)를 쓴다.
@@ -153,5 +174,5 @@
 ## 아직 하지 않은 것
 
 - 회원가입·마이페이지·첫 저장 화면은 시안에 없어 기존 모양을 유지했다
-- GitHub Pages 배포 워크플로(`.github/workflows/`) — `role:platform` 소유 영역이라 별도 합의 후 추가. 브랜치 방식으로 배포하면 Jekyll이 `_expo/` 폴더를 버리므로 `dist`에 `.nojekyll`이 필요하다(Actions 배포면 필요 없다)
+- GitHub Pages 자동 배포 워크플로(`.github/workflows/`) — `role:platform` 소유 영역이라 별도 합의 후 추가. 지금은 위 "GitHub Pages 배포"의 수동 순서로 올린다
 - 웹용 폰트 경량화 — Pretendard OTF 4종(약 6.1MB)을 그대로 실어 첫 화면이 느리다
